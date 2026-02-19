@@ -82,18 +82,25 @@ export function StatCard({
 
     switch (iconColor) {
       case "text-primary":
-        return "text-blue-950";
+        return "text-blue-950 text-2xl";
       case "text-success":
-        return "text-green-950 text-3xl";
+        return "text-green-950 text-2xl";
       case "text-info":
-        return "text-purple-950";
+        return "text-purple-950 text-2xl";
       case "text-warning":
-        return "text-yellow-950";
+        return "text-yellow-950 text-2xl";
       case "text-destructive":
-        return "text-red-950";
+        return "text-red-950 text-2xl";
       default:
-        return "text-blue-950";
+        return "text-blue-950 text-2xl";
     }
+  };
+
+  const getFontSizeClass = () => {
+    const valueString = value.toString();
+    if (valueString.length > 10) return "text-lg";
+    if (valueString.length > 7) return "text-xl";
+    return "text-2xl";
   };
 
   return (
@@ -110,7 +117,7 @@ export function StatCard({
       <div className="flex items-start justify-between">
         <div>
           <p className={cn("text-sm font-medium", getVibrantTextStyles())}>{title}</p>
-          <p className={cn("mt-1 text-2xl font-bold", getVibrantValueStyles())}>{value}</p>
+          <p className={cn("mt-1 font-bold", getFontSizeClass(), getVibrantValueStyles())}>{value}</p>
           {change && (
             <p
               className={cn(

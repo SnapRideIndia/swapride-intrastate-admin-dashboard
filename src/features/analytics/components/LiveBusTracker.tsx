@@ -1,47 +1,47 @@
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation, Bus, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useLiveLocations, FleetMap } from "@/features/trips";
+import { useJsApiLoader } from "@react-google-maps/api";
+import { useState, useEffect } from "react";
+import { ROUTES } from "@/constants/routes";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
-const activeBuses = [
-  {
-    id: "TS07-1234",
-    route: "Mehboobnagar → Hyderabad",
-    driver: "Ramesh Kumar",
-    status: "On Route",
-    passengers: 42,
-    capacity: 52,
-    lastUpdate: "2 min ago",
-  },
-  {
-    id: "TS07-5678",
-    route: "Hyderabad → Mehboobnagar",
-    driver: "Suresh Reddy",
-    status: "At Stop",
-    passengers: 38,
-    capacity: 52,
-    lastUpdate: "1 min ago",
-  },
-  {
-    id: "TS07-9012",
-    route: "Mehboobnagar → Hyderabad",
-    driver: "Venkat Rao",
-    status: "On Route",
-    passengers: 48,
-    capacity: 52,
-    lastUpdate: "30 sec ago",
-  },
-  {
-    id: "TS07-3456",
-    route: "Hyderabad → Mehboobnagar",
-    driver: "Krishna Murthy",
-    status: "Starting",
-    passengers: 25,
-    capacity: 52,
-    lastUpdate: "Just now",
-  },
-];
+const MAP_LIBRARIES: ("geometry" | "drawing" | "places" | "visualization")[] = ["geometry"];
 
 export function LiveBusTracker() {
+  const navigate = useNavigate();
+  const { data: activeBuses = [], isLoading } = useLiveLocations();
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: MAP_LIBRARIES,
+  });
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Auto-select first bus when buses load
+  useEffect(() => {
+    if (activeBuses.length > 0 && !selectedId) {
+      setSelectedId(activeBuses[0].tripId ?? activeBuses[0].id);
+    }
+  }, [activeBuses, selectedId]);
+
+  if (isLoading) {
+    return (
+      <div className="dashboard-card h-[400px] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  const navigateToTracking = (tripId?: string) => {
+    navigate(ROUTES.LIVE_TRACKING, { state: { tripId: tripId ?? selectedId } });
+  };
+
   return (
     <div className="dashboard-card">
+      {/* Header */}
       <div className="p-5 border-b border-border">
         <div className="flex items-center justify-between">
           <div>
@@ -55,63 +55,140 @@ export function LiveBusTracker() {
         </div>
       </div>
 
-      {/* Map placeholder */}
-      <div className="h-48 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <svg className="w-full h-full">
-            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="hsl(218, 79%, 42%)" strokeWidth="0.5" />
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-        </div>
-        <div className="relative flex items-center gap-2 text-primary">
-          <Navigation className="h-5 w-5" />
-          <span className="text-sm font-medium">GPS Map View</span>
-        </div>
-        {/* Bus markers */}
-        <div className="absolute top-8 left-12 h-3 w-3 rounded-full bg-primary animate-pulse" />
-        <div className="absolute top-16 right-20 h-3 w-3 rounded-full bg-primary animate-pulse" />
-        <div className="absolute bottom-12 left-1/3 h-3 w-3 rounded-full bg-primary animate-pulse" />
-        <div className="absolute bottom-8 right-1/4 h-3 w-3 rounded-full bg-success animate-pulse" />
-      </div>
-
-      {/* Bus list */}
-      <div className="divide-y divide-border">
-        {activeBuses.map((bus) => (
-          <div key={bus.id} className="p-4 hover:bg-muted/50 transition-colors">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 h-8 w-8 rounded-lg bg-primary-100 flex items-center justify-center">
-                  <MapPin className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{bus.id}</p>
-                  <p className="text-xs text-muted-foreground">{bus.route}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Driver: {bus.driver}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span
-                  className={
-                    bus.status === "On Route"
-                      ? "badge-success"
-                      : bus.status === "At Stop"
-                        ? "badge-info"
-                        : "badge-warning"
-                  }
-                >
-                  {bus.status}
-                </span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {bus.passengers}/{bus.capacity} seats
-                </p>
-                <p className="text-2xs text-muted-foreground">{bus.lastUpdate}</p>
+      {/* Map or Placeholder */}
+      <div className="h-48 relative overflow-hidden group">
+        {activeBuses.length > 0 ? (
+          <div className="cursor-pointer w-full h-full" onClick={() => navigateToTracking()}>
+            <div className="grayscale-[0.1] opacity-95 w-full h-full pointer-events-none">
+              {isLoaded && (
+                <FleetMap
+                  buses={activeBuses}
+                  selectedBusId={selectedId}
+                  interactive={false}
+                  showStops={false}
+                  showStartEnd={false}
+                />
+              )}
+            </div>
+            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background/60 to-transparent pointer-events-none" />
+            <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-border">
+              <Navigation className="h-3 w-3 text-primary animate-pulse" />
+              <span className="text-[10px] font-bold text-primary uppercase">Live Radar</span>
+            </div>
+            {/* Hover overlay hint */}
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow text-xs font-semibold text-primary flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" />
+                Open Live Tracking
               </div>
             </div>
           </div>
-        ))}
+        ) : (
+          <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center relative border-b border-border/50">
+            {/* Map Grid Pattern */}
+            <div
+              className="absolute inset-0 opacity-[0.03] pointer-events-none"
+              style={{
+                backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)",
+                backgroundSize: "20px 20px",
+              }}
+            />
+
+            <div className="relative mb-2">
+              <div className="h-12 w-12 rounded-full bg-slate-200/50 flex items-center justify-center">
+                <Navigation className="h-6 w-6 text-slate-400" />
+              </div>
+              <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-slate-300 border-2 border-slate-50" />
+            </div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No Active Sessions</p>
+            <p className="text-[10px] text-slate-400 mt-1">Real-time tracking of intrastate buses</p>
+          </div>
+        )}
       </div>
+
+      {/* Bus List */}
+      <div className="divide-y divide-border max-h-[320px] overflow-y-auto">
+        {activeBuses.length > 0 ? (
+          activeBuses.map((bus) => {
+            const busId = bus.tripId ?? bus.id;
+            const isSelected = selectedId === busId;
+            return (
+              <div
+                key={bus.id}
+                className={cn(
+                  "p-4 transition-colors cursor-pointer select-none",
+                  isSelected
+                    ? "bg-primary/5 border-l-2 border-primary"
+                    : "hover:bg-muted/50 border-l-2 border-transparent",
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedId(busId);
+                }}
+                onDoubleClick={() => navigateToTracking(busId)}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center",
+                        isSelected ? "bg-primary text-white" : "bg-primary-100 text-primary",
+                      )}
+                    >
+                      <Bus className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{bus.busNumber}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{bus.routeName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Driver: {bus.driverName}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex flex-col items-end gap-1 mb-1">
+                      <span
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 rounded font-bold uppercase",
+                          bus.status === "moving" ? "badge-success" : "badge-warning",
+                        )}
+                      >
+                        {bus.status === "moving" ? "On Route" : "At Stop"}
+                      </span>
+                      {bus.eta && (
+                        <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-blue-100 text-blue-700">
+                          ETA: {bus.eta}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {bus.occupiedSeats}/{bus.totalSeats ?? "-"} seats
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {bus.lastUpdatedAt ? `${formatDistanceToNow(new Date(bus.lastUpdatedAt))} ago` : "Just now"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-8 text-center">
+            <p className="text-sm text-muted-foreground">No active buses currently</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer CTA */}
+      {activeBuses.length > 0 && (
+        <div className="p-3 border-t border-border">
+          <button
+            className="w-full text-xs text-primary font-medium hover:underline flex items-center justify-center gap-1"
+            onClick={() => navigateToTracking()}
+          >
+            <MapPin className="h-3 w-3" />
+            Open full Live Tracking
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -53,7 +53,6 @@ const AdminDetails = () => {
         setAdmin(null);
       }
     } catch (error) {
-      console.error("Error fetching admin details:", error);
       toast({
         title: "Error",
         description: "Failed to load admin details",

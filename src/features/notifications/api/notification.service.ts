@@ -8,6 +8,11 @@ export const notificationService = {
     return response.data;
   },
 
+  getById: async (id: string): Promise<Notification> => {
+    const response = await apiClient.get(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/${id}`);
+    return response.data;
+  },
+
   getRecent: async (limit = 5): Promise<Notification[]> => {
     const { data } = await notificationService.getAll(1, limit);
     return data;
@@ -31,5 +36,14 @@ export const notificationService = {
 
   markAllAsRead: async (): Promise<void> => {
     await apiClient.patch(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/read-all`);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/${id}`);
+  },
+
+  getStats: async (): Promise<{ sentCount: number; openRate: number; criticalAlerts: number }> => {
+    const response = await apiClient.get(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/stats`);
+    return response.data;
   },
 };

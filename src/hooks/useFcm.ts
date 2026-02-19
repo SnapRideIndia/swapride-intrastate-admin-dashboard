@@ -26,7 +26,6 @@ export function useFcm() {
           }
         }
       } catch (error) {
-        console.error("Error asking for permission or getting token:", error);
       }
     };
 

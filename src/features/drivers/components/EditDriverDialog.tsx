@@ -79,7 +79,6 @@ export const EditDriverDialog = ({ driver, open, onOpenChange, onDriverUpdated }
       onDriverUpdated();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to update driver:", error);
       toast({
         title: "Error",
         description: "Failed to update driver.",

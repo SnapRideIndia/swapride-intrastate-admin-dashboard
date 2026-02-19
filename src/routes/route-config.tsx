@@ -21,6 +21,7 @@ import CreateCoupon from "@/pages/CreateCoupon";
 import Referrals from "@/pages/Referrals";
 import Notifications from "@/pages/Notifications";
 import CreateNotification from "@/pages/CreateNotification";
+import NotificationDetails from "@/pages/NotificationDetails";
 import SearchEngineTester from "@/pages/TestModules/SearchEngineTester";
 import FcmTester from "@/pages/TestModules/FcmTester";
 import Suggestions from "@/pages/Suggestions";
@@ -28,6 +29,8 @@ import SuggestionDetails from "@/pages/SuggestionDetails";
 import UserDetails from "@/pages/UserDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
 import WalletDetails from "@/pages/WalletDetails";
+import Bookings from "@/pages/Bookings";
+import BookingDetails from "@/pages/BookingDetails";
 
 export interface RouteConfig {
   path: string;
@@ -62,9 +65,12 @@ export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.REFERRALS, element: <Referrals /> },
   { path: ROUTES.NOTIFICATIONS, element: <Notifications /> },
   { path: ROUTES.NOTIFICATION_CREATE, element: <CreateNotification /> },
+  { path: ROUTES.NOTIFICATION_DETAILS, element: <NotificationDetails /> },
   { path: ROUTES.ADMINS, element: <Admins /> },
   { path: ROUTES.ADMIN_DETAILS, element: <AdminDetails /> },
   { path: ROUTES.ROLES, element: <Roles /> },
   { path: ROUTES.SEARCH_ENGINE_TESTER, element: <SearchEngineTester /> },
   { path: ROUTES.FCM_TEST, element: <FcmTester /> },
+  { path: ROUTES.BOOKINGS, element: <Bookings /> },
+  { path: ROUTES.BOOKING_DETAILS, element: <BookingDetails /> },
 ];

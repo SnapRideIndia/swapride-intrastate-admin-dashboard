@@ -127,6 +127,7 @@ export const API_ENDPOINTS = {
     UPDATE_STATUS: (id: string) => `/admin/trips/${id}/status`,
     GET_SEATS: (id: string) => `/admin/trips/${id}/seats`,
     GET_PASSENGERS: (id: string) => `/admin/trips/${id}/passengers`,
+    GET_LIVE_LOCATIONS: "/admin/trips/live/locations",
     DELETE: (id: string) => `/admin/trips/${id}`,
   },
 
@@ -159,5 +160,25 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: {
     BASE: "/notifications",
     CREATE: "/notifications",
+  },
+  // Bookings
+  BOOKINGS: {
+    BASE: "/admin/bookings",
+    GET_ALL: "/admin/bookings",
+    GET_BY_ID: (id: string) => `/admin/bookings/${id}`,
+    CANCEL: (id: string) => `/bookings/${id}/cancel`, // Cancel might still be user-facing or maybe both
+    BOARD: (id: string) => `/admin/bookings/${id}/board`,
+    MY_BOOKINGS: "/bookings/my-bookings",
+    STATS: "/admin/bookings/stats",
+  },
+  // Analytics
+  ANALYTICS: {
+    SUMMARY: "/admin/analytics/summary",
+    TRENDS: "/admin/analytics/trends",
+    ROUTES: "/admin/analytics/routes",
+    FLEET: "/admin/analytics/fleet",
+    DISTRIBUTION: "/admin/analytics/distribution",
+    DASHBOARD_STATS: "/admin/analytics/dashboard-stats",
+    BUS_UTILIZATION: "/admin/analytics/bus-utilization",
   },
 };

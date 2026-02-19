@@ -178,31 +178,47 @@ export interface Trip {
   totalPassengers: number;
   revenue: number;
   notes?: string;
+  bus?: Bus;
+  route?: Route;
   createdAt: string;
   updatedAt: string;
 }
 
+export type BookingStatus = "HELD" | "CONFIRMED" | "CANCELLED" | "EXPIRED";
+export type BoardingStatus = "BOARDED" | "NOT_BOARDED" | "NO_SHOW";
+
 export interface Booking {
   id: string;
-  tripId: string;
   userId: string;
-  userName: string;
-  userContact: string;
-  busId: string;
-  busNumber: string;
+  user?: User;
+  tripId: string;
+  trip?: Trip;
   routeId: string;
-  routeName: string;
-  seatNumber: string;
-  pickupStop: string;
-  dropStop: string;
-  bookingDate: string;
-  travelDate: string;
-  amount: number;
-  paymentStatus: "Paid" | "Pending" | "Failed" | "Refunded";
+  route?: Route;
+  pickupStopId: string;
+  pickupStop?: Stop;
+  dropStopId: string;
+  dropStop?: Stop;
+  totalAmount: number;
+  subTotal: number;
+  discountAmount: number;
   paymentId?: string;
-  boardingStatus: "Boarded" | "Not Boarded" | "No Show";
-  bookingTime: string;
+  bookingStatus: BookingStatus;
+  boardingStatus: BoardingStatus;
+  holdExpiresAt: string | null;
+  couponId: string | null;
+  seats: BookedSeat[];
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookedSeat {
+  id: string;
+  bookingId: string;
+  seatId: string;
+  seatNumber: string;
+  status: string;
+  seat?: LayoutSeat;
 }
 
 export interface Notification {
@@ -347,4 +363,58 @@ export interface StopSuggestion {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MetricSummary {
+  current: number;
+  previous: number;
+  growth: number;
+}
+
+export interface AnalyticsSummary {
+  revenue: MetricSummary;
+  passengers: MetricSummary;
+  utilization: MetricSummary;
+  onTimeRate: MetricSummary;
+}
+
+export interface TrendData {
+  label: string;
+  revenue: number;
+  bookings: number;
+  passengers: number;
+}
+
+export interface RoutePerformance {
+  route: string;
+  revenue: number;
+  passengers: number;
+  utilization: number;
+}
+
+export interface FleetBusMetric {
+  bus: string;
+  trips: number;
+  passengers: number;
+  utilization: number;
+  revenue: number;
+}
+
+export interface FleetDriverMetric {
+  name: string;
+  trips: number;
+  passengers: number;
+  onTimeRate: number;
+  rating?: number;
+}
+
+export interface FleetPerformance {
+  buses: FleetBusMetric[];
+  drivers: FleetDriverMetric[];
+}
+
+export interface DistributionData {
+  paymentStatus: { name: string; value: number }[];
+  tripStatus: { name: string; value: number }[];
+  peakHours: { hour: string; bookings: number }[];
 }

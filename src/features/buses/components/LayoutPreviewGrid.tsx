@@ -83,9 +83,7 @@ export function LayoutPreviewGrid({
                           disabled={!seat || (!onSeatClick && seat.seatType === "EMPTY")}
                           title={seat ? `Seat: ${seat.seatNumber}` : "Space"}
                         >
-                          {seat && seat.seatType === "SEATER" ? (
-                            <>{compact ? seat.seatNumber?.slice(0, 2) : seat.seatNumber}</>
-                          ) : null}
+                          {seat && seat.seatType === "SEATER" ? <>{seat.seatNumber}</> : null}
                         </button>
                       </div>
                     );

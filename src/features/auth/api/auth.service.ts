@@ -39,9 +39,7 @@ export const authService = {
   ): Promise<{ success: boolean; user?: AdminUser; error?: string }> => {
     try {
       // 1. Login to get Tokens
-      console.log("Attempting login with:", email);
       const loginResponse = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
-      console.log("Login Response Data:", loginResponse.data);
       const { accessToken, refreshToken } = loginResponse.data;
 
       // 2. Store Tokens
@@ -50,9 +48,7 @@ export const authService = {
       storage.setItem("refresh_token", refreshToken);
 
       // 3. Fetch User Details
-      console.log("Fetching user profile...");
       const userResponse = await apiClient.get<any>(API_ENDPOINTS.AUTH.ME); // Use any to allow mapping
-      console.log("User Profile Response:", userResponse.data);
 
       const rawUser = userResponse.data;
 
@@ -77,10 +73,7 @@ export const authService = {
 
       return { success: true, user };
     } catch (error: any) {
-      console.error("Login failed:", error);
       if (error.response) {
-        console.error("Error Status:", error.response.status);
-        console.error("Error Data:", error.response.data);
       }
       const errorMessage = error.response?.data?.message || "Invalid email or password";
       return { success: false, error: errorMessage };
@@ -139,7 +132,7 @@ export const authService = {
 
   // Mock credentials for quick testing - Optional to keep or remove
   getMockCredentials: () => ({
-    email: "admin@gmail.com",
+    email: "manikanta@maratech.in",
     password: "admin123",
   }),
 };

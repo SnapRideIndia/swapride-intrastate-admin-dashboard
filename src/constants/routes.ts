@@ -32,7 +32,10 @@ export const ROUTES = {
   COUPON_EDIT: "/coupons/edit/:id",
   REFERRALS: "/referrals",
   NOTIFICATIONS: "/notifications",
+  BOOKINGS: "/bookings",
+  BOOKING_DETAILS: "/bookings/:id",
   NOTIFICATION_CREATE: "/notifications/create",
+  NOTIFICATION_DETAILS: "/notifications/:id",
 
   // Payment Sub-routes
   PAYMENT_OVERVIEW: "/payments/payment-overview",

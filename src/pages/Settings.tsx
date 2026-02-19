@@ -21,7 +21,6 @@ const Settings = () => {
     const fetchRawUserData = async () => {
       try {
         const response = await apiClient.get("/admin/me");
-        console.log("User Profile Response:", response.data);
         setRawUserData(response.data);
       } finally {
         setIsLoading(false);

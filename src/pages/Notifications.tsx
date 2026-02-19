@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   Tag,
@@ -16,6 +16,7 @@ import {
   Check,
   Eye,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,6 @@ import {
 } from "@\/components\/ui\/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notificationService } from "@/features/notifications/api/notification.service";
-import { useEffect } from "react";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 // Mock Data Type based on DB Design
@@ -51,16 +51,38 @@ const MOCK_NOTIFICATIONS: AppNotification[] = [];
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [stats, setStats] = useState({ sentCount: 0, openRate: 0, criticalAlerts: 0 });
+
+  // Sync state with URL params
+  const search = searchParams.get("q") || "";
+  const typeFilter = searchParams.get("type") || "all";
+  const priorityFilter = searchParams.get("priority") || "all";
+  const statusFilter = searchParams.get("status") || "all";
+
+  const updateFilters = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === "all" || value === "") {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    });
+    setSearchParams(newParams, { replace: true });
+  };
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
       const { data } = await notificationService.getAll(1, 100);
+      try {
+        const statsData = await notificationService.getStats();
+        setStats(statsData);
+      } catch (e) {
+      }
       // Map API fields to UI fields if necessary
       const mapped = data.map((n: any) => ({
         id: n.id,
@@ -74,7 +96,6 @@ export default function Notifications() {
       }));
       setNotifications(mapped);
     } catch (error) {
-      console.error("Failed to fetch notifications", error);
     } finally {
       setLoading(false);
     }
@@ -87,14 +108,15 @@ export default function Notifications() {
     const handleRefresh = () => fetchNotifications();
     window.addEventListener("fcm-message-received", handleRefresh);
     return () => window.removeEventListener("fcm-message-received", handleRefresh);
-  }, []);
+  }, [searchParams]); // Re-fetch when search params change
 
   const filteredNotifications = notifications.filter((n) => {
     const matchesSearch =
       n.title.toLowerCase().includes(search.toLowerCase()) || n.content.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === "all" ? true : n.type === typeFilter;
     const matchesPriority = priorityFilter === "all" ? true : n.priority === priorityFilter;
-    return matchesSearch && matchesType && matchesPriority;
+    const matchesStatus = statusFilter === "all" ? true : statusFilter === "unread" ? !n.isRead : n.isRead;
+    return matchesSearch && matchesType && matchesPriority && matchesStatus;
   });
 
   const getTypeIcon = (type: string) => {
@@ -127,9 +149,21 @@ export default function Notifications() {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    } catch (error) {
+    }
+  };
+
+  const handleDelete = async (id: string) => {
     if (confirm("Delete this notification history?")) {
-      setNotifications(notifications.filter((n) => n.id !== id));
+      try {
+        await notificationService.delete(id);
+        setNotifications(notifications.filter((n) => n.id !== id));
+      } catch (error) {
+      }
     }
   };
 
@@ -154,7 +188,7 @@ export default function Notifications() {
             <CardContent className="p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-blue-700 mb-1">Messages Sent</p>
-                <p className="text-2xl font-bold text-blue-900">1,240</p>
+                <p className="text-2xl font-bold text-blue-900">{stats.sentCount.toLocaleString()}</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                 <Send className="h-5 w-5 text-blue-600" />
@@ -165,7 +199,7 @@ export default function Notifications() {
             <CardContent className="p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-green-700 mb-1">Open Rate</p>
-                <p className="text-2xl font-bold text-green-900">84.2%</p>
+                <p className="text-2xl font-bold text-green-900">{stats.openRate}%</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                 <Check className="h-5 w-5 text-green-600" />
@@ -176,7 +210,9 @@ export default function Notifications() {
             <CardContent className="p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-red-700 mb-1">Critical Alerts</p>
-                <p className="text-2xl font-bold text-red-900">3 Pending</p>
+                <p className="text-2xl font-bold text-red-900">
+                  {stats.criticalAlerts} {stats.criticalAlerts === 1 ? "Pending" : "Pending"}
+                </p>
               </div>
               <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
@@ -185,50 +221,68 @@ export default function Notifications() {
           </Card>
         </div>
 
-        {/* Filter Bar */}
-        <Card className="dashboard-card p-4 flex flex-col md:flex-row gap-4 shadow-sm border-gray-100 rounded-xl">
-          <div className="relative flex-1">
+        <Card className="dashboard-card p-4 flex flex-col md:flex-row gap-4 items-center shadow-sm border-border/60 rounded-xl">
+          <Tabs
+            value={statusFilter}
+            onValueChange={(val) => updateFilters({ status: val })}
+            className="w-full md:w-auto"
+          >
+            <TabsList className="grid grid-cols-3 w-[240px] h-10 bg-muted/20 border border-border/40">
+              <TabsTrigger value="all" className="text-xs">
+                ALL
+              </TabsTrigger>
+              <TabsTrigger value="unread" className="text-xs">
+                UNREAD
+              </TabsTrigger>
+              <TabsTrigger value="read" className="text-xs">
+                READ
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Filter notification history..."
-              className="pl-10 h-10 border-gray-100 rounded-lg"
+              placeholder="Search history..."
+              className="pl-10 h-10 border-border/60 rounded-lg bg-background/50 shadow-none focus-visible:ring-1"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => updateFilters({ q: e.target.value })}
             />
           </div>
           <div className="flex gap-2">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[140px] h-10 border-gray-100 bg-white">
-                <SelectValue placeholder="Category" />
+            <Select value={typeFilter} onValueChange={(val) => updateFilters({ type: val })}>
+              <SelectTrigger className="w-[140px] h-10 border-border/60 rounded-lg shadow-none">
+                <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="SYSTEM_ALERT">Critical</SelectItem>
+                <SelectItem value="TRIP_UPDATE">Trip Updates</SelectItem>
+                <SelectItem value="PAYMENT_SUCCESS">Payments</SelectItem>
+                <SelectItem value="SYSTEM_ALERT">System</SelectItem>
                 <SelectItem value="PROMOTIONAL">Marketing</SelectItem>
-                <SelectItem value="TRIP_UPDATE">Trips</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px] h-10 border-gray-100 bg-white">
+
+            <Select value={priorityFilter} onValueChange={(val) => updateFilters({ priority: val })}>
+              <SelectTrigger className="w-[140px] h-10 border-border/60 rounded-lg shadow-none">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="HIGH">High Only</SelectItem>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
                 <SelectItem value="MEDIUM">Medium</SelectItem>
                 <SelectItem value="LOW">Low</SelectItem>
               </SelectContent>
             </Select>
-            {(search || typeFilter !== "all" || priorityFilter !== "all") && (
+            {(search || typeFilter !== "all" || priorityFilter !== "all" || statusFilter !== "all") && (
               <Button
                 variant="ghost"
+                className="h-10 px-3 text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => {
-                  setSearch("");
-                  setTypeFilter("all");
-                  setPriorityFilter("all");
+                  setSearchParams({}, { replace: true });
                 }}
               >
-                Clear
+                Clear Filters
               </Button>
             )}
           </div>
@@ -258,7 +312,10 @@ export default function Notifications() {
                 filteredNotifications.map((n) => (
                   <TableRow
                     key={n.id}
-                    className={`group hover:bg-gray-50/50 ${!n.isRead ? "border-l-4 border-l-blue-500" : ""}`}
+                    className={`group transition-all duration-200 hover:bg-blue-50/30 cursor-pointer ${
+                      !n.isRead ? "border-l-4 border-l-blue-500" : "border-l-4 border-l-transparent"
+                    }`}
+                    onClick={() => navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", n.id))}
                   >
                     <TableCell className="max-w-md">
                       <div className="flex flex-col gap-1">
@@ -266,9 +323,7 @@ export default function Notifications() {
                           {n.title}
                           {!n.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 ml-2" />}
                         </span>
-                        <span className="text-sm text-gray-500 line-clamp-1 group-hover:line-clamp-none transition-all duration-300">
-                          {n.content}
-                        </span>
+                        <span className="text-sm text-gray-500 line-clamp-1">{n.content}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -301,11 +356,30 @@ export default function Notifications() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="cursor-pointer">
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", n.id))}
+                          >
                             <Eye className="h-4 w-4 mr-2" /> View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer" onClick={() => handleDelete(n.id)}>
-                            <Trash2 className="h-4 w-4 mr-2 text-red-500" /> Remove Record
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(n.id);
+                            }}
+                            disabled={n.isRead}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Read
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer text-red-600 focus:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(n.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Remove Record
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

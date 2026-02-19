@@ -74,7 +74,6 @@ const BusLayouts = () => {
       setLayouts(data);
       setStats(statsData);
     } catch (error) {
-      console.error("Error fetching layouts:", error);
       toast({ title: "Error", description: "Failed to load bus layouts", variant: "destructive" });
     } finally {
       setIsLoading(false);

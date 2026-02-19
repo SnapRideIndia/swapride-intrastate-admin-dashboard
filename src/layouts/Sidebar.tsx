@@ -38,29 +38,35 @@ interface NavItem {
   permission: string | null;
 }
 
-const navigation: NavItem[] = [
-  { name: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard, permission: null },
-  { name: "Drivers", href: ROUTES.DRIVERS, icon: UserCog, permission: "DRIVER_VIEW" },
-  { name: "Trips", href: ROUTES.TRIPS, icon: ClipboardList, permission: "TRIP_VIEW" },
-  { name: "Users", href: ROUTES.USERS, icon: Users, permission: "USER_VIEW" },
-  { name: "Live Tracking", href: ROUTES.LIVE_TRACKING, icon: MapPin, permission: "TRACKING_VIEW" },
-  { name: "Support", href: ROUTES.SUPPORT, icon: Headphones, permission: "SUPPORT_TICKET_VIEW" },
-];
+const navigation: NavItem[] = [];
 
-// Collapsible Categories
-const busManagementCategory = {
-  label: "Bus Management",
-  icon: Truck,
+const monitoringCategory = {
+  label: "Monitoring",
+  icon: LayoutDashboard,
   items: [
-    { name: "Buses", href: ROUTES.BUSES, icon: Bus, permission: "BUS_VIEW" },
-    { name: "Bus Layouts", href: ROUTES.BUS_LAYOUTS, icon: LayoutGrid, permission: "BUS_LAYOUT_VIEW" },
+    { name: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard, permission: null },
+    { name: "Analytics", href: ROUTES.ANALYTICS, icon: BarChart3, permission: "ANALYTICS_VIEW" },
   ],
 };
 
-const routesPointsCategory = {
-  label: "Routes & Points",
-  icon: Route,
+const operationsCategory = {
+  label: "Operations",
+  icon: ClipboardList,
   items: [
+    { name: "Drivers", href: ROUTES.DRIVERS, icon: UserCog, permission: "DRIVER_VIEW" },
+    { name: "Bookings", href: ROUTES.BOOKINGS, icon: Ticket, permission: "BOOKING_VIEW" },
+    { name: "Trips", href: ROUTES.TRIPS, icon: ClipboardList, permission: "TRIP_VIEW" },
+    { name: "Live Tracking", href: ROUTES.LIVE_TRACKING, icon: MapPin, permission: "TRACKING_VIEW" },
+    { name: "Support", href: ROUTES.SUPPORT, icon: Headphones, permission: "SUPPORT_TICKET_VIEW" },
+  ],
+};
+
+const fleetNetworkCategory = {
+  label: "Fleet & Network",
+  icon: Bus,
+  items: [
+    { name: "Buses", href: ROUTES.BUSES, icon: Bus, permission: "BUS_VIEW" },
+    { name: "Bus Layouts", href: ROUTES.BUS_LAYOUTS, icon: LayoutGrid, permission: "BUS_LAYOUT_VIEW" },
     { name: "Routes", href: ROUTES.ROUTES, icon: Route, permission: "ROUTE_VIEW" },
     { name: "Points", href: ROUTES.POINTS, icon: MapPin, permission: "POINT_VIEW" },
     { name: "Suggestions", href: ROUTES.SUGGESTIONS, icon: ClipboardList, permission: "VIEW_SUGGESTIONS" },
@@ -72,7 +78,6 @@ const financeInsightsCategory = {
   icon: DollarSign,
   items: [
     { name: "Payments", href: ROUTES.PAYMENTS, icon: Wallet, permission: "PAYMENT_VIEW" },
-    { name: "Analytics", href: ROUTES.ANALYTICS, icon: BarChart3, permission: "ANALYTICS_VIEW" },
     { name: "Coupons", href: ROUTES.COUPONS, icon: Ticket, permission: "COUPON_VIEW" },
     { name: "Referrals", href: ROUTES.REFERRALS, icon: UserPlus, permission: "REFERRAL_VIEW" },
     { name: "Notifications", href: ROUTES.NOTIFICATIONS, icon: Bell, permission: "NOTIFICATION_VIEW" },
@@ -88,10 +93,11 @@ const testModulesCategory = {
   ],
 };
 
-const adminCategory = {
-  label: "Administration",
+const userManagementCategory = {
+  label: "User Management",
   icon: Shield,
   items: [
+    { name: "Users", href: ROUTES.USERS, icon: Users, permission: "USER_VIEW" },
     { name: "Admins", href: ROUTES.ADMINS, icon: Shield, permission: "ADMIN_VIEW" },
     { name: "Roles", href: ROUTES.ROLES, icon: Key, permission: "ROLE_VIEW" },
   ],
@@ -105,26 +111,39 @@ export function Sidebar() {
   const { collapsed, toggle } = useSidebar();
   const location = useLocation();
   const { hasPermission } = usePermissions();
-  const [openCategory, setOpenCategory] = useState<string | null>("busManagement");
+  const [openCategory, setOpenCategory] = useState<string | null>("monitoring");
 
   // Automatically open the category that contains the active route
   useEffect(() => {
     const path = location.pathname;
 
-    if (path.startsWith(ROUTES.BUSES) || path.startsWith(ROUTES.BUS_LAYOUTS)) {
-      setOpenCategory("busManagement");
-    } else if (path.startsWith(ROUTES.ROUTES) || path.startsWith(ROUTES.POINTS)) {
-      setOpenCategory("routesPoints");
+    if (path === ROUTES.DASHBOARD || path.startsWith(ROUTES.ANALYTICS)) {
+      setOpenCategory("monitoring");
+    } else if (
+      path.startsWith(ROUTES.DRIVERS) ||
+      path.startsWith(ROUTES.BOOKINGS) ||
+      path.startsWith(ROUTES.TRIPS) ||
+      path.startsWith(ROUTES.LIVE_TRACKING) ||
+      path.startsWith(ROUTES.SUPPORT)
+    ) {
+      setOpenCategory("operations");
+    } else if (
+      path.startsWith(ROUTES.BUSES) ||
+      path.startsWith(ROUTES.BUS_LAYOUTS) ||
+      path.startsWith(ROUTES.ROUTES) ||
+      path.startsWith(ROUTES.POINTS) ||
+      path.startsWith(ROUTES.SUGGESTIONS)
+    ) {
+      setOpenCategory("fleetNetwork");
     } else if (
       path.startsWith(ROUTES.PAYMENTS) ||
-      path.startsWith(ROUTES.ANALYTICS) ||
       path.startsWith(ROUTES.COUPONS) ||
       path.startsWith(ROUTES.REFERRALS) ||
       path.startsWith(ROUTES.NOTIFICATIONS)
     ) {
       setOpenCategory("financeInsights");
-    } else if (path.startsWith(ROUTES.ADMINS) || path.startsWith(ROUTES.ROLES)) {
-      setOpenCategory("administration");
+    } else if (path.startsWith(ROUTES.USERS) || path.startsWith(ROUTES.ADMINS) || path.startsWith(ROUTES.ROLES)) {
+      setOpenCategory("userManagement");
     } else if (path.startsWith("/test")) {
       setOpenCategory("testModules");
     }
@@ -189,28 +208,42 @@ export function Sidebar() {
           })}
         </div>
 
-        {/* Bus Management Category */}
-        <div className="py-2 border-t border-sidebar-border">
+        {/* Monitoring Category */}
+        <div className="py-2 pt-0 border-sidebar-border">
           <NavCategory
-            id="busManagement"
-            label={busManagementCategory.label}
-            icon={busManagementCategory.icon}
-            items={busManagementCategory.items}
-            isExpanded={openCategory === "busManagement"}
+            id="monitoring"
+            label={monitoringCategory.label}
+            icon={monitoringCategory.icon}
+            items={monitoringCategory.items}
+            isExpanded={openCategory === "monitoring"}
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}
           />
         </div>
 
-        {/* Routes & Points Category */}
+        {/* Operations Category */}
         <div className="py-2 border-t border-sidebar-border">
           <NavCategory
-            id="routesPoints"
-            label={routesPointsCategory.label}
-            icon={routesPointsCategory.icon}
-            items={routesPointsCategory.items}
-            isExpanded={openCategory === "routesPoints"}
+            id="operations"
+            label={operationsCategory.label}
+            icon={operationsCategory.icon}
+            items={operationsCategory.items}
+            isExpanded={openCategory === "operations"}
+            onToggle={handleCategoryToggle}
+            collapsed={collapsed}
+            hasPermission={hasPermission}
+          />
+        </div>
+
+        {/* Fleet & Network Category */}
+        <div className="py-2 border-t border-sidebar-border">
+          <NavCategory
+            id="fleetNetwork"
+            label={fleetNetworkCategory.label}
+            icon={fleetNetworkCategory.icon}
+            items={fleetNetworkCategory.items}
+            isExpanded={openCategory === "fleetNetwork"}
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}
@@ -231,14 +264,14 @@ export function Sidebar() {
           />
         </div>
 
-        {/* Administration Category */}
+        {/* User Management Category */}
         <div className="py-2 border-t border-sidebar-border">
           <NavCategory
-            id="administration"
-            label={adminCategory.label}
-            icon={adminCategory.icon}
-            items={adminCategory.items}
-            isExpanded={openCategory === "administration"}
+            id="userManagement"
+            label={userManagementCategory.label}
+            icon={userManagementCategory.icon}
+            items={userManagementCategory.items}
+            isExpanded={openCategory === "userManagement"}
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}

@@ -11,6 +11,7 @@ import {
   Filter,
   RefreshCw,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -37,69 +38,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRoutes } from "@/features/routes";
 import { useBuses } from "@/features/buses";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { analyticsService } from "@/features/analytics/api/analytics.service";
+import { AnalyticsFilters } from "@/types";
 
-const revenueData = [
-  { date: "Jan 15", revenue: 24500, passengers: 420, bookings: 380 },
-  { date: "Jan 16", revenue: 26800, passengers: 460, bookings: 420 },
-  { date: "Jan 17", revenue: 31200, passengers: 510, bookings: 470 },
-  { date: "Jan 18", revenue: 29800, passengers: 480, bookings: 440 },
-  { date: "Jan 19", revenue: 34500, passengers: 560, bookings: 520 },
-  { date: "Jan 20", revenue: 38900, passengers: 620, bookings: 580 },
-  { date: "Jan 21", revenue: 35600, passengers: 580, bookings: 540 },
-];
-
-const hourlyBookings = [
-  { hour: "6AM", bookings: 45 },
-  { hour: "7AM", bookings: 78 },
-  { hour: "8AM", bookings: 120 },
-  { hour: "9AM", bookings: 85 },
-  { hour: "10AM", bookings: 52 },
-  { hour: "11AM", bookings: 38 },
-  { hour: "12PM", bookings: 42 },
-  { hour: "1PM", bookings: 35 },
-  { hour: "2PM", bookings: 28 },
-  { hour: "3PM", bookings: 45 },
-  { hour: "4PM", bookings: 68 },
-  { hour: "5PM", bookings: 95 },
-  { hour: "6PM", bookings: 110 },
-  { hour: "7PM", bookings: 85 },
-  { hour: "8PM", bookings: 55 },
-];
-
-const routePerformance = [
-  { route: "MHB→HYD Morning", passengers: 1250, revenue: 187500, utilization: 92 },
-  { route: "HYD→MHB Evening", passengers: 1180, revenue: 177000, utilization: 89 },
-  { route: "MHB→HYD Evening", passengers: 980, revenue: 147000, utilization: 78 },
-  { route: "HYD→MHB Morning", passengers: 920, revenue: 138000, utilization: 75 },
-  { route: "Suburban Express", passengers: 650, revenue: 65000, utilization: 82 },
-];
-
-const tripStatus = [
-  { name: "On Time", value: 78, color: "hsl(142, 71%, 45%)" },
-  { name: "Delayed (<10 min)", value: 15, color: "hsl(38, 92%, 50%)" },
-  { name: "Delayed (>10 min)", value: 7, color: "hsl(0, 84%, 60%)" },
-];
-
-const paymentStatus = [
-  { name: "Collected", value: 85, color: "hsl(142, 71%, 45%)" },
-  { name: "Pending", value: 10, color: "hsl(38, 92%, 50%)" },
-  { name: "Failed", value: 5, color: "hsl(0, 84%, 60%)" },
-];
-
-const busUtilization = [
-  { bus: "TS07-1234", trips: 28, passengers: 1456, utilization: 94, revenue: 218400 },
-  { bus: "TS07-5678", trips: 26, passengers: 1352, utilization: 91, revenue: 202800 },
-  { bus: "TS07-3456", trips: 24, passengers: 1080, utilization: 85, revenue: 162000 },
-  { bus: "TS07-7890", trips: 22, passengers: 990, utilization: 82, revenue: 148500 },
-  { bus: "TS07-9012", trips: 18, passengers: 720, utilization: 75, revenue: 108000 },
-];
-
-const driverPerformance = [
-  { name: "Ramesh Kumar", trips: 45, onTimeRate: 96, passengers: 2340, rating: 4.8 },
-  { name: "Suresh Reddy", trips: 42, onTimeRate: 94, passengers: 2184, rating: 4.7 },
-  { name: "Venkat Rao", trips: 38, onTimeRate: 91, passengers: 1976, rating: 4.6 },
-  { name: "Krishna Murthy", trips: 35, onTimeRate: 88, passengers: 1820, rating: 4.5 },
-];
+const STATUS_COLORS: Record<string, string> = {
+  CONFIRMED: "hsl(142, 71%, 45%)",
+  HELD: "hsl(38, 92%, 50%)",
+  CANCELLED: "hsl(0, 0%, 60%)",
+  EXPIRED: "hsl(0, 84%, 60%)",
+  "On Time": "hsl(142, 71%, 45%)",
+  Delayed: "hsl(0, 84%, 60%)",
+  Scheduled: "hsl(221, 83%, 53%)",
+  "In Progress": "hsl(199, 89%, 48%)",
+  Completed: "hsl(142, 71%, 45%)",
+};
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState("last7days");
@@ -112,6 +64,39 @@ const Analytics = () => {
   const { data: routes = [], isLoading: isRoutesLoading } = useRoutes();
   const { data: buses = [], isLoading: isBusesLoading } = useBuses();
 
+  const filters: AnalyticsFilters = {
+    dateRange: dateRange as any,
+    startDate: dateRange === "custom" ? startDate : undefined,
+    endDate: dateRange === "custom" ? endDate : undefined,
+    routeId: routeFilter === "all" ? undefined : routeFilter,
+    busId: busFilter === "all" ? undefined : busFilter,
+  };
+
+  const { data: summary, isLoading: isSummaryLoading } = useQuery({
+    queryKey: ["analytics", "summary", filters],
+    queryFn: () => analyticsService.getSummary(filters),
+  });
+
+  const { data: trends, isLoading: isTrendsLoading } = useQuery({
+    queryKey: ["analytics", "trends", filters],
+    queryFn: () => analyticsService.getTrends(filters),
+  });
+
+  const { data: routesPerf, isLoading: isRoutesPerfLoading } = useQuery({
+    queryKey: ["analytics", "routes", filters],
+    queryFn: () => analyticsService.getRoutePerformance(filters),
+  });
+
+  const { data: fleetPerf, isLoading: isFleetPerfLoading } = useQuery({
+    queryKey: ["analytics", "fleet", filters],
+    queryFn: () => analyticsService.getFleetPerformance(filters),
+  });
+
+  const { data: distribution, isLoading: isDistributionLoading } = useQuery({
+    queryKey: ["analytics", "distribution", filters],
+    queryFn: () => analyticsService.getDistribution(filters),
+  });
+
   const resetFilters = () => {
     setDateRange("last7days");
     setRouteFilter("all");
@@ -120,7 +105,26 @@ const Analytics = () => {
     setEndDate("");
   };
 
-  const isLoading = isRoutesLoading || isBusesLoading;
+  const isLoading =
+    isRoutesLoading ||
+    isBusesLoading ||
+    isSummaryLoading ||
+    isTrendsLoading ||
+    isRoutesPerfLoading ||
+    isFleetPerfLoading ||
+    isDistributionLoading;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatNumber = (value: number) => {
+    return new Intl.NumberFormat("en-IN").format(value);
+  };
 
   return (
     <DashboardLayout>
@@ -216,12 +220,23 @@ const Analytics = () => {
               <p className="text-sm font-medium text-blue-900">Total Revenue</p>
               <IndianRupee className="h-4 w-4 text-blue-600" />
             </div>
-            <p className="text-3xl font-bold text-blue-950">₹4,28,500</p>
-            <div className="mt-2 flex items-center text-xs text-blue-600 font-medium">
-              <TrendingUp className="h-3 w-3 mr-1 text-success" />
-              <span className="text-success font-bold">+12.5%</span>
-              <span className="ml-1 opacity-70">vs last period</span>
-            </div>
+            <p className="text-3xl font-bold text-blue-950">
+              {summary ? formatCurrency(summary.revenue.current) : "₹0"}
+            </p>
+            {summary && (
+              <div className="mt-2 flex items-center text-xs text-blue-600 font-medium">
+                {summary.revenue.growth >= 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1 text-success" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1 text-destructive" />
+                )}
+                <span className={summary.revenue.growth >= 0 ? "text-success font-bold" : "text-destructive font-bold"}>
+                  {summary.revenue.growth >= 0 ? "+" : ""}
+                  {summary.revenue.growth}%
+                </span>
+                <span className="ml-1 opacity-70">vs last period</span>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card className="dashboard-card border-none bg-gradient-to-br from-green-50/50 to-white shadow-sm">
@@ -230,12 +245,25 @@ const Analytics = () => {
               <p className="text-sm font-medium text-green-900">Total Passengers</p>
               <Users className="h-4 w-4 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-green-950">6,892</p>
-            <div className="mt-2 flex items-center text-xs text-green-600 font-medium">
-              <TrendingUp className="h-3 w-3 mr-1 text-success" />
-              <span className="text-success font-bold">+8.2%</span>
-              <span className="ml-1 opacity-70">vs last period</span>
-            </div>
+            <p className="text-3xl font-bold text-green-950">
+              {summary ? formatNumber(summary.passengers.current) : "0"}
+            </p>
+            {summary && (
+              <div className="mt-2 flex items-center text-xs text-green-600 font-medium">
+                {summary.passengers.growth >= 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1 text-success" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1 text-destructive" />
+                )}
+                <span
+                  className={summary.passengers.growth >= 0 ? "text-success font-bold" : "text-destructive font-bold"}
+                >
+                  {summary.passengers.growth >= 0 ? "+" : ""}
+                  {summary.passengers.growth}%
+                </span>
+                <span className="ml-1 opacity-70">vs last period</span>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card className="dashboard-card border-none bg-gradient-to-br from-purple-50/50 to-white shadow-sm">
@@ -244,12 +272,23 @@ const Analytics = () => {
               <p className="text-sm font-medium text-purple-900">Avg. Utilization</p>
               <Bus className="h-4 w-4 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-purple-950">86.4%</p>
-            <div className="mt-2 flex items-center text-xs text-purple-600 font-medium">
-              <TrendingUp className="h-3 w-3 mr-1 text-success" />
-              <span className="text-success font-bold">+3.1%</span>
-              <span className="ml-1 opacity-70">vs last period</span>
-            </div>
+            <p className="text-3xl font-bold text-purple-950">{summary ? `${summary.utilization.current}%` : "0%"}</p>
+            {summary && (
+              <div className="mt-2 flex items-center text-xs text-purple-600 font-medium">
+                {summary.utilization.growth >= 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1 text-success" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1 text-destructive" />
+                )}
+                <span
+                  className={summary.utilization.growth >= 0 ? "text-success font-bold" : "text-destructive font-bold"}
+                >
+                  {summary.utilization.growth >= 0 ? "+" : ""}
+                  {summary.utilization.growth}%
+                </span>
+                <span className="ml-1 opacity-70">vs last period</span>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card className="dashboard-card border-none bg-gradient-to-br from-yellow-50/50 to-white shadow-sm">
@@ -258,12 +297,23 @@ const Analytics = () => {
               <p className="text-sm font-medium text-yellow-900">On-Time Rate</p>
               <Route className="h-4 w-4 text-yellow-600" />
             </div>
-            <p className="text-3xl font-bold text-yellow-950">78%</p>
-            <div className="mt-2 flex items-center text-xs text-yellow-600 font-medium">
-              <TrendingDown className="h-3 w-3 mr-1 text-destructive" />
-              <span className="text-destructive font-bold">-2.5%</span>
-              <span className="ml-1 opacity-70">vs last period</span>
-            </div>
+            <p className="text-3xl font-bold text-yellow-950">{summary ? `${summary.onTimeRate.current}%` : "0%"}</p>
+            {summary && (
+              <div className="mt-2 flex items-center text-xs text-yellow-600 font-medium">
+                {summary.onTimeRate.growth >= 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1 text-success" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1 text-destructive" />
+                )}
+                <span
+                  className={summary.onTimeRate.growth >= 0 ? "text-success font-bold" : "text-destructive font-bold"}
+                >
+                  {summary.onTimeRate.growth >= 0 ? "+" : ""}
+                  {summary.onTimeRate.growth}%
+                </span>
+                <span className="ml-1 opacity-70">vs last period</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -285,12 +335,12 @@ const Analytics = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Revenue Trend</h3>
-                  <p className="text-xs text-muted-foreground">Daily revenue and passenger count</p>
+                  <p className="text-xs text-muted-foreground">Periodic revenue and passenger count</p>
                 </div>
               </div>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData}>
+                  <AreaChart data={trends}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
@@ -298,7 +348,7 @@ const Analytics = () => {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} />
                     <YAxis
                       yAxisId="left"
                       tick={{ fontSize: 11 }}
@@ -345,7 +395,7 @@ const Analytics = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={paymentStatus}
+                      data={distribution?.paymentStatus || []}
                       cx="50%"
                       cy="50%"
                       innerRadius={50}
@@ -353,22 +403,25 @@ const Analytics = () => {
                       paddingAngle={2}
                       dataKey="value"
                     >
-                      {paymentStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      {(distribution?.paymentStatus || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || "hsl(var(--muted))"} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`${value}%`, "Share"]} />
+                    <Tooltip formatter={(value: number) => [value, "Bookings"]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="space-y-2 mt-4">
-                {paymentStatus.map((item, index) => (
+                {(distribution?.paymentStatus || []).map((item, index) => (
                   <div key={index} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      <div
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: STATUS_COLORS[item.name] || "hsl(var(--muted))" }}
+                      />
                       <span className="text-muted-foreground">{item.name}</span>
                     </div>
-                    <span className="font-medium text-foreground">{item.value}%</span>
+                    <span className="font-medium text-foreground">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -381,12 +434,12 @@ const Analytics = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="dashboard-card p-5">
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-foreground">Hourly Booking Pattern</h3>
-                <p className="text-xs text-muted-foreground">Peak booking hours analysis</p>
+                <h3 className="text-sm font-semibold text-foreground">Peak Daily Activity</h3>
+                <p className="text-xs text-muted-foreground">Hourly booking pattern analysis</p>
               </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={hourlyBookings}>
+                  <BarChart data={distribution?.peakHours || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="hour" tick={{ fontSize: 10 }} tickLine={false} />
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} />
@@ -400,13 +453,13 @@ const Analytics = () => {
             <div className="dashboard-card p-5">
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-foreground">Booking Trend</h3>
-                <p className="text-xs text-muted-foreground">Daily bookings over time</p>
+                <p className="text-xs text-muted-foreground">Periodic bookings over time</p>
               </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={revenueData}>
+                  <LineChart data={trends}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} />
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} />
                     <Tooltip />
                     <Line
@@ -433,7 +486,7 @@ const Analytics = () => {
                 <p className="text-xs text-muted-foreground">Seat occupancy by bus</p>
               </div>
               <div className="space-y-4">
-                {busUtilization.map((bus) => (
+                {(fleetPerf?.buses || []).map((bus) => (
                   <div key={bus.bus}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium">{bus.bus}</span>
@@ -461,7 +514,7 @@ const Analytics = () => {
                 <p className="text-xs text-muted-foreground">Top performing drivers</p>
               </div>
               <div className="space-y-4">
-                {driverPerformance.map((driver, index) => (
+                {(fleetPerf?.drivers || []).map((driver, index) => (
                   <div key={driver.name} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
                       {index + 1}
@@ -475,9 +528,6 @@ const Analytics = () => {
                     <div className="text-right">
                       <p className="text-sm font-medium text-success">{driver.onTimeRate}%</p>
                       <p className="text-xs text-muted-foreground">On-time</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">⭐ {driver.rating}</p>
                     </div>
                   </div>
                 ))}
@@ -496,7 +546,7 @@ const Analytics = () => {
               </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={routePerformance} layout="vertical">
+                  <BarChart data={routesPerf} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} />
                     <YAxis type="category" dataKey="route" tick={{ fontSize: 10 }} tickLine={false} width={100} />
@@ -513,7 +563,7 @@ const Analytics = () => {
                 <p className="text-xs text-muted-foreground">Revenue by route</p>
               </div>
               <div className="space-y-4">
-                {routePerformance.map((route) => (
+                {(routesPerf || []).map((route) => (
                   <div key={route.route} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div>
                       <p className="text-sm font-medium">{route.route}</p>
@@ -542,7 +592,7 @@ const Analytics = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={tripStatus}
+                      data={distribution?.tripStatus || []}
                       cx="50%"
                       cy="50%"
                       innerRadius={50}
@@ -550,22 +600,25 @@ const Analytics = () => {
                       paddingAngle={2}
                       dataKey="value"
                     >
-                      {tripStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      {(distribution?.tripStatus || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || "hsl(var(--muted))"} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`${value}%`, "Share"]} />
+                    <Tooltip formatter={(value: number) => [value, "Trips"]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="space-y-2 mt-4">
-                {tripStatus.map((item, index) => (
+                {(distribution?.tripStatus || []).map((item, index) => (
                   <div key={index} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      <div
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: STATUS_COLORS[item.name] || "hsl(var(--muted))" }}
+                      />
                       <span className="text-muted-foreground">{item.name}</span>
                     </div>
-                    <span className="font-medium text-foreground">{item.value}%</span>
+                    <span className="font-medium text-foreground">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -579,26 +632,22 @@ const Analytics = () => {
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-success/10 border border-success/20">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Trips Completed Today</span>
-                    <span className="text-2xl font-bold text-success">24</span>
+                    <span className="text-sm font-medium">Total Trips in Period</span>
+                    <span className="text-2xl font-bold text-success">
+                      {(distribution?.tripStatus || []).reduce((acc, curr) => acc + curr.value, 0)}
+                    </span>
                   </div>
                 </div>
-                <div className="p-4 rounded-lg bg-warning/10 border border-warning/20">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Avg. Delay Duration</span>
-                    <span className="text-2xl font-bold text-warning">8 min</span>
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="p-4 rounded-lg bg-info/10 border border-info/20">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Active Drivers</span>
-                    <span className="text-2xl font-bold text-primary">12</span>
+                    <span className="text-2xl font-bold text-primary">{(fleetPerf?.drivers || []).length}</span>
                   </div>
                 </div>
                 <div className="p-4 rounded-lg bg-info/10 border border-info/20">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Buses in Service</span>
-                    <span className="text-2xl font-bold text-info">15</span>
+                    <span className="text-2xl font-bold text-info">{(fleetPerf?.buses || []).length}</span>
                   </div>
                 </div>
               </div>

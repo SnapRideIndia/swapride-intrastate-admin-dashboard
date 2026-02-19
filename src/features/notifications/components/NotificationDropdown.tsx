@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
 import { useState, useEffect } from "react";
 import { Bell, User, CreditCard, Bus, AlertCircle, CheckCircle, Tag, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,7 @@ const getIconColor = (type: Notification["type"]) => {
 };
 
 export function NotificationDropdown() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -64,7 +67,6 @@ export function NotificationDropdown() {
       const { data } = await notificationService.getAll(1, 10);
       setNotifications(data);
     } catch (error) {
-      console.error("Failed to fetch notifications", error);
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,6 @@ export function NotificationDropdown() {
       await notificationService.markAsRead(id);
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     } catch (error) {
-      console.error("Failed to mark as read", error);
     }
   };
 
@@ -101,7 +102,6 @@ export function NotificationDropdown() {
       await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
-      console.error("Failed to mark all as read", error);
     }
   };
 
@@ -149,8 +149,14 @@ export function NotificationDropdown() {
               return (
                 <DropdownMenuItem
                   key={notification.id}
-                  className={cn("flex items-start gap-3 p-3 cursor-pointer", !notification.read && "bg-accent/50")}
-                  onClick={() => markAsRead(notification.id)}
+                  className={cn(
+                    "flex items-start gap-3 p-3 cursor-pointer transition-all duration-200 hover:bg-accent hover:translate-x-1",
+                    !notification.read && "bg-accent/30",
+                  )}
+                  onClick={() => {
+                    markAsRead(notification.id);
+                    navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", notification.id));
+                  }}
                 >
                   <div className={cn("p-2 rounded-full flex-shrink-0", getIconColor(notification.type))}>
                     <Icon className="h-4 w-4" />
@@ -171,7 +177,10 @@ export function NotificationDropdown() {
           )}
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="justify-center text-primary cursor-pointer">
+        <DropdownMenuItem
+          className="justify-center text-primary cursor-pointer font-medium"
+          onClick={() => navigate(ROUTES.NOTIFICATIONS)}
+        >
           View all notifications
         </DropdownMenuItem>
       </DropdownMenuContent>

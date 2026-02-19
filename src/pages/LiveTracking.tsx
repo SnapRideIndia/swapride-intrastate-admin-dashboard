@@ -1,109 +1,153 @@
-import { useState, useEffect } from "react";
-import { MapPin, Bus, Users, RefreshCw, Navigation } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useLocation } from "react-router-dom";
+import {
+  Bus,
+  Users,
+  RefreshCw,
+  Navigation,
+  MapPin,
+  Map as MapIcon,
+  ChevronRight,
+  AlertCircle,
+  Clock,
+} from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tripsApi } from "@/features/trips/api/trips-api";
+import { FleetMap } from "@/features/trips";
 import { useRoutes } from "@/features/routes";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { Trip } from "@/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useJsApiLoader } from "@react-google-maps/api";
+import { useSocket } from "@/providers/SocketContext";
+import { Badge } from "@/components/ui/badge";
 
-interface BusLocation {
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+const MAP_LIBRARIES: ("geometry" | "drawing" | "places" | "visualization")[] = ["geometry"];
+
+interface RoutePoint {
+  lat: number;
+  lng: number;
+  name: string;
+}
+
+interface LiveLocation {
   id: string;
+  tripId: string;
+  busId: string;
   busNumber: string;
   driverName: string;
   routeName: string;
   routeId: string;
-  currentLocation: {
-    lat: number;
-    lng: number;
-    name: string;
-  };
-  nextStop: string;
-  eta: string;
-  status: "moving" | "stopped" | "delayed";
-  passengers: number;
+  latitude: number;
+  longitude: number;
   speed: number;
+  heading: number;
+  lastUpdatedAt: string;
+  occupiedSeats: number;
+  totalSeats?: number;
+  status: "moving" | "stopped" | "delayed";
   tripStatus: "On Time" | "Delayed" | "Early";
   delayMinutes: number;
+  nextStop: string;
+  eta: string;
+  currentLocationName: string;
+  routePoints?: RoutePoint[];
+  encodedPolyline?: string;
 }
 
-// Mock bus locations - in real app would come from GPS
-const generateMockLocations = (activeTrips: Trip[]): BusLocation[] => {
-  // If no active trips, use some mock defaults or return empty
-  if (activeTrips.length === 0) return [];
-
-  return activeTrips.map((trip) => ({
-    id: trip.busId,
-    busNumber: trip.busNumber,
-    driverName: trip.driverName,
-    routeName: trip.routeName,
-    routeId: trip.routeId,
-    currentLocation: {
-      lat: 17.0 + Math.random() * 0.5,
-      lng: 78.0 + Math.random() * 0.5,
-      name: "En Route",
-    },
-    nextStop: "Next Stop",
-    eta: "15 min",
-    status: trip.status === "In Progress" ? "moving" : "stopped",
-    passengers: trip.totalPassengers,
-    speed: trip.status === "In Progress" ? 60 : 0,
-    tripStatus: trip.tripStatus,
-    delayMinutes: trip.delayMinutes,
-  }));
-};
-
 const LiveTracking = () => {
-  const [busLocations, setBusLocations] = useState<BusLocation[]>([]);
-  const [selectedBus, setSelectedBus] = useState<string | null>(null);
+  const location = useLocation();
+  const initialTripId = (location.state as any)?.tripId ?? null;
+  const [selectedBus, setSelectedBus] = useState<string | null>(initialTripId);
   const [routeFilter, setRouteFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
+  const queryClient = useQueryClient();
+  const { socketService } = useSocket();
+
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: MAP_LIBRARIES,
+  });
+
   const { data: routes = [], isLoading: isRoutesLoading } = useRoutes();
 
-  const { data: trips = [], isLoading: isTripsLoading } = useQuery({
-    queryKey: ["trips"],
-    queryFn: tripsApi.getAll,
+  const {
+    data: liveLocations = [],
+    isLoading: isLiveLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["live-locations"],
+    queryFn: async () => {
+      const data = await tripsApi.getLiveLocations();
+      setLastUpdated(new Date());
+      return data as LiveLocation[];
+    },
+    refetchInterval: 15000,
   });
 
+  // WebSocket Integration
   useEffect(() => {
-    if (trips.length > 0) {
-      const activeTrips = trips.filter((t) => t.status === "In Progress" || t.status === "Scheduled"); // including scheduled for demo
-      setBusLocations(generateMockLocations(activeTrips));
-    }
-  }, [trips]);
+    socketService.joinRoom("admin_dashboard");
+    const unsubscribe = socketService.on("location_update", (update: any) => {
+      queryClient.setQueryData(["live-locations"], (old: LiveLocation[] = []) => {
+        const index = old.findIndex((loc) => loc.tripId === update.tripId);
+        if (index > -1) {
+          const newState = [...old];
+          newState[index] = {
+            ...newState[index],
+            ...update,
+            // Preserve enriched metadata from initial fetch
+            busNumber: newState[index].busNumber,
+            routeName: newState[index].routeName,
+            driverName: newState[index].driverName,
+            routePoints: newState[index].routePoints,
+            encodedPolyline: update.encodedPolyline || newState[index].encodedPolyline,
+            tripStatus: update.tripStatus || newState[index].tripStatus,
+            delayMinutes: update.delayMinutes ?? newState[index].delayMinutes,
+            nextStop: update.nextStop || newState[index].nextStop,
+            eta: update.eta || newState[index].eta,
+            currentLocationName: update.currentLocationName || newState[index].currentLocationName,
+            occupiedSeats: update.occupiedSeats ?? newState[index].occupiedSeats,
+            totalSeats: update.totalSeats ?? newState[index].totalSeats,
+          };
+          return newState;
+        }
+        return old;
+      });
+      setLastUpdated(new Date());
+    });
+    return () => {
+      socketService.leaveRoom("admin_dashboard");
+      unsubscribe();
+    };
+  }, [socketService, queryClient]);
 
-  const refreshLocations = () => {
-    // Simulate GPS update with small position changes
-    setBusLocations((prev) =>
-      prev.map((bus) => ({
-        ...bus,
-        currentLocation: {
-          ...bus.currentLocation,
-          lat: bus.currentLocation.lat + (Math.random() - 0.5) * 0.01,
-          lng: bus.currentLocation.lng + (Math.random() - 0.5) * 0.01,
-        },
-        speed: bus.status === "moving" ? Math.floor(Math.random() * 20) + 50 : 0,
-      })),
-    );
-    setLastUpdated(new Date());
-  };
+  const filteredBuses = useMemo(() => {
+    return liveLocations.filter((bus: LiveLocation) => {
+      const matchesRoute = routeFilter === "all" || bus.routeId === routeFilter;
+      const busSpeed = Number(bus.speed || 0);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "moving" && busSpeed > 0) ||
+        (statusFilter === "stopped" && busSpeed === 0);
+      return matchesRoute && matchesStatus;
+    });
+  }, [liveLocations, routeFilter, statusFilter]);
 
-  const filteredBuses = busLocations.filter((bus) => {
-    const matchesRoute = routeFilter === "all" || bus.routeId === routeFilter;
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "ontime" && bus.tripStatus !== "Delayed") ||
-      (statusFilter === "delayed" && bus.tripStatus === "Delayed");
-    return matchesRoute && matchesStatus;
-  });
+  const selectedBusData = useMemo(() => {
+    return selectedBus ? liveLocations.find((b: LiveLocation) => b.tripId === selectedBus) || null : null;
+  }, [selectedBus, liveLocations]);
 
-  const selectedBusData = selectedBus ? busLocations.find((b) => b.id === selectedBus) : null;
+  // Naming consistency for FleetMap
+  const selectedBusId = selectedBus;
+  const onBusClick = (bus: any) => setSelectedBus(bus.tripId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -133,14 +177,14 @@ const LiveTracking = () => {
 
   return (
     <DashboardLayout>
-      <FullPageLoader show={isRoutesLoading} label="Loading tracking data..." />
+      <FullPageLoader show={isRoutesLoading || isLiveLoading} label="Initializing Fleet Radar..." />
       <PageHeader
         title="Live Tracking"
-        subtitle={`Track ${busLocations.length} active buses in real-time`}
+        subtitle={`Track ${liveLocations.length} active buses in real-time`}
         actions={
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground mr-2">Last updated: {lastUpdated.toLocaleTimeString()}</span>
-            <Button variant="outline" size="sm" onClick={refreshLocations}>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="shadow-sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
@@ -170,54 +214,51 @@ const LiveTracking = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="ontime">On Time</SelectItem>
-              <SelectItem value="delayed">Delayed</SelectItem>
+              <SelectItem value="moving">Moving</SelectItem>
+              <SelectItem value="stopped">Stopped</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map Placeholder */}
+        {/* Map Section */}
         <div className="lg:col-span-2">
-          <div className="dashboard-card p-6 h-[600px] relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="h-16 w-16 text-primary/30 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground">Interactive Map</h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto mt-2">
-                  In production, this would display a Leaflet or Google Maps view with real-time bus positions, routes,
-                  and stops.
-                </p>
-                <div className="mt-6 grid grid-cols-2 gap-4 max-w-xs mx-auto">
-                  {filteredBuses.map((bus) => (
-                    <button
-                      key={bus.id}
-                      onClick={() => setSelectedBus(bus.id)}
-                      className={cn(
-                        "p-3 rounded-lg border transition-all text-left",
-                        selectedBus === bus.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50",
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={cn("h-2 w-2 rounded-full", getStatusColor(bus.status))} />
-                        <span className="text-sm font-medium">{bus.busNumber}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{bus.currentLocation.name}</p>
-                    </button>
-                  ))}
+          <div className="dashboard-card p-0 h-[600px] relative overflow-hidden">
+            {!selectedBus ? (
+              <div className="absolute inset-0 bg-white flex items-center justify-center z-10 animate-in fade-in duration-500">
+                <div className="text-center">
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl animate-pulse" />
+                    <MapPin className="h-20 w-20 text-primary relative z-10 mx-auto" />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground">Fleet Radar Ready</h3>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto mt-3">
+                    Select an active shuttle from the list to begin high-precision road tracking and real-time telemetry
+                    monitoring.
+                  </p>
                 </div>
               </div>
-            </div>
+            ) : isLoaded ? (
+              <FleetMap
+                buses={liveLocations as any}
+                selectedBusId={selectedBus}
+                onBusClick={(bus) => setSelectedBus(bus.tripId)}
+                showStops={true}
+                showStartEnd={true}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-white flex items-center justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Bus List / Details Panel */}
+        {/* Bus List / Details Panel - RESTORED ORIGINAL LAYOUT */}
         <div className="space-y-4">
           {selectedBusData ? (
-            <div className="dashboard-card p-5">
+            <div className="dashboard-card p-5 animate-in slide-in-from-right-4 duration-300">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">{selectedBusData.busNumber}</h3>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedBus(null)}>
@@ -229,10 +270,10 @@ const LiveTracking = () => {
                 <div className="flex items-center gap-3">
                   <div className={cn("h-3 w-3 rounded-full", getStatusColor(selectedBusData.status))} />
                   <span className="text-sm capitalize">{selectedBusData.status}</span>
-                  <span className={getTripStatusBadge(selectedBusData.tripStatus)}>
+                  <Badge className={getTripStatusBadge(selectedBusData.tripStatus)}>
                     {selectedBusData.tripStatus}
                     {selectedBusData.delayMinutes > 0 && ` (+${selectedBusData.delayMinutes} min)`}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div>
@@ -247,9 +288,9 @@ const LiveTracking = () => {
 
                 <div>
                   <p className="text-xs text-muted-foreground">Current Location</p>
-                  <p className="text-sm font-medium">{selectedBusData.currentLocation.name}</p>
+                  <p className="text-sm font-medium">{selectedBusData.currentLocationName}</p>
                   <p className="text-xs text-muted-foreground">
-                    {selectedBusData.currentLocation.lat.toFixed(4)}, {selectedBusData.currentLocation.lng.toFixed(4)}
+                    {Number(selectedBusData.latitude).toFixed(4)}, {Number(selectedBusData.longitude).toFixed(4)}
                   </p>
                 </div>
 
@@ -267,39 +308,50 @@ const LiveTracking = () => {
 
                 <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{selectedBusData.passengers} passengers</span>
+                  <span className="text-sm font-medium">{selectedBusData.occupiedSeats} passengers onboard</span>
                 </div>
+
+                <Button variant="outline" className="w-full mt-4" onClick={() => setSelectedBus(null)}>
+                  Back to Fleet List
+                </Button>
               </div>
             </div>
           ) : (
             <div className="dashboard-card p-4">
               <h3 className="font-semibold mb-3">Active Buses</h3>
-              <div className="space-y-2">
-                {filteredBuses.map((bus) => (
-                  <button
-                    key={bus.id}
-                    onClick={() => setSelectedBus(bus.id)}
-                    className="w-full p-3 rounded-lg border border-border hover:border-primary/50 transition-all text-left"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Bus className="h-4 w-4 text-primary" />
-                        <span className="font-medium">{bus.busNumber}</span>
+              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {filteredBuses.length > 0 ? (
+                  filteredBuses.map((bus) => (
+                    <button
+                      key={bus.tripId}
+                      onClick={() => setSelectedBus(bus.tripId)}
+                      className="w-full p-3 rounded-lg border border-border hover:border-primary/50 transition-all text-left"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Bus className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{bus.busNumber}</span>
+                        </div>
+                        <div className={cn("h-2 w-2 rounded-full", getStatusColor(bus.status))} />
                       </div>
-                      <div className={cn("h-2 w-2 rounded-full", getStatusColor(bus.status))} />
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{bus.routeName}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Navigation className="h-3 w-3" />
-                        {bus.currentLocation.name}
+                      <p className="text-xs text-muted-foreground truncate">{bus.routeName}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Navigation className="h-3 w-3" />
+                          {bus.currentLocationName}
+                        </div>
+                        <Badge className={cn("text-[10px] py-0", getTripStatusBadge(bus.tripStatus))}>
+                          {bus.tripStatus}
+                        </Badge>
                       </div>
-                      <span className={cn("text-xs px-2 py-0.5 rounded", getTripStatusBadge(bus.tripStatus))}>
-                        {bus.tripStatus}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-10 opacity-50">
+                    <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+                    <p className="text-xs">No active units</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -311,23 +363,23 @@ const LiveTracking = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-success" />
-                  <span className="text-sm">On Time</span>
+                  <span className="text-sm font-medium">On Time</span>
                 </div>
-                <span className="font-medium">{busLocations.filter((b) => b.tripStatus !== "Delayed").length}</span>
+                <span className="font-bold">{liveLocations.filter((b) => b.tripStatus !== "Delayed").length}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-destructive" />
-                  <span className="text-sm">Delayed</span>
+                  <span className="text-sm font-medium">Delayed</span>
                 </div>
-                <span className="font-medium">{busLocations.filter((b) => b.tripStatus === "Delayed").length}</span>
+                <span className="font-bold">{liveLocations.filter((b) => b.tripStatus === "Delayed").length}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Total Passengers</span>
+                  <span className="text-sm font-medium">Total Passengers</span>
                 </div>
-                <span className="font-medium">{busLocations.reduce((sum, b) => sum + b.passengers, 0)}</span>
+                <span className="font-bold">{liveLocations.reduce((sum, b) => sum + (b.occupiedSeats || 0), 0)}</span>
               </div>
             </div>
           </div>

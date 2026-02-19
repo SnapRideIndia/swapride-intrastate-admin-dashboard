@@ -9,7 +9,6 @@ export const suggestionService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch suggestions";
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -20,7 +19,6 @@ export const suggestionService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to fetch suggestion ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -34,7 +32,6 @@ export const suggestionService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to update suggestion ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -45,7 +42,6 @@ export const suggestionService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to delete suggestion ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },

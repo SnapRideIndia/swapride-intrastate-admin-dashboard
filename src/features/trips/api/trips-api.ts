@@ -55,6 +55,14 @@ export const tripsApi = {
   },
 
   /**
+   * Get all live bus locations
+   */
+  getLiveLocations: async (): Promise<any[]> => {
+    const response = await apiClient.get(API_ENDPOINTS.TRIPS.GET_LIVE_LOCATIONS);
+    return response.data;
+  },
+
+  /**
    * Delete a trip
    */
   delete: async (id: string): Promise<void> => {

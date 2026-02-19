@@ -46,7 +46,7 @@ const Dashboard = () => {
         const [dashboardStats, utilization, bookings, notifications] = await Promise.all([
           analyticsService.getDashboardStats(),
           analyticsService.getBusUtilization(),
-          Promise.resolve(bookingService.getRecentBookings(5)), // Keep as is if sync, wrap if async
+          bookingService.getAll({ limit: 5 }).then((res) => res.data),
           notificationService.getRecent(5),
         ]);
         setStats(dashboardStats);
@@ -54,7 +54,7 @@ const Dashboard = () => {
         setRecentBookings(bookings);
         setRecentNotifications(notifications);
       } catch (error) {
-        console.error("Failed to load dashboard data:", error);
+        console.error("❌ [Dashboard] Error fetching stats:", error);
       } finally {
         setLoading(false);
       }
@@ -170,12 +170,7 @@ const Dashboard = () => {
 
           {/* Charts and Tracking */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div
-              className="cursor-pointer transition-transform hover:scale-[1.005]"
-              onClick={() => navigate(ROUTES.ANALYTICS)}
-            >
-              <RevenueChart />
-            </div>
+            <RevenueChart />
             <LiveBusTracker />
           </div>
 
@@ -186,7 +181,7 @@ const Dashboard = () => {
               <div className="dashboard-card p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Recent Bookings</h3>
-                  <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.TRIPS)}>
+                  <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.BOOKINGS)}>
                     View All
                   </Button>
                 </div>
@@ -202,21 +197,22 @@ const Dashboard = () => {
                             <Users className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium text-sm">{booking.userName}</p>
+                            <p className="font-medium text-sm">{booking.user?.fullName || "Guest"}</p>
                             <p className="text-xs text-muted-foreground">
-                              {booking.routeName} • Seat {booking.seatNumber}
+                              {booking.trip?.routeName || booking.route?.routeName || "N/A"} • Seat{" "}
+                              {booking.seats?.[0]?.seat?.seatNumber || booking.seats?.[0]?.seatNumber || "N/A"}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">₹{booking.amount}</p>
+                          <p className="font-medium">₹{booking.totalAmount}</p>
                           <span
                             className={cn(
                               "text-xs px-2 py-0.5 rounded",
-                              booking.paymentStatus === "Paid" ? "badge-success" : "badge-warning",
+                              booking.bookingStatus === "CONFIRMED" ? "badge-success" : "badge-warning",
                             )}
                           >
-                            {booking.paymentStatus}
+                            {booking.bookingStatus}
                           </span>
                         </div>
                       </div>

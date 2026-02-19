@@ -9,7 +9,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch routes";
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -20,7 +19,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to fetch route ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -31,7 +29,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to create route";
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -42,7 +39,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to update route ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -53,7 +49,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to delete route ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -64,7 +59,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to sync metrics for route ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -76,7 +70,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to add stop to route ${routeId}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -87,7 +80,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to update stop ${stopId}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -98,7 +90,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to delete stop ${stopId}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -109,7 +100,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to reorder stops for route ${routeId}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -121,7 +111,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch points";
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -132,7 +121,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to create point";
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -143,7 +131,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to update point ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -154,7 +141,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to delete point ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -170,7 +156,6 @@ export const routeService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to add image to point ${pointId}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -181,7 +166,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to remove image ${imageId}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -192,7 +176,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to set primary image ${imageId}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -203,7 +186,6 @@ export const routeService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to reorder images for point ${pointId}`;
-      console.error(message);
       throw new Error(message);
     }
   },

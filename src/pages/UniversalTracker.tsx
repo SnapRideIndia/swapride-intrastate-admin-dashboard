@@ -262,6 +262,14 @@ const UniversalTracker = () => {
                 </div>
               ))}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-8"
+            onClick={() => navigate(`/bookings/${booking.id}`)}
+          >
+            Show Full Booking Details <ExternalLink className="h-3 w-3 ml-2" />
+          </Button>
         </div>
       </div>
     </div>

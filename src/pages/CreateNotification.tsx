@@ -60,7 +60,6 @@ export default function CreateNotification() {
 
       toast.success("Notification broadcasted successfully!");
     } catch (error) {
-      console.error(error);
       toast.error("Failed to send notification");
     } finally {
       setLoading(false);
@@ -70,7 +69,7 @@ export default function CreateNotification() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Send Notification"
+        title="Broadcast Notification"
         subtitle="Reach your users and drivers instantly via push alerts."
         backUrl={ROUTES.NOTIFICATIONS}
         actions={

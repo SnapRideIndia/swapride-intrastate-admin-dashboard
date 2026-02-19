@@ -1,120 +1,59 @@
 import { Booking } from "@/types";
-import { storageService, STORAGE_KEYS } from "@/utils/storage";
-import { mockBookings } from "@/api/mock-data";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
-const BOOKINGS_KEY = STORAGE_KEYS.BOOKINGS;
-
-const initializeIfEmpty = (): Booking[] => {
-  let bookings = storageService.get<Booking[]>(BOOKINGS_KEY);
-  if (!bookings || bookings.length === 0) {
-    bookings = mockBookings;
-    storageService.set(BOOKINGS_KEY, bookings);
-  }
-  return bookings;
-};
-
 export const bookingService = {
-  getAll: (): Booking[] => {
-    return initializeIfEmpty();
+  getAll: async (params?: {
+    userId?: string;
+    tripId?: string;
+    status?: string;
+    date?: string; // Format: 'today', 'yesterday', or YYYY-MM-DD
+    q?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Booking[]; total: number }> => {
+    const response = await apiClient.get<{ data: Booking[]; total: number }>(API_ENDPOINTS.BOOKINGS.BASE, {
+      params,
+    });
+    return response.data;
   },
 
-  getById: (id: string): Booking | undefined => {
-    const bookings = initializeIfEmpty();
-    return bookings.find((booking) => booking.id === id);
+  getById: async (id: string): Promise<Booking> => {
+    const response = await apiClient.get<Booking>(API_ENDPOINTS.BOOKINGS.GET_BY_ID(id));
+    return response.data;
   },
 
-  create: (bookingData: Omit<Booking, "id" | "createdAt">): Booking => {
-    const bookings = initializeIfEmpty();
-    const newBooking: Booking = {
-      ...bookingData,
-      id: `BKG-${String(bookings.length + 1).padStart(3, "0")}`,
-      createdAt: new Date().toISOString(),
-    };
-    bookings.push(newBooking);
-    storageService.set(BOOKINGS_KEY, bookings);
-    return newBooking;
+  cancel: async (id: string): Promise<{ message: string; refundAmount?: number }> => {
+    const response = await apiClient.delete<{ message: string; refundAmount?: number }>(
+      API_ENDPOINTS.BOOKINGS.CANCEL(id),
+    );
+    return response.data;
   },
 
-  update: (id: string, bookingData: Partial<Booking>): Booking | null => {
-    const bookings = initializeIfEmpty();
-    const index = bookings.findIndex((booking) => booking.id === id);
-    if (index === -1) return null;
-
-    bookings[index] = {
-      ...bookings[index],
-      ...bookingData,
-    };
-    storageService.set(BOOKINGS_KEY, bookings);
-    return bookings[index];
+  updateBoardingStatus: async (id: string, status: string): Promise<{ message: string }> => {
+    const response = await apiClient.patch<{ message: string }>(API_ENDPOINTS.BOOKINGS.BOARD(id), {
+      status,
+    });
+    return response.data;
   },
 
-  delete: (id: string): boolean => {
-    const bookings = initializeIfEmpty();
-    const index = bookings.findIndex((booking) => booking.id === id);
-    if (index === -1) return false;
-
-    bookings.splice(index, 1);
-    storageService.set(BOOKINGS_KEY, bookings);
-    return true;
+  getMyBookings: async (): Promise<Booking[]> => {
+    const response = await apiClient.get<Booking[]>(API_ENDPOINTS.BOOKINGS.MY_BOOKINGS);
+    return response.data;
   },
 
-  updateBoardingStatus: (id: string, status: Booking["boardingStatus"]): Booking | null => {
-    return bookingService.update(id, { boardingStatus: status });
-  },
-
-  updatePaymentStatus: (id: string, status: Booking["paymentStatus"]): Booking | null => {
-    return bookingService.update(id, { paymentStatus: status });
-  },
-
-  getByUser: (userId: string): Booking[] => {
-    const bookings = initializeIfEmpty();
-    return bookings.filter((booking) => booking.userId === userId);
-  },
-
-  getByTrip: (tripId: string): Booking[] => {
-    const bookings = initializeIfEmpty();
-    return bookings.filter((booking) => booking.tripId === tripId);
-  },
-
-  getByDate: (date: string): Booking[] => {
-    const bookings = initializeIfEmpty();
-    return bookings.filter((booking) => booking.travelDate === date);
-  },
-
-  getByRoute: (routeId: string): Booking[] => {
-    const bookings = initializeIfEmpty();
-    return bookings.filter((booking) => booking.routeId === routeId);
-  },
-
-  getTodayBookings: (): Booking[] => {
-    const today = new Date().toISOString().split("T")[0];
-    return bookingService.getByDate(today);
-  },
-
-  getTodayCount: (): number => {
-    return bookingService.getTodayBookings().length;
-  },
-
-  getTodayRevenue: (): number => {
-    const todayBookings = bookingService.getTodayBookings();
-    return todayBookings.filter((b) => b.paymentStatus === "Paid").reduce((sum, b) => sum + b.amount, 0);
-  },
-
-  getRecentBookings: (limit: number = 10): Booking[] => {
-    const bookings = initializeIfEmpty();
-    return bookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit);
-  },
-
-  // Trip Passenger List
-  getTripPassengers: async (tripId: string): Promise<Booking[]> => {
-    try {
-      const response = await apiClient.get<Booking[]>(API_ENDPOINTS.TRIPS.GET_PASSENGERS(tripId));
-      return response.data;
-    } catch (error) {
-      console.error("Failed to fetch trip passengers:", error);
-      return [];
-    }
+  getStats: async (): Promise<{
+    totalBookings: number;
+    todayBookings: number;
+    todayRevenue: number;
+    pendingConfirmations: number;
+  }> => {
+    const response = await apiClient.get<{
+      totalBookings: number;
+      todayBookings: number;
+      todayRevenue: number;
+      pendingConfirmations: number;
+    }>(API_ENDPOINTS.BOOKINGS.STATS);
+    return response.data;
   },
 };

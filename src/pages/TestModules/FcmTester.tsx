@@ -117,7 +117,6 @@ export default function FcmTester() {
       });
       toast.success("Test broadcast dispatched to Admins!");
     } catch (error) {
-      console.error(error);
       toast.error("Failed to dispatch test notification");
     } finally {
       setLoading(false);

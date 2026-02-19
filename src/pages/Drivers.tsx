@@ -101,7 +101,6 @@ const Drivers = () => {
       const data = await driverService.getAll();
       setDrivers(data);
     } catch (error) {
-      console.error("Failed to fetch drivers:", error);
       toast({
         title: "Error",
         description: "Failed to fetch drivers. Please try again.",
@@ -149,7 +148,6 @@ const Drivers = () => {
       setDialogOpen(false);
       fetchDrivers();
     } catch (error: any) {
-      console.error("Failed to create driver:", error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to create driver. Please check your inputs.",
@@ -171,7 +169,6 @@ const Drivers = () => {
       });
       fetchDrivers();
     } catch (error) {
-      console.error("Failed to delete driver:", error);
       toast({
         title: "Error",
         description: "Failed to delete driver.",

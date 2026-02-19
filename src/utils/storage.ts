@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   ROLES: "shuttle_roles",
   ROLE_PERMISSIONS: "shuttle_role_permissions",
   ADMIN_PASSWORDS: "shuttle_admin_passwords",
+  SIDEBAR_STATE: "shuttle_sidebar_collapsed",
 } as const;
 
 export const storageService = {
@@ -21,7 +22,6 @@ export const storageService = {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : null;
     } catch (error) {
-      console.error(`Error reading from localStorage: ${key}`, error);
       return null;
     }
   },
@@ -29,17 +29,13 @@ export const storageService = {
   set: <T>(key: string, value: T): void => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error writing to localStorage: ${key}`, error);
-    }
+    } catch (error) {}
   },
 
   remove: (key: string): void => {
     try {
       localStorage.removeItem(key);
-    } catch (error) {
-      console.error(`Error removing from localStorage: ${key}`, error);
-    }
+    } catch (error) {}
   },
 
   clear: (): void => {

@@ -216,7 +216,6 @@ export const busLayoutService = {
       await apiClient.delete(API_ENDPOINTS.FLEET.LAYOUTS.DELETE(id));
       return { success: true };
     } catch (error: any) {
-      console.error("Error deleting bus layout:", error);
       return {
         success: false,
         error: error.response?.data?.message || "Failed to delete layout",

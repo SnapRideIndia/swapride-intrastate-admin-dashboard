@@ -9,7 +9,6 @@ export const busService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch buses";
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -20,7 +19,6 @@ export const busService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to fetch bus ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -31,7 +29,6 @@ export const busService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to create bus";
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -42,7 +39,6 @@ export const busService = {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to update bus ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },
@@ -53,7 +49,6 @@ export const busService = {
       return true;
     } catch (error: any) {
       const message = error.response?.data?.message || `Failed to delete bus ${id}`;
-      console.error(message);
       throw new Error(message);
     }
   },

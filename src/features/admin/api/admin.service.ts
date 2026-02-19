@@ -16,7 +16,6 @@ export const adminService = {
         phone: admin.phone || "N/A",
       }));
     } catch (error) {
-      console.error("Failed to fetch admins:", error);
       throw error;
     }
   },
@@ -35,7 +34,6 @@ export const adminService = {
         phone: admin.phone || "N/A",
       };
     } catch (error) {
-      console.error(`Failed to fetch admin ${id}:`, error);
       return undefined;
     }
   },
@@ -45,7 +43,6 @@ export const adminService = {
       const admins = await adminService.getAll();
       return admins.find((a) => a.email.toLowerCase() === email.toLowerCase());
     } catch (error) {
-      console.error(`Failed to find admin by email ${email}:`, error);
       return undefined;
     }
   },
@@ -69,7 +66,6 @@ export const adminService = {
         phone: "N/A",
       };
     } catch (error) {
-      console.error("Failed to create admin:", error);
       throw error;
     }
   },
@@ -88,7 +84,6 @@ export const adminService = {
         phone: admin.phone || "N/A",
       };
     } catch (error) {
-      console.error(`Failed to update admin ${id}:`, error);
       return null;
     }
   },
@@ -98,7 +93,6 @@ export const adminService = {
       await apiClient.delete(API_ENDPOINTS.ADMINS.DELETE(id));
       return true;
     } catch (error: any) {
-      console.error(`Failed to delete admin ${id}:`, error);
       if (error.response?.status === 400) {
         return false;
       }
@@ -144,7 +138,6 @@ export const adminService = {
         };
       }
     } catch (error) {
-      console.error("Failed to fetch admin stats:", error);
       return {
         totalAdmins: 0,
         activeAdmins: 0,

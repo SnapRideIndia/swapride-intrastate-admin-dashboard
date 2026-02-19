@@ -84,7 +84,6 @@ function LocationInput({
       setSuggestions(results);
       setShowSuggestions(true);
     } catch (error) {
-      console.error("Autocomplete error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -383,8 +382,6 @@ export default function SearchEngineTester() {
         userLng: source.lng,
         preferredTime: `${preferredTime}:00`,
       });
-
-      console.log("Search API Response:", results);
       setSearchResults(results);
 
       if (results.length === 0) {

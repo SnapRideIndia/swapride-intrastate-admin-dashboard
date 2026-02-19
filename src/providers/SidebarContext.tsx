@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { storageService, STORAGE_KEYS } from "@/utils/storage";
 
 interface SidebarContextType {
   collapsed: boolean;
@@ -9,7 +10,13 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    return storageService.get<boolean>(STORAGE_KEYS.SIDEBAR_STATE) ?? false;
+  });
+
+  useEffect(() => {
+    storageService.set(STORAGE_KEYS.SIDEBAR_STATE, collapsed);
+  }, [collapsed]);
 
   const toggle = () => setCollapsed(!collapsed);
 

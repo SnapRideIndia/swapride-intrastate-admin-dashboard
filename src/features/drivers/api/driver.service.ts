@@ -42,7 +42,6 @@ export const driverService = {
         completionRate: 0, // Backend calculation needed
       };
     } catch (error) {
-      console.error("Failed to fetch driver performance", error);
       return null;
     }
   },

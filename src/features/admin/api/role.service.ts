@@ -12,7 +12,6 @@ export const roleService = {
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       }));
     } catch (error) {
-      console.error("Failed to fetch roles:", error);
       return [];
     }
   },
@@ -27,7 +26,6 @@ export const roleService = {
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       };
     } catch (error) {
-      console.error(`Failed to fetch role ${id}:`, error);
       return undefined;
     }
   },
@@ -42,7 +40,6 @@ export const roleService = {
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       };
     } catch (error) {
-      console.error("Failed to create role:", error);
       throw error;
     }
   },
@@ -57,7 +54,6 @@ export const roleService = {
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       };
     } catch (error) {
-      console.error(`Failed to update role ${id}:`, error);
       return undefined;
     }
   },
@@ -67,7 +63,6 @@ export const roleService = {
       await apiClient.delete(API_ENDPOINTS.ROLES.DELETE(id));
       return true;
     } catch (error) {
-      console.error(`Failed to delete role ${id}:`, error);
       return false;
     }
   },
@@ -77,7 +72,6 @@ export const roleService = {
       const response = await apiClient.get<string[]>(API_ENDPOINTS.ROLES.PERMISSIONS(roleId));
       return response.data;
     } catch (error) {
-      console.error(`Failed to fetch permissions for role ${roleId}:`, error);
       return [];
     }
   },
@@ -87,7 +81,6 @@ export const roleService = {
       const response = await apiClient.get<{ count: number }>(API_ENDPOINTS.ROLES.ADMIN_COUNT(roleId));
       return response.data.count;
     } catch (error) {
-      console.error(`Failed to fetch admin count for role ${roleId}:`, error);
       return 0;
     }
   },

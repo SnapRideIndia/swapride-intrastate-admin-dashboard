@@ -23,7 +23,7 @@ export function PageHeader({ title, subtitle, backUrl, actions }: PageHeaderProp
         )}
         <div>
           <h1 className="page-title">{title}</h1>
-          {subtitle && <p className="page-subtitle">{subtitle}</p>}
+          {subtitle && <div className="page-subtitle">{subtitle}</div>}
         </div>
       </div>
       {actions && <div className="flex gap-2 items-center">{actions}</div>}

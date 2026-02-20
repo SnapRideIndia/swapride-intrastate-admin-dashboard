@@ -4,10 +4,17 @@ import { Trip } from "@/types";
 
 export const tripsApi = {
   /**
-   * Get all trips
+   * Get all trips (paginated and filtered)
    */
-  getAll: async (): Promise<Trip[]> => {
-    const response = await apiClient.get(API_ENDPOINTS.TRIPS.GET_ALL);
+  getAll: async (params?: {
+    limit?: number;
+    offset?: number;
+    driverId?: string;
+    status?: string;
+    date?: string;
+    search?: string;
+  }): Promise<{ data: Trip[]; total: number }> => {
+    const response = await apiClient.get(API_ENDPOINTS.TRIPS.GET_ALL, { params });
     return response.data;
   },
 

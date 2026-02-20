@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, MoreVertical, Edit, Trash2, Eye, TrendingUp, Loader2, AlertCircle } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Bus } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const Buses = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,6 +28,8 @@ const Buses = () => {
   const [selectedBus, setSelectedBus] = useState<Bus | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const filteredBuses = buses.filter((bus) => {
     const matchesSearch =
@@ -37,6 +40,17 @@ const Buses = () => {
     if (statusFilter === "all") return matchesSearch;
     return matchesSearch && bus.status === statusFilter.toUpperCase();
   });
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  const paginatedBuses = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredBuses.slice(start, end);
+  }, [filteredBuses, currentPage, pageSize]);
 
   const viewBusDetails = (bus: Bus) => {
     setSelectedBus(bus);
@@ -145,7 +159,7 @@ const Buses = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!isLoading && filteredBuses.length === 0 ? (
+            {!isLoading && paginatedBuses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-[400px] text-center">
                   <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
@@ -170,7 +184,7 @@ const Buses = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBuses.map((bus) => (
+              paginatedBuses.map((bus) => (
                 <TableRow key={bus.id} className="cursor-pointer hover:bg-muted/50" onClick={() => viewBusDetails(bus)}>
                   <TableCell className="font-medium">{bus.busNumber}</TableCell>
                   <TableCell>
@@ -237,6 +251,17 @@ const Buses = () => {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={filteredBuses.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>

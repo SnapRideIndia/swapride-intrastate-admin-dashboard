@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   MoreVertical,
@@ -15,6 +16,7 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { AssignTripDialog } from "@/features/trips";
 import { EditTripDialog } from "@/features/trips/components/EditTripDialog";
 import {
@@ -35,6 +37,7 @@ import { Trip } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const Trips = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,36 +46,56 @@ const Trips = () => {
   const [editTrip, setEditTrip] = useState<Trip | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [searchParams] = useSearchParams();
+  const driverIdFilter = searchParams.get("driverId") || searchParams.get("driverid");
 
-  // Fetch trips from backend API
-  const {
-    data: trips = [],
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["trips"],
-    queryFn: tripsApi.getAll,
-  });
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
-  const filteredTrips = trips.filter((trip) => {
-    const matchesSearch =
-      trip.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      trip.driverName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      trip.busNumber.toLowerCase().includes(searchQuery.toLowerCase());
-
-    if (!matchesSearch) return false;
-
+  // Map active tab to status and date filters
+  const { statusFilter, dateFilter } = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
     const dayAfter = new Date(Date.now() + 172800000).toISOString().split("T")[0];
 
-    if (activeTab === "all") return true;
-    if (activeTab === "today") return trip.date === today;
-    if (activeTab === "tomorrow") return trip.date === tomorrow;
-    if (activeTab === "day_after") return trip.date === dayAfter;
+    let status = undefined;
+    let date = undefined;
 
-    return trip.status.toLowerCase().replace(" ", "_") === activeTab;
+    if (activeTab === "today") date = today;
+    else if (activeTab === "tomorrow") date = tomorrow;
+    else if (activeTab === "day_after") date = dayAfter;
+    else if (activeTab === "in_progress") status = "In Progress";
+    else if (activeTab === "completed") status = "Completed";
+
+    return { statusFilter: status, dateFilter: date };
+  }, [activeTab]);
+
+  // Fetch trips from backend API with server-side pagination and filtering
+  const {
+    data: tripsData = { data: [], total: 0 },
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["trips", currentPage, pageSize, activeTab, debouncedSearch, driverIdFilter],
+    queryFn: () =>
+      tripsApi.getAll({
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
+        driverId: driverIdFilter || undefined,
+        status: statusFilter,
+        date: dateFilter,
+        search: debouncedSearch || undefined,
+      }),
   });
+
+  const trips = tripsData.data;
+  const totalCount = tripsData.total;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, activeTab]);
 
   const getDelayStatusColor = (tripStatus: Trip["tripStatus"], delayMinutes: number) => {
     if (tripStatus === "On Time" || tripStatus === "Early") return "text-success bg-success/10";
@@ -167,6 +190,9 @@ const Trips = () => {
     }
   };
 
+  // For stats, we might need a separate call or just use the current page's data
+  // (Note: This is an approximation since global counts weren't provided in the DTO yet,
+  // but we'll stick to your requirement of backend filtering)
   const todayCount = trips.filter((d) => d.date === new Date().toISOString().split("T")[0]).length;
   const inProgressCount = trips.filter((d) => d.status === "In Progress").length;
   const completedCount = trips.filter((d) => d.status === "Completed").length;
@@ -233,14 +259,14 @@ const Trips = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTrips.length === 0 ? (
+            {trips.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="text-center py-8">
                   No trips found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredTrips.map((trip) => (
+              trips.map((trip) => (
                 <TableRow
                   key={trip.id}
                   className="cursor-pointer hover:bg-muted/50"
@@ -334,6 +360,17 @@ const Trips = () => {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
       {/* Trip Details Dialog */}
@@ -559,11 +596,11 @@ const TripDetailsContent = ({
               <TableBody>
                 {passengers.map((booking) => (
                   <TableRow key={booking.id}>
-                    <TableCell className="font-medium">{booking.seatNumber}</TableCell>
-                    <TableCell>{booking.userName}</TableCell>
-                    <TableCell className="text-xs">{booking.userContact}</TableCell>
-                    <TableCell className="text-xs">{booking.pickupStop}</TableCell>
-                    <TableCell className="text-xs">{booking.dropStop}</TableCell>
+                    <TableCell className="font-medium">{booking.seats.map((s) => s.seatNumber).join(", ")}</TableCell>
+                    <TableCell>{booking.user?.fullName}</TableCell>
+                    <TableCell className="text-xs">{booking.user?.mobileNumber}</TableCell>
+                    <TableCell className="text-xs">{booking.pickupStop?.name}</TableCell>
+                    <TableCell className="text-xs">{booking.dropStop?.name}</TableCell>
                     <TableCell>
                       {booking.paymentId ? (
                         <span className="font-mono text-[10px] bg-muted px-2 py-0.5 rounded border">
@@ -577,9 +614,9 @@ const TripDetailsContent = ({
                       <span
                         className={cn(
                           "badge",
-                          booking.boardingStatus === "Boarded" && "badge-success",
-                          booking.boardingStatus === "Not Boarded" && "badge-warning",
-                          booking.boardingStatus === "No Show" && "badge-error",
+                          booking.boardingStatus === "BOARDED" && "badge-success",
+                          booking.boardingStatus === "NOT_BOARDED" && "badge-warning",
+                          booking.boardingStatus === "NO_SHOW" && "badge-error",
                         )}
                       >
                         {booking.boardingStatus}

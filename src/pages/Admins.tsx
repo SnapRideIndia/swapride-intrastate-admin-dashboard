@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatService } from "@/utils/format.service";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
@@ -56,6 +56,7 @@ import {
 import { useRoles } from "@/features/admin/hooks/useRoleQueries";
 import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const Admins = () => {
   const { toast } = useToast();
@@ -70,6 +71,8 @@ const Admins = () => {
   const [editAdmin, setEditAdmin] = useState<AdminUser | null>(null);
   const [deleteAdmin, setDeleteAdmin] = useState<AdminUser | null>(null);
   const [suspendAdmin, setSuspendAdmin] = useState<AdminUser | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Tanstack Query hooks
   const { data: admins = [], isLoading: loadingAdmins } = useAdmins();
@@ -93,6 +96,17 @@ const Admins = () => {
       return matchesSearch && matchesStatus && matchesRole;
     });
   }, [admins, searchQuery, statusFilter, roleFilter]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, roleFilter]);
+
+  const paginatedAdmins = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredAdmins.slice(start, end);
+  }, [filteredAdmins, currentPage, pageSize]);
 
   const handleDelete = async () => {
     if (!deleteAdmin) return;
@@ -268,7 +282,7 @@ const Admins = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAdmins.map((admin) => (
+              paginatedAdmins.map((admin) => (
                 <TableRow key={admin.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -354,6 +368,18 @@ const Admins = () => {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          className="mt-4"
+          currentPage={currentPage}
+          totalCount={filteredAdmins.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
       <AddAdminDialog

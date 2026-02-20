@@ -34,6 +34,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notificationService } from "@/features/notifications/api/notification.service";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 // Mock Data Type based on DB Design
 type AppNotification = {
@@ -55,6 +56,8 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ sentCount: 0, openRate: 0, criticalAlerts: 0 });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Sync state with URL params
   const search = searchParams.get("q") || "";
@@ -81,8 +84,7 @@ export default function Notifications() {
       try {
         const statsData = await notificationService.getStats();
         setStats(statsData);
-      } catch (e) {
-      }
+      } catch (e) {}
       // Map API fields to UI fields if necessary
       const mapped = data.map((n: any) => ({
         id: n.id,
@@ -110,6 +112,11 @@ export default function Notifications() {
     return () => window.removeEventListener("fcm-message-received", handleRefresh);
   }, [searchParams]); // Re-fetch when search params change
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, typeFilter, priorityFilter, statusFilter]);
+
   const filteredNotifications = notifications.filter((n) => {
     const matchesSearch =
       n.title.toLowerCase().includes(search.toLowerCase()) || n.content.toLowerCase().includes(search.toLowerCase());
@@ -118,6 +125,12 @@ export default function Notifications() {
     const matchesStatus = statusFilter === "all" ? true : statusFilter === "unread" ? !n.isRead : n.isRead;
     return matchesSearch && matchesType && matchesPriority && matchesStatus;
   });
+
+  const paginatedNotifications = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredNotifications.slice(start, end);
+  }, [filteredNotifications, currentPage, pageSize]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -153,8 +166,7 @@ export default function Notifications() {
     try {
       await notificationService.markAsRead(id);
       setNotifications(notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const handleDelete = async (id: string) => {
@@ -162,8 +174,7 @@ export default function Notifications() {
       try {
         await notificationService.delete(id);
         setNotifications(notifications.filter((n) => n.id !== id));
-      } catch (error) {
-      }
+      } catch (error) {}
     }
   };
 
@@ -302,14 +313,14 @@ export default function Notifications() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredNotifications.length === 0 && !loading ? (
+              {paginatedNotifications.length === 0 && !loading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                     No notifications found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredNotifications.map((n) => (
+                paginatedNotifications.map((n) => (
                   <TableRow
                     key={n.id}
                     className={`group transition-all duration-200 hover:bg-blue-50/30 cursor-pointer ${
@@ -389,6 +400,18 @@ export default function Notifications() {
               )}
             </TableBody>
           </Table>
+
+          <TablePagination
+            className="mt-4"
+            currentPage={currentPage}
+            totalCount={filteredNotifications.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       </div>
     </DashboardLayout>

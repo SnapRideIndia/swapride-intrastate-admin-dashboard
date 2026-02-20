@@ -3,8 +3,13 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
 export const driverService = {
-  getAll: async (): Promise<Driver[]> => {
-    const { data } = await apiClient.get(API_ENDPOINTS.DRIVERS.GET_ALL);
+  getAll: async (params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    status?: string;
+  }): Promise<{ drivers: Driver[]; total: number }> => {
+    const { data } = await apiClient.get(API_ENDPOINTS.DRIVERS.GET_ALL, { params });
     return data;
   },
 

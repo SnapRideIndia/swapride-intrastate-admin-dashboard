@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { ArrowUpCircle, ArrowDownCircle, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,15 +7,26 @@ import { useQuery } from "@tanstack/react-query";
 import { financialsApi } from "@/api/financials";
 import { useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const TransactionLedger = () => {
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Fetch Global Wallet Transactions
   const { data: globalWalletTxnsData, isLoading: isLoadingGlobalTxns } = useQuery({
     queryKey: ["admin-global-wallet-transactions"],
-    queryFn: () => financialsApi.getGlobalWalletTransactions({ limit: 20 }),
+    queryFn: () => financialsApi.getGlobalWalletTransactions({ limit: 100 }), // Fetch more for client-side pagination demo
   });
+
+  const transactions = globalWalletTxnsData?.transactions || [];
+
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return transactions.slice(start, end);
+  }, [transactions, currentPage, pageSize]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -78,62 +90,81 @@ const TransactionLedger = () => {
               </tr>
             </thead>
             <tbody>
-              {globalWalletTxnsData?.transactions.map((txn) => (
-                <tr key={txn.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                  <td className="py-3 px-4">
-                    <span className="text-sm font-medium text-primary">{txn.id.split("-")[0]}...</span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={txn.wallet?.user.profileUrl || ""} />
-                        <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                          {txn.wallet?.user.fullName
-                            ?.split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase() || "UN"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{txn.wallet?.user.fullName || "Unknown"}</span>
-                        <span className="text-[10px] text-muted-foreground">{txn.wallet?.user.email}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">{getTransactionTypeBadge(txn.type)}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`text-sm font-semibold ${txn.type === "CREDIT" || txn.type === "REFUND" ? "text-success" : "text-destructive"}`}
-                    >
-                      {txn.type === "CREDIT" || txn.type === "REFUND" ? "+" : "-"}
-                      {formatCurrency(txn.amount)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
-                      {txn.description}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    {txn.referenceId && (
-                      <span
-                        className="text-xs text-primary hover:underline cursor-pointer"
-                        onClick={() => navigate(`/payments/${txn.referenceId}`)}
-                      >
-                        {txn.referenceId.split("-")[0]}...
-                      </span>
-                    )}
-                    {!txn.referenceId && <span className="text-xs text-muted-foreground">—</span>}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-muted-foreground">{formatDate(txn.createdAt)}</span>
+              {paginatedTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No transactions found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                paginatedTransactions.map((txn) => (
+                  <tr key={txn.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                    <td className="py-3 px-4">
+                      <span className="text-sm font-medium text-primary">{txn.id.split("-")[0]}...</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={txn.wallet?.user.profileUrl || ""} />
+                          <AvatarFallback className="bg-primary/5 text-primary text-xs">
+                            {txn.wallet?.user.fullName
+                              ?.split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase() || "UN"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{txn.wallet?.user.fullName || "Unknown"}</span>
+                          <span className="text-[10px] text-muted-foreground">{txn.wallet?.user.email}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">{getTransactionTypeBadge(txn.type)}</td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`text-sm font-semibold ${txn.type === "CREDIT" || txn.type === "REFUND" ? "text-success" : "text-destructive"}`}
+                      >
+                        {txn.type === "CREDIT" || txn.type === "REFUND" ? "+" : "-"}
+                        {formatCurrency(txn.amount)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
+                        {txn.description}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {txn.referenceId && (
+                        <span
+                          className="text-xs text-primary hover:underline cursor-pointer"
+                          onClick={() => navigate(`/payments/${txn.referenceId}`)}
+                        >
+                          {txn.referenceId.split("-")[0]}...
+                        </span>
+                      )}
+                      {!txn.referenceId && <span className="text-xs text-muted-foreground">—</span>}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-muted-foreground">{formatDate(txn.createdAt)}</span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={transactions.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
     </TabsContent>
   );

@@ -27,6 +27,7 @@ import FcmTester from "@/pages/TestModules/FcmTester";
 import Suggestions from "@/pages/Suggestions";
 import SuggestionDetails from "@/pages/SuggestionDetails";
 import UserDetails from "@/pages/UserDetails";
+import DriverDetails from "@/pages/DriverDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
 import WalletDetails from "@/pages/WalletDetails";
 import Bookings from "@/pages/Bookings";
@@ -53,6 +54,7 @@ export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.USERS, element: <Users /> },
   { path: ROUTES.USER_DETAILS, element: <UserDetails /> },
   { path: ROUTES.DRIVERS, element: <Drivers /> },
+  { path: ROUTES.DRIVER_DETAILS, element: <DriverDetails /> },
   { path: ROUTES.LIVE_TRACKING, element: <LiveTracking /> },
   { path: ROUTES.SUPPORT, element: <Support /> },
   { path: ROUTES.ANALYTICS, element: <Analytics /> },

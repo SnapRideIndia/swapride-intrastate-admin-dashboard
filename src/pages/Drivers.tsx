@@ -1,29 +1,11 @@
-import { useState, useEffect } from "react";
-import {
-  Search,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Eye,
-  Plus,
-  Phone,
-  Star,
-  Users,
-  UserCheck,
-  Route,
-  UserCog,
-} from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, Plus, Phone, Star, Users, UserCheck, Route, UserCog } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -37,11 +19,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { driverService, DriverDetailsDialog, EditDriverDialog } from "@/features/drivers";
+import { driverService } from "@/features/drivers";
 import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Driver } from "@/types";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { useDebounce } from "@/hooks/useDebounce";
+import { ROUTES } from "@/constants/routes";
 
 const driverFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
@@ -73,17 +58,20 @@ type DriverFormData = z.infer<typeof driverFormSchema>;
 
 const Drivers = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // Details & Edit Logic
-  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  // Details Logic
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const form = useForm<DriverFormData>({
     resolver: zodResolver(driverFormSchema),
@@ -98,8 +86,14 @@ const Drivers = () => {
   const fetchDrivers = async () => {
     setLoading(true);
     try {
-      const data = await driverService.getAll();
-      setDrivers(data);
+      const response = await driverService.getAll({
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
+        search: debouncedSearchQuery,
+        status: statusFilter,
+      });
+      setDrivers(response.drivers);
+      setTotalCount(response.total);
     } catch (error) {
       toast({
         title: "Error",
@@ -113,15 +107,16 @@ const Drivers = () => {
 
   useEffect(() => {
     fetchDrivers();
-  }, []);
+  }, [currentPage, pageSize, debouncedSearchQuery, statusFilter]);
 
-  const filteredDrivers = drivers.filter((driver) => {
-    const matchesSearch =
-      driver.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      driver.licenseNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || driver.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchQuery, statusFilter]);
+
+  const paginatedDrivers = drivers;
 
   const onSubmit = async (data: DriverFormData) => {
     setIsCreating(true);
@@ -156,6 +151,10 @@ const Drivers = () => {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleViewDriver = (driver: Driver) => {
+    navigate(`${ROUTES.DRIVERS}/${driver.id}`);
   };
 
   const handleDelete = async (id: string) => {
@@ -310,7 +309,7 @@ const Drivers = () => {
                       <FormField
                         control={form.control}
                         name="photo"
-                        render={({ field: { value, onChange, ...fieldProps } }) => (
+                        render={({ field: { value: _value, onChange, ...fieldProps } }) => (
                           <FormItem>
                             <FormLabel>Profile Photo (Image)</FormLabel>
                             <FormControl>
@@ -381,7 +380,7 @@ const Drivers = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or license..."
+                placeholder="Search by name, mobile, license or ID..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -415,21 +414,24 @@ const Drivers = () => {
                 <TableHead>Trips</TableHead>
                 <TableHead>Rating</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!loading && filteredDrivers.length === 0 ? (
+              {!loading && paginatedDrivers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                     No drivers found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredDrivers.map((driver) => {
+                paginatedDrivers.map((driver) => {
                   const driverIdShort = driver.id.substring(0, 8).toUpperCase();
                   return (
-                    <TableRow key={driver.id}>
+                    <TableRow
+                      key={driver.id}
+                      className="cursor-pointer hover:bg-muted/30 transition-colors"
+                      onClick={() => handleViewDriver(driver)}
+                    >
                       <TableCell className="font-medium" title={driver.id}>
                         {driverIdShort}...
                       </TableCell>
@@ -465,59 +467,23 @@ const Drivers = () => {
                       <TableCell>
                         <span className={getStatusBadge(driver.status)}>{formatStatus(driver.status)}</span>
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={!!deletingId}>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedDriver(driver);
-                                setDetailsOpen(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedDriver(driver);
-                                setEditOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDelete(driver.id)}
-                              disabled={deletingId === driver.id}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
                     </TableRow>
                   );
                 })
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalCount={totalCount}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
-
-        <DriverDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} driver={selectedDriver} />
-
-        <EditDriverDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          driver={selectedDriver}
-          onDriverUpdated={fetchDrivers}
-        />
       </DashboardLayout>
     </>
   );

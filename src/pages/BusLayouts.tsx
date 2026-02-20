@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { LayoutPreviewGrid } from "@/features/buses";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const BusLayouts = () => {
   const navigate = useNavigate();
@@ -50,6 +51,8 @@ const BusLayouts = () => {
   const [layouts, setLayouts] = useState<BusLayout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [stats, setStats] = useState<any>({
     totalLayouts: 0,
     activeLayouts: 0,
@@ -96,6 +99,17 @@ const BusLayouts = () => {
       return matchesSearch && matchesStatus && matchesType;
     });
   }, [layouts, searchQuery, statusFilter, typeFilter]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, typeFilter]);
+
+  const paginatedLayouts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredLayouts.slice(start, end);
+  }, [filteredLayouts, currentPage, pageSize]);
 
   const handleDuplicate = async () => {
     if (!duplicateLayout || !duplicateName.trim()) return;
@@ -226,80 +240,101 @@ const BusLayouts = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredLayouts.map((layout) => (
-              <TableRow key={layout.id}>
-                <TableCell>
-                  <div>
-                    <p className="font-medium">{layout.name}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">{layout.description}</p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="badge badge-info">{layout.layoutType}</span>
-                </TableCell>
-                <TableCell>{layout.totalSeats} seats</TableCell>
-                <TableCell>
-                  {layout.totalRows} × {layout.totalColumns}
-                </TableCell>
-                <TableCell>
-                  <span className={cn("font-medium", layout.busesUsing > 0 ? "text-primary" : "text-muted-foreground")}>
-                    {layout.busesUsing} buses
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      "badge",
-                      layout.status === "active" && "badge-success",
-                      layout.status === "inactive" && "badge-warning",
-                      layout.status === "archived" && "badge-error",
-                    )}
-                  >
-                    {layout.status}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setPreviewLayout(layout)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
-                      </DropdownMenuItem>
-                      {canEdit && (
-                        <DropdownMenuItem onClick={() => navigate(`/bus-layouts/${layout.id}`)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                      )}
-                      {canCreate && (
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setDuplicateLayout(layout);
-                            setDuplicateName(`${layout.name} (Copy)`);
-                          }}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Duplicate
-                        </DropdownMenuItem>
-                      )}
-                      {canDelete && (
-                        <DropdownMenuItem className="text-destructive" onClick={() => setDeleteLayout(layout)}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {paginatedLayouts.length === 0 && !isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  No layout templates found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              paginatedLayouts.map((layout) => (
+                <TableRow key={layout.id}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{layout.name}</p>
+                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">{layout.description}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="badge badge-info">{layout.layoutType}</span>
+                  </TableCell>
+                  <TableCell>{layout.totalSeats} seats</TableCell>
+                  <TableCell>
+                    {layout.totalRows} × {layout.totalColumns}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn("font-medium", layout.busesUsing > 0 ? "text-primary" : "text-muted-foreground")}
+                    >
+                      {layout.busesUsing} buses
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "badge",
+                        layout.status === "active" && "badge-success",
+                        layout.status === "inactive" && "badge-warning",
+                        layout.status === "archived" && "badge-error",
+                      )}
+                    >
+                      {layout.status}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setPreviewLayout(layout)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview
+                        </DropdownMenuItem>
+                        {canEdit && (
+                          <DropdownMenuItem onClick={() => navigate(`/bus-layouts/${layout.id}`)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {canCreate && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setDuplicateLayout(layout);
+                              setDuplicateName(`${layout.name} (Copy)`);
+                            }}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Duplicate
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete && (
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteLayout(layout)}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={filteredLayouts.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
       {/* Preview Dialog */}

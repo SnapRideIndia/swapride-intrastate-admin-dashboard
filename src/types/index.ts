@@ -161,6 +161,7 @@ export interface Wallet {
 export interface Trip {
   id: string;
   date: string;
+  tripDate?: string;
   routeId: string;
   routeName: string;
   busId: string;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -34,6 +34,7 @@ import { couponService, Coupon } from "@/api/coupons";
 import { toast } from "@/components/ui/sonner";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { ROUTES } from "@/constants/routes";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 export default function Coupons() {
   const queryClient = useQueryClient();
@@ -43,6 +44,8 @@ export default function Coupons() {
   // Filters State
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Fetch Coupons
   const { data: coupons = [], isLoading: isCouponsLoading } = useQuery({
@@ -75,6 +78,17 @@ export default function Coupons() {
     const matchesType = typeFilter === "all" ? true : c.discountType === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, typeFilter]);
+
+  const paginatedCoupons = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredCoupons.slice(start, end);
+  }, [filteredCoupons, currentPage, pageSize]);
 
   const handleToggleActive = (coupon: Coupon) => {
     updateMutation.mutate({
@@ -232,8 +246,8 @@ export default function Coupons() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCoupons.length > 0 ? (
-                filteredCoupons.map((coupon) => (
+              {paginatedCoupons.length > 0 ? (
+                paginatedCoupons.map((coupon) => (
                   <TableRow
                     key={coupon.id}
                     className="group hover:bg-gray-50/50 transition-colors cursor-pointer"
@@ -390,11 +404,11 @@ export default function Coupons() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={6} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-3 opacity-50">
-                      <Tag className="h-12 w-12 text-gray-300" />
-                      <div className="text-lg font-medium text-gray-400">No coupons found matching your filters</div>
-                      <Button variant="outline" onClick={resetFilters} className="mt-2">
-                        Clear all filters
+                    <div className="flex flex-col items-center justify-center opacity-40">
+                      <Ticket className="h-12 w-12 mb-2 text-gray-300" />
+                      <p className="text-lg font-medium">No coupons found</p>
+                      <Button variant="link" onClick={resetFilters}>
+                        Clear filters
                       </Button>
                     </div>
                   </TableCell>
@@ -402,6 +416,18 @@ export default function Coupons() {
               )}
             </TableBody>
           </Table>
+
+          <TablePagination
+            className="mt-4"
+            currentPage={currentPage}
+            totalCount={filteredCoupons.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       </div>
     </DashboardLayout>

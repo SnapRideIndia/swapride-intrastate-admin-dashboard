@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatService } from "@/utils/format.service";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -44,6 +44,7 @@ import { useAdmins } from "@/features/admin/hooks/useAdminQueries";
 import { permissionService } from "@/features/admin";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { StatCard } from "@/features/analytics";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const Roles = () => {
   const { toast } = useToast();
@@ -54,6 +55,8 @@ const Roles = () => {
   const [editRole, setEditRole] = useState<Role | null>(null);
   const [deleteRole, setDeleteRole] = useState<Role | null>(null);
   const [viewRole, setViewRole] = useState<Role | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Tanstack Query hooks
   const { data: roles = [], isLoading: loadingRoles } = useRoles();
@@ -68,6 +71,17 @@ const Roles = () => {
         role.description.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [roles, searchQuery]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const paginatedRoles = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredRoles.slice(start, end);
+  }, [filteredRoles, currentPage, pageSize]);
 
   const adminCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -181,7 +195,7 @@ const Roles = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRoles.map((role) => (
+              paginatedRoles.map((role) => (
                 <TableRow key={role.id}>
                   <TableCell>
                     <Badge className={`${getRoleColor(role.slug)} w-fit font-medium`}>
@@ -239,6 +253,17 @@ const Roles = () => {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={filteredRoles.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
       <AddRoleDialog

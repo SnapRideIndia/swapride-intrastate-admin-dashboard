@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MoreVertical, Edit, Eye, CheckCircle, Mail, Phone } from "lucide-react";
+import { Search, MoreVertical, Edit, Eye, CheckCircle, Mail, Phone, ExternalLink } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { StatCard } from "@/features/analytics";
 import { Users as UsersIcon, UserCheck, Ban, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const Users = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -26,6 +27,8 @@ const Users = () => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const navigate = useNavigate();
 
   const fetchUsers = async () => {
@@ -52,22 +55,35 @@ const Users = () => {
     fetchUsers();
   }, []);
 
-  const filteredUsers = Array.isArray(users)
-    ? users.filter((user) => {
-        const nameStr = user.fullName || "";
-        const emailStr = user.email || "";
-        const mobileStr = user.mobileNumber || "";
+  const filteredUsers = useMemo(() => {
+    if (!Array.isArray(users)) return [];
 
-        const matchesSearch =
-          nameStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          emailStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          mobileStr.includes(searchQuery);
+    return users.filter((user) => {
+      const nameStr = user.fullName || "";
+      const emailStr = user.email || "";
+      const mobileStr = user.mobileNumber || "";
 
-        const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+      const matchesSearch =
+        nameStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emailStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        mobileStr.includes(searchQuery);
 
-        return matchesSearch && matchesStatus;
-      })
-    : [];
+      const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [users, searchQuery, statusFilter]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredUsers.slice(start, end);
+  }, [filteredUsers, currentPage, pageSize]);
 
   const handleBlockUser = async (id: string) => {
     try {
@@ -185,9 +201,9 @@ const Users = () => {
       </div>
 
       {/* Table */}
-      <div className="table-container">
+      <div className="table-container shadow-sm border border-border/40 overflow-hidden bg-white rounded-xl">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50/50">
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Contact</TableHead>
@@ -200,46 +216,70 @@ const Users = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.length === 0 ? (
+            {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  No users found matching your criteria.
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center opacity-60">
+                    <UsersIcon className="h-10 w-10 mb-2 text-gray-300" />
+                    <p className="text-lg font-medium">No users found matching your criteria.</p>
+                    <Button
+                      variant="link"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("all");
+                      }}
+                    >
+                      Clear filters
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredUsers.map((user) => (
+              paginatedUsers.map((user) => (
                 <TableRow
                   key={user.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="group transition-colors hover:bg-slate-50/50 cursor-pointer"
                   onClick={() => handleViewDetails(user.id)}
                 >
-                  <TableCell>{user.fullName}</TableCell>
+                  <TableCell className="font-semibold text-slate-800">{user.fullName}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
+                      <div className="flex items-center gap-1 text-sm font-medium text-slate-600">
+                        <Phone className="h-3 w-3 text-slate-400" />
                         {user.mobileNumber}
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1 text-xs text-slate-400">
                         <Mail className="h-3 w-3" />
                         {user.email}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{user.bloodGroup || "N/A"}</TableCell>
-                  <TableCell>{user.totalBookings || 0}</TableCell>
-                  <TableCell>₹{(user.totalAmountSpent || 0).toLocaleString()}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-slate-600 font-medium">{user.bloodGroup || "N/A"}</TableCell>
+                  <TableCell className="text-slate-600 font-bold">{user.totalBookings || 0}</TableCell>
+                  <TableCell className="text-slate-900 font-bold text-sm">
+                    ₹{(user.totalAmountSpent || 0).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-slate-500 font-medium text-xs">
                     {user.lastBookingDate ? new Date(user.lastBookingDate).toLocaleDateString() : "N/A"}
                   </TableCell>
                   <TableCell>
-                    <span className={getStatusBadge(user.status)}>{user.status}</span>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        user.status?.toUpperCase() === "ACTIVE"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                          : user.status?.toUpperCase() === "BLOCKED"
+                            ? "bg-rose-50 text-rose-700 border border-rose-100"
+                            : "bg-slate-50 text-slate-700 border border-slate-100"
+                      }`}
+                    >
+                      {user.status}
+                    </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                          <MoreVertical className="h-4 w-4 text-slate-400" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -275,6 +315,17 @@ const Users = () => {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={filteredUsers.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
     </DashboardLayout>
   );

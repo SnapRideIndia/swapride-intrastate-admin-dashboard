@@ -21,19 +21,23 @@ import { useQuery } from "@tanstack/react-query";
 import { financialsApi } from "@/api/financials";
 import { useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const PaymentOverview = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Fetch Global Payments (Overview)
   const { data: paymentsData, isLoading: isLoadingPayments } = useQuery({
-    queryKey: ["admin-payments", statusFilter, methodFilter, searchTerm],
+    queryKey: ["admin-payments", statusFilter, methodFilter, searchTerm, currentPage, pageSize],
     queryFn: () =>
       financialsApi.getPayments({
-        limit: 20,
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
         status: statusFilter,
         method: methodFilter,
         search: searchTerm,
@@ -293,9 +297,17 @@ const PaymentOverview = () => {
             </tbody>
           </table>
         </div>
-        <p className="text-sm text-muted-foreground mt-4">
-          Showing {Math.min(20, filteredPayments.length)} of {filteredPayments.length} payments
-        </p>
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={paymentsData?.total || 0}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          className="mt-4"
+        />
       </div>
     </TabsContent>
   );

@@ -33,6 +33,7 @@ import { BookingStatusBadge, BoardingStatusBadge } from "@/features/bookings/com
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Booking } from "@/types";
 import { toast } from "sonner";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 export default function Bookings() {
   const navigate = useNavigate();
@@ -45,6 +46,8 @@ export default function Bookings() {
     todayRevenue: 0,
     pendingConfirmations: 0,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const search = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "all";
@@ -113,6 +116,17 @@ export default function Bookings() {
       return matchesSearch && matchesStatus && matchesBoarding;
     });
   }, [bookings, search, statusFilter, boardingFilter]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, boardingFilter, dateFilter]);
+
+  const paginatedBookings = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredBookings.slice(start, end);
+  }, [filteredBookings, currentPage, pageSize]);
 
   const handleCancel = async (id: string) => {
     if (confirm("Are you sure you want to cancel this booking? This may initiate a refund.")) {
@@ -305,14 +319,14 @@ export default function Bookings() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBookings.length === 0 && !loading ? (
+              {paginatedBookings.length === 0 && !loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     No matching bookings found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBookings.map((b) => (
+                paginatedBookings.map((b) => (
                   <TableRow
                     key={b.id}
                     className="group transition-colors hover:bg-slate-50/50 cursor-pointer"
@@ -400,6 +414,17 @@ export default function Bookings() {
               )}
             </TableBody>
           </Table>
+
+          <TablePagination
+            currentPage={currentPage}
+            totalCount={filteredBookings.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       </div>
     </DashboardLayout>

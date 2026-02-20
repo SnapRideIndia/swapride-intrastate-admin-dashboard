@@ -18,6 +18,7 @@ export const ROUTES = {
   USERS: "/users",
   USER_DETAILS: "/users/:id",
   DRIVERS: "/drivers",
+  DRIVER_DETAILS: "/drivers/:id",
   LIVE_TRACKING: "/live-tracking",
   SUPPORT: "/support",
   ANALYTICS: "/analytics",

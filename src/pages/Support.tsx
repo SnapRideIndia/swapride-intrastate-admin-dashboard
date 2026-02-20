@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Search, MoreVertical, MessageSquare, CheckCircle, Clock, AlertCircle, Send, Phone } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -131,6 +132,8 @@ const Support = () => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
@@ -141,6 +144,17 @@ const Support = () => {
     if (activeTab === "all") return matchesSearch;
     return matchesSearch && ticket.status === activeTab;
   });
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeTab]);
+
+  const paginatedTickets = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredTickets.slice(start, end);
+  }, [filteredTickets, currentPage, pageSize]);
 
   const openCount = tickets.filter((t) => t.status === "open").length;
   const inProgressCount = tickets.filter((t) => t.status === "in_progress").length;
@@ -255,84 +269,103 @@ const Support = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTickets.map((ticket) => (
-              <TableRow
-                key={ticket.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => viewTicketDetails(ticket)}
-              >
-                <TableCell>
-                  <div>
-                    <p className="text-sm font-medium">{ticket.id}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">{ticket.subject}</p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <p className="text-sm font-medium">{ticket.passenger}</p>
-                    <p className="text-xs text-muted-foreground">{ticket.phone}</p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{ticket.category}</Badge>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      "badge",
-                      ticket.priority === "high" && "badge-error",
-                      ticket.priority === "medium" && "badge-warning",
-                      ticket.priority === "low" && "badge-info",
-                    )}
-                  >
-                    {ticket.priority}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      "badge",
-                      ticket.status === "open" && "badge-error",
-                      ticket.status === "in_progress" && "badge-warning",
-                      ticket.status === "resolved" && "badge-success",
-                    )}
-                  >
-                    {ticket.status === "in_progress" ? "In Progress" : ticket.status}
-                  </span>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">{ticket.createdAt}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{ticket.lastUpdated}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => viewTicketDetails(ticket)}>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        View & Reply
-                      </DropdownMenuItem>
-                      {ticket.status !== "in_progress" && (
-                        <DropdownMenuItem onClick={() => updateTicketStatus(ticket.id, "in_progress")}>
-                          <Clock className="h-4 w-4 mr-2" />
-                          Mark In Progress
-                        </DropdownMenuItem>
-                      )}
-                      {ticket.status !== "resolved" && (
-                        <DropdownMenuItem onClick={() => updateTicketStatus(ticket.id, "resolved")}>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Mark Resolved
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {paginatedTickets.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  No support tickets found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              paginatedTickets.map((ticket) => (
+                <TableRow
+                  key={ticket.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => viewTicketDetails(ticket)}
+                >
+                  <TableCell>
+                    <div>
+                      <p className="text-sm font-medium">{ticket.id}</p>
+                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">{ticket.subject}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="text-sm font-medium">{ticket.passenger}</p>
+                      <p className="text-xs text-muted-foreground">{ticket.phone}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{ticket.category}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "badge",
+                        ticket.priority === "high" && "badge-error",
+                        ticket.priority === "medium" && "badge-warning",
+                        ticket.priority === "low" && "badge-info",
+                      )}
+                    >
+                      {ticket.priority}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "badge",
+                        ticket.status === "open" && "badge-error",
+                        ticket.status === "in_progress" && "badge-warning",
+                        ticket.status === "resolved" && "badge-success",
+                      )}
+                    >
+                      {ticket.status === "in_progress" ? "In Progress" : ticket.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{ticket.createdAt}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{ticket.lastUpdated}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => viewTicketDetails(ticket)}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          View & Reply
+                        </DropdownMenuItem>
+                        {ticket.status !== "in_progress" && (
+                          <DropdownMenuItem onClick={() => updateTicketStatus(ticket.id, "in_progress")}>
+                            <Clock className="h-4 w-4 mr-2" />
+                            Mark In Progress
+                          </DropdownMenuItem>
+                        )}
+                        {ticket.status !== "resolved" && (
+                          <DropdownMenuItem onClick={() => updateTicketStatus(ticket.id, "resolved")}>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Mark Resolved
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalCount={filteredTickets.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
       {/* Ticket Details Dialog */}

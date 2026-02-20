@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@\/components\/ui\/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 // Mock Data Types
 type Referral = {
@@ -81,6 +82,8 @@ export default function Referrals() {
   const [referrals] = useState<Referral[]>(MOCK_REFERRALS);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const filteredReferrals = referrals.filter((r) => {
     const matchesSearch =
@@ -90,6 +93,17 @@ export default function Referrals() {
     const matchesStatus = statusFilter === "all" ? true : r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
+  const paginatedReferrals = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredReferrals.slice(start, end);
+  }, [filteredReferrals, currentPage, pageSize]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -227,8 +241,8 @@ export default function Referrals() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReferrals.length > 0 ? (
-                filteredReferrals.map((r) => (
+              {paginatedReferrals.length > 0 ? (
+                paginatedReferrals.map((r) => (
                   <TableRow key={r.id} className="hover:bg-gray-50/30 transition-colors">
                     <TableCell>
                       <div className="space-y-0.5">
@@ -316,6 +330,17 @@ export default function Referrals() {
           <div className="p-4 border-t border-gray-100 bg-gray-50/20 text-xs text-gray-500 text-center">
             Showing {filteredReferrals.length} of {referrals.length} referral records
           </div>
+
+          <TablePagination
+            currentPage={currentPage}
+            totalCount={filteredReferrals.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </Card>
       </div>
     </DashboardLayout>

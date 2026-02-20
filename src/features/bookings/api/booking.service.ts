@@ -56,4 +56,11 @@ export const bookingService = {
     }>(API_ENDPOINTS.BOOKINGS.STATS);
     return response.data;
   },
+
+  getTripPassengers: async (tripId: string): Promise<Booking[]> => {
+    const response = await apiClient.get<Booking[]>(API_ENDPOINTS.BOOKINGS.BASE, {
+      params: { tripId },
+    });
+    return response.data;
+  },
 };

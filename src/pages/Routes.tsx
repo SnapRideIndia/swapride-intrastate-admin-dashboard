@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Search, MoreVertical, Edit, Trash2, Eye, MapPin, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
@@ -12,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,10 +22,31 @@ import { PageHeader } from "@/components/ui/page-header";
 import { toast } from "@/hooks/use-toast";
 import { Route } from "@/types";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 const Routes = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const { data: routes = [], isLoading, refetch } = useRoutes();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+  const statusFilter = searchParams.get("status") || "all";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(10);
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  const {
+    data: routesData,
+    isLoading,
+    refetch,
+  } = useRoutes({
+    search: debouncedSearch,
+    status: statusFilter === "all" ? undefined : statusFilter.toUpperCase(),
+    offset: (currentPage - 1) * pageSize,
+    limit: pageSize,
+  });
+
+  const routes = routesData?.data || [];
+  const totalCount = routesData?.total || 0;
+
   const deleteRouteMutation = useDeleteRoute();
   const deleteStopMutation = useDeleteStop();
   const reorderStopsMutation = useReorderStops();
@@ -32,12 +56,34 @@ const Routes = () => {
   const [routeToEdit, setRouteToEdit] = useState<Route | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
-  const filteredRoutes = routes.filter(
-    (route) =>
-      route.routeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      route.from?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      route.to?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // Sync search and status changes to page 1
+  useEffect(() => {
+    if (currentPage !== 1 && (debouncedSearch || statusFilter !== "all")) {
+      handlePageChange(1);
+    }
+  }, [debouncedSearch, statusFilter]);
+
+  const handleSearchChange = (val: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (val) newParams.set("q", val);
+    else newParams.delete("q");
+    newParams.set("page", "1");
+    setSearchParams(newParams);
+  };
+
+  const handleStatusChange = (val: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (val !== "all") newParams.set("status", val);
+    else newParams.delete("status");
+    newParams.set("page", "1");
+    setSearchParams(newParams);
+  };
+
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("page", page.toString());
+    setSearchParams(newParams);
+  };
 
   const isPageLoading = deleteRouteMutation.isPending || deleteStopMutation.isPending || reorderStopsMutation.isPending;
 
@@ -134,7 +180,7 @@ const Routes = () => {
       />
       <PageHeader
         title="Route Management"
-        subtitle={`Manage ${routes.length} routes and their stops`}
+        subtitle={`Manage ${totalCount} routes and their stops`}
         actions={<AddRouteDialog onRouteAdded={() => refetch()} />}
       />
 
@@ -144,23 +190,31 @@ const Routes = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search routes..."
+              placeholder="Search by route name or ID..."
               className="pl-10"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              All Status
-            </Button>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
 
       {/* Loading state */}
       {/* Loading state handled by FullPageLoader */}
-      {!isLoading && filteredRoutes.length === 0 ? (
+      {!isLoading && routes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 bg-card rounded-xl border border-dashed">
           <div className="p-4 rounded-full bg-primary/5 mb-4">
             <MapPin className="h-10 w-10 text-primary opacity-40" />
@@ -171,7 +225,7 @@ const Routes = () => {
       ) : (
         /* Route Cards */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredRoutes.map((route) => (
+          {routes.map((route) => (
             <div key={route.id} className="dashboard-card p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -264,6 +318,17 @@ const Routes = () => {
               </Button>
             </div>
           ))}
+        </div>
+      )}
+
+      {totalCount > 0 && (
+        <div className="mt-6">
+          <TablePagination
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            totalCount={totalCount}
+            pageSize={pageSize}
+          />
         </div>
       )}
 

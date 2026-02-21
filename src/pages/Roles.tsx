@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { formatService } from "@/utils/format.service";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -45,43 +46,51 @@ import { permissionService } from "@/features/admin";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { StatCard } from "@/features/analytics";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const Roles = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { hasPermission } = usePermissions();
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+  const debouncedSearch = useDebounce(searchQuery, 500);
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const pageSize = Number(searchParams.get("limit")) || 20;
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editRole, setEditRole] = useState<Role | null>(null);
   const [deleteRole, setDeleteRole] = useState<Role | null>(null);
   const [viewRole, setViewRole] = useState<Role | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+
+  const updateFilters = (updates: Record<string, string | number | null>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === "" || value === "all") {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+    if (!updates.page && updates.q !== undefined) {
+      newParams.delete("page");
+    }
+    setSearchParams(newParams);
+  };
 
   // Tanstack Query hooks
-  const { data: roles = [], isLoading: loadingRoles } = useRoles();
-  const { data: admins = [], isLoading: loadingAdmins } = useAdmins();
+  const { data: rolesData, isLoading: loadingRoles } = useRoles({
+    search: debouncedSearch,
+    page: currentPage,
+    limit: pageSize,
+  });
+  const { data: adminsData, isLoading: loadingAdmins } = useAdmins({ limit: 1000 });
   const deleteMutation = useDeleteRole();
 
-  const filteredRoles = useMemo(() => {
-    return roles.filter(
-      (role) =>
-        role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        role.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        role.description.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [roles, searchQuery]);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
-
-  const paginatedRoles = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredRoles.slice(start, end);
-  }, [filteredRoles, currentPage, pageSize]);
+  const roles = rolesData?.data || [];
+  const totalCount = rolesData?.total || 0;
+  const admins = adminsData?.data || [];
 
   const adminCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -141,7 +150,7 @@ const Roles = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard title="Total Roles" value={roles.length} icon={Shield} iconColor="text-primary" vibrant={true} />
+        <StatCard title="Total Roles" value={totalCount} icon={Shield} iconColor="text-primary" vibrant={true} />
         <StatCard
           title="Total Permissions"
           value={permissionService.getAll().length}
@@ -164,7 +173,7 @@ const Roles = () => {
           <Input
             placeholder="Search roles..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => updateFilters({ q: e.target.value })}
             className="pl-10"
           />
         </div>
@@ -183,7 +192,7 @@ const Roles = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!isLoading && filteredRoles.length === 0 ? (
+            {!isLoading && roles.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-20 text-muted-foreground">
                   <div className="flex flex-col items-center gap-3">
@@ -195,7 +204,7 @@ const Roles = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedRoles.map((role) => (
+              roles.map((role) => (
                 <TableRow key={role.id}>
                   <TableCell>
                     <Badge className={`${getRoleColor(role.slug)} w-fit font-medium`}>
@@ -256,12 +265,11 @@ const Roles = () => {
 
         <TablePagination
           currentPage={currentPage}
-          totalCount={filteredRoles.length}
+          totalCount={totalCount}
           pageSize={pageSize}
-          onPageChange={setCurrentPage}
+          onPageChange={(page) => updateFilters({ page })}
           onPageSizeChange={(size) => {
-            setPageSize(size);
-            setCurrentPage(1);
+            updateFilters({ limit: size, page: 1 });
           }}
         />
       </div>

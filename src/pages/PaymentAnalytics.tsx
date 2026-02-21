@@ -1,19 +1,11 @@
 import { DollarSign, TrendingUp, AlertCircle, Wallet, ArrowUpCircle, Clock, CreditCard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { financialsApi } from "@/api/financials";
+import { usePaymentAnalytics } from "@/features/financials";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 const PaymentAnalytics = () => {
-  const {
-    data: analytics,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["payment-analytics"],
-    queryFn: () => financialsApi.getAnalytics(),
-  });
+  const { data: analytics, isLoading, isError } = usePaymentAnalytics();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {

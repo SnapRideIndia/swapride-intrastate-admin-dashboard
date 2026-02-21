@@ -62,6 +62,19 @@ export const tripsApi = {
   },
 
   /**
+   * Get trips statistics
+   */
+  getStats: async (): Promise<{
+    todayTrips: number;
+    inProgressTrips: number;
+    completedTrips: number;
+    delayedTrips: number;
+  }> => {
+    const response = await apiClient.get(API_ENDPOINTS.TRIPS.STATS);
+    return response.data;
+  },
+
+  /**
    * Get all live bus locations
    */
   getLiveLocations: async (): Promise<any[]> => {

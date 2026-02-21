@@ -158,8 +158,14 @@ const createMockLayouts = (): BusLayout[] => {
 };
 
 export const busLayoutService = {
-  getAll: async (): Promise<BusLayout[]> => {
-    const response = await apiClient.get(API_ENDPOINTS.FLEET.LAYOUTS.GET_ALL);
+  getAll: async (params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    status?: string;
+    type?: string;
+  }): Promise<{ data: BusLayout[]; total: number }> => {
+    const response = await apiClient.get(API_ENDPOINTS.FLEET.LAYOUTS.GET_ALL, { params });
     return response.data;
   },
 
@@ -169,8 +175,8 @@ export const busLayoutService = {
   },
 
   getActive: async (): Promise<BusLayout[]> => {
-    const layouts = await busLayoutService.getAll();
-    return layouts.filter((layout) => layout.status === "active");
+    const result = await busLayoutService.getAll({ status: "active" });
+    return result.data;
   },
 
   create: async (layoutData: Omit<BusLayout, "id" | "createdAt" | "updatedAt" | "busesUsing">): Promise<BusLayout> => {
@@ -480,13 +486,14 @@ export const busLayoutService = {
   },
 
   getStats: async () => {
-    const layouts = await busLayoutService.getAll();
+    const result = await busLayoutService.getAll({ limit: 1000 }); // Fetch all for stats
+    const layouts = result.data;
     const activeLayouts = layouts.filter((l) => l.status === "active");
     const totalBusesUsing = layouts.reduce((sum, l) => sum + l.busesUsing, 0);
     const mostUsed = layouts.reduce((max, l) => (l.busesUsing > max.busesUsing ? l : max), layouts[0]);
 
     return {
-      totalLayouts: layouts.length,
+      totalLayouts: result.total,
       activeLayouts: activeLayouts.length,
       totalBusesUsing,
       mostUsedLayout: mostUsed?.name || "N/A",

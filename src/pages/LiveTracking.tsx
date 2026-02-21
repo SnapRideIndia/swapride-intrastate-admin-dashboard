@@ -1,67 +1,30 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  Bus,
-  Users,
-  RefreshCw,
-  Navigation,
-  MapPin,
-  Map as MapIcon,
-  ChevronRight,
-  AlertCircle,
-  Clock,
-} from "lucide-react";
+import { Bus, Users, RefreshCw, Navigation, MapPin, AlertCircle } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tripsApi } from "@/features/trips/api/trips-api";
-import { FleetMap } from "@/features/trips";
+import { FleetMap, useLiveLocations } from "@/features/trips";
 import { useRoutes } from "@/features/routes";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { cn } from "@/lib/utils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { useSocket } from "@/providers/SocketContext";
 import { Badge } from "@/components/ui/badge";
+import { LiveLocation } from "@/types";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const MAP_LIBRARIES: ("geometry" | "drawing" | "places" | "visualization")[] = ["geometry"];
 
-interface RoutePoint {
-  lat: number;
-  lng: number;
-  name: string;
-}
-
-interface LiveLocation {
-  id: string;
-  tripId: string;
-  busId: string;
-  busNumber: string;
-  driverName: string;
-  routeName: string;
-  routeId: string;
-  latitude: number;
-  longitude: number;
-  speed: number;
-  heading: number;
-  lastUpdatedAt: string;
-  occupiedSeats: number;
-  totalSeats?: number;
-  status: "moving" | "stopped" | "delayed";
-  tripStatus: "On Time" | "Delayed" | "Early";
-  delayMinutes: number;
-  nextStop: string;
-  eta: string;
-  currentLocationName: string;
-  routePoints?: RoutePoint[];
-  encodedPolyline?: string;
+interface LocationState {
+  tripId?: string;
 }
 
 const LiveTracking = () => {
   const location = useLocation();
-  const initialTripId = (location.state as any)?.tripId ?? null;
+  const initialTripId = (location.state as LocationState)?.tripId ?? null;
   const [selectedBus, setSelectedBus] = useState<string | null>(initialTripId);
   const [routeFilter, setRouteFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -78,25 +41,19 @@ const LiveTracking = () => {
 
   const { data: routes = [], isLoading: isRoutesLoading } = useRoutes();
 
-  const {
-    data: liveLocations = [],
-    isLoading: isLiveLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["live-locations"],
-    queryFn: async () => {
-      const data = await tripsApi.getLiveLocations();
-      setLastUpdated(new Date());
-      return data as LiveLocation[];
-    },
-    refetchInterval: 15000,
-  });
+  const { data: liveLocations = [], isLoading: isLiveLoading, refetch } = useLiveLocations();
 
   // WebSocket Integration
   useEffect(() => {
+    if (liveLocations) {
+      setLastUpdated(new Date());
+    }
+  }, [liveLocations]);
+
+  useEffect(() => {
     socketService.joinRoom("admin_dashboard");
-    const unsubscribe = socketService.on("location_update", (update: any) => {
-      queryClient.setQueryData(["live-locations"], (old: LiveLocation[] = []) => {
+    const unsubscribe = socketService.on("location_update", (update: Partial<LiveLocation>) => {
+      queryClient.setQueryData(["trips", "live-locations"], (old: LiveLocation[] = []) => {
         const index = old.findIndex((loc) => loc.tripId === update.tripId);
         if (index > -1) {
           const newState = [...old];
@@ -116,7 +73,7 @@ const LiveTracking = () => {
             currentLocationName: update.currentLocationName || newState[index].currentLocationName,
             occupiedSeats: update.occupiedSeats ?? newState[index].occupiedSeats,
             totalSeats: update.totalSeats ?? newState[index].totalSeats,
-          };
+          } as LiveLocation;
           return newState;
         }
         return old;
@@ -147,7 +104,7 @@ const LiveTracking = () => {
 
   // Naming consistency for FleetMap
   const selectedBusId = selectedBus;
-  const onBusClick = (bus: any) => setSelectedBus(bus.tripId);
+  const onBusClick = (bus: LiveLocation) => setSelectedBus(bus.tripId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -241,7 +198,7 @@ const LiveTracking = () => {
               </div>
             ) : isLoaded ? (
               <FleetMap
-                buses={liveLocations as any}
+                buses={liveLocations}
                 selectedBusId={selectedBus}
                 onBusClick={(bus) => setSelectedBus(bus.tripId)}
                 showStops={true}

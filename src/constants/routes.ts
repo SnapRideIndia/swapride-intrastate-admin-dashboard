@@ -53,4 +53,5 @@ export const ROUTES = {
   // Test Modules
   SEARCH_ENGINE_TESTER: "/test/search-engine",
   FCM_TEST: "/test/fcm",
+  RAZORPAY_TEST: "/test/razorpay",
 } as const;

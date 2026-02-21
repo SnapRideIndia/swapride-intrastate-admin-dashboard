@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Search, MoreVertical, Edit, Trash2, Eye, TrendingUp, Loader2, AlertCircle } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -21,36 +23,55 @@ import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 const Buses = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const { data: buses = [], isLoading, error, refetch } = useBuses();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+  const statusFilter = searchParams.get("status") || "all";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(20);
+
+  const setSearchQuery = (q: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (q) params.set("q", q);
+    else params.delete("q");
+    params.set("page", "1");
+    setSearchParams(params);
+  };
+
+  const setStatusFilter = (status: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (status && status !== "all") params.set("status", status);
+    else params.delete("status");
+    params.set("page", "1");
+    setSearchParams(params);
+  };
+
+  const setCurrentPage = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", page.toString());
+    setSearchParams(params);
+  };
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  const {
+    data: busesData,
+    isLoading,
+    error,
+    refetch,
+  } = useBuses({
+    search: debouncedSearch || undefined,
+    status: statusFilter === "all" ? undefined : statusFilter.toUpperCase(),
+    offset: (currentPage - 1) * pageSize,
+    limit: pageSize,
+  });
+
   const { mutate: deleteBus } = useDeleteBus();
   const [selectedBus, setSelectedBus] = useState<Bus | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
 
-  const filteredBuses = buses.filter((bus) => {
-    const matchesSearch =
-      bus.busNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (bus.registrationNumber?.toLowerCase()?.includes(searchQuery.toLowerCase()) ?? false) ||
-      (bus.model?.toLowerCase()?.includes(searchQuery.toLowerCase()) ?? false);
-
-    if (statusFilter === "all") return matchesSearch;
-    return matchesSearch && bus.status === statusFilter.toUpperCase();
-  });
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
-
-  const paginatedBuses = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredBuses.slice(start, end);
-  }, [filteredBuses, currentPage, pageSize]);
+  const buses = busesData?.buses || [];
+  const totalCount = busesData?.total || 0;
 
   const viewBusDetails = (bus: Bus) => {
     setSelectedBus(bus);
@@ -96,7 +117,7 @@ const Buses = () => {
 
       <PageHeader
         title="Bus Management"
-        subtitle={`Manage your fleet of ${buses.length} buses`}
+        subtitle={`Manage your fleet of ${totalCount} buses`}
         actions={<AddBusDialog onBusAdded={() => refetch()} />}
       />
 
@@ -105,7 +126,7 @@ const Buses = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by bus ID, registration, or model..."
+              placeholder="Search by bus number, registration, or model..."
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -159,10 +180,10 @@ const Buses = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!isLoading && paginatedBuses.length === 0 ? (
+            {!isLoading && buses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-[400px] text-center">
-                  <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
+                  <div className="flex flex-col items-center justify-center">
                     <div className="bg-muted rounded-full p-6 mb-4">
                       <Search className="h-10 w-10 text-muted-foreground" />
                     </div>
@@ -184,7 +205,7 @@ const Buses = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedBuses.map((bus) => (
+              buses.map((bus) => (
                 <TableRow key={bus.id} className="cursor-pointer hover:bg-muted/50" onClick={() => viewBusDetails(bus)}>
                   <TableCell className="font-medium">{bus.busNumber}</TableCell>
                   <TableCell>
@@ -254,7 +275,7 @@ const Buses = () => {
 
         <TablePagination
           currentPage={currentPage}
-          totalCount={filteredBuses.length}
+          totalCount={totalCount}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
           onPageSizeChange={(size) => {

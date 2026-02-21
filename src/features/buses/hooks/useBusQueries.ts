@@ -9,10 +9,10 @@ export const busKeys = {
   detail: (id: string) => [...busKeys.details(), id] as const,
 };
 
-export const useBuses = () => {
+export const useBuses = (params?: { limit?: number; offset?: number; search?: string; status?: string }) => {
   return useQuery({
-    queryKey: busKeys.lists(),
-    queryFn: () => busService.getAll(),
+    queryKey: [...busKeys.all, "list", params || {}],
+    queryFn: () => busService.getAll(params),
   });
 };
 

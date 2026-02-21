@@ -3,10 +3,17 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
 export const adminService = {
-  getAll: async (): Promise<AdminUser[]> => {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    roleId?: string;
+  }): Promise<{ data: AdminUser[]; total: number }> => {
     try {
-      const response = await apiClient.get<AdminUser[]>(API_ENDPOINTS.ADMINS.GET_ALL);
-      return response.data.map((admin: any) => ({
+      const response = await apiClient.get<any>(API_ENDPOINTS.ADMINS.GET_ALL, { params });
+      const { data, total } = response.data;
+
+      const mappedData = data.map((admin: any) => ({
         ...admin,
         name: admin.fullName || admin.email,
         roleName: admin.role?.name,
@@ -15,6 +22,8 @@ export const adminService = {
         status: admin.status || "Active",
         phone: admin.phone || "N/A",
       }));
+
+      return { data: mappedData, total };
     } catch (error) {
       throw error;
     }
@@ -40,8 +49,8 @@ export const adminService = {
 
   getByEmail: async (email: string): Promise<AdminUser | undefined> => {
     try {
-      const admins = await adminService.getAll();
-      return admins.find((a) => a.email.toLowerCase() === email.toLowerCase());
+      const response = await adminService.getAll({ search: email, limit: 1 });
+      return response.data.find((a) => a.email.toLowerCase() === email.toLowerCase());
     } catch (error) {
       return undefined;
     }
@@ -128,9 +137,10 @@ export const adminService = {
         return response.data;
       } catch {
         // Fallback to manual calculation
-        const admins = await adminService.getAll();
+        const response = await adminService.getAll({ limit: 1000 });
+        const admins = response.data;
         return {
-          totalAdmins: admins.length,
+          totalAdmins: response.total,
           activeAdmins: admins.filter((a) => a.status === "Active").length,
           suspendedAdmins: admins.filter((a) => a.status === "Suspended").length,
           inactiveAdmins: admins.filter((a) => a.status === "Inactive").length,

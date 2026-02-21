@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
 import { MapPin, Route, Search, Filter, XCircle, Clock, User, Calendar, ChevronRight } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -8,33 +10,67 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSuggestions, useUpdateSuggestion } from "@/features/suggestions/hooks/useSuggestionQueries";
+import { useSuggestions, useUpdateSuggestion } from "@/features/suggestions/hooks/useSuggestions";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { AccessDenied } from "@/components/AccessDenied";
 import { useNavigate } from "react-router-dom";
 
 const Suggestions = () => {
-  const { data: suggestions = [], isLoading, isError, error } = useSuggestions();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+  const statusFilter = searchParams.get("status") || "ALL";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(10);
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  const {
+    data: suggestionsData,
+    isLoading,
+    isError,
+    error,
+  } = useSuggestions({
+    search: debouncedSearch,
+    status: statusFilter,
+    offset: (currentPage - 1) * pageSize,
+    limit: pageSize,
+  });
+
+  const suggestions = suggestionsData?.data || [];
+  const totalCount = suggestionsData?.total || 0;
+
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState("stops");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  // Filtered Logic
-  const filteredSuggestions = useMemo(() => {
-    return suggestions.filter((s) => {
-      const userName = s.user?.fullName || "";
-      const matchesSearch =
-        userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.pickupAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.dropoffAddress.toLowerCase().includes(searchQuery.toLowerCase());
+  // Sync search and status changes to page 1
+  useEffect(() => {
+    if (currentPage !== 1 && (debouncedSearch || statusFilter !== "ALL")) {
+      handlePageChange(1);
+    }
+  }, [debouncedSearch, statusFilter]);
 
-      const matchesStatus = statusFilter === "ALL" || s.status === statusFilter;
+  const handleSearchChange = (val: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (val) newParams.set("q", val);
+    else newParams.delete("q");
+    newParams.set("page", "1");
+    setSearchParams(newParams);
+  };
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [suggestions, searchQuery, statusFilter]);
+  const handleStatusChange = (val: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (val !== "ALL") newParams.set("status", val);
+    else newParams.delete("status");
+    newParams.set("page", "1");
+    setSearchParams(newParams);
+  };
+
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("page", page.toString());
+    setSearchParams(newParams);
+  };
 
   const handleReview = (suggestionId: string) => {
     navigate(`/routes/suggestions/${suggestionId}`);
@@ -105,10 +141,10 @@ const Suggestions = () => {
                     placeholder="Search by user or address..."
                     className="pl-9 h-10"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={handleStatusChange}>
                   <SelectTrigger className="w-[140px] h-10">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="All Status" />
@@ -143,9 +179,9 @@ const Suggestions = () => {
                   </Button>
                 </div>
               )
-            ) : filteredSuggestions.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredSuggestions.map((suggestion) => (
+            ) : suggestions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {suggestions.map((suggestion) => (
                   <Card
                     key={suggestion.id}
                     className="dashboard-card group overflow-hidden border-transparent hover:border-primary/30 transition-all duration-300"
@@ -219,19 +255,29 @@ const Suggestions = () => {
                   <Search className="h-10 w-10 text-muted-foreground/50" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">No suggestions found</h3>
-                <p className="text-muted-foreground max-w-sm">
+                <p className="text-muted-foreground max-w-sm mb-6">
                   We couldn't find any suggestions matching your search or filters.
                 </p>
                 <Button
                   variant="outline"
-                  className="mt-6"
                   onClick={() => {
-                    setSearchQuery("");
-                    setStatusFilter("ALL");
+                    handleSearchChange("");
+                    handleStatusChange("ALL");
                   }}
                 >
                   Clear Filters
                 </Button>
+              </div>
+            )}
+
+            {totalCount > 0 && !isLoading && activeTab === "stops" && (
+              <div className="mt-8">
+                <TablePagination
+                  currentPage={currentPage}
+                  onPageChange={handlePageChange}
+                  totalCount={totalCount}
+                  pageSize={pageSize}
+                />
               </div>
             )}
           </TabsContent>

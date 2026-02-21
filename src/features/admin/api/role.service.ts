@@ -3,16 +3,24 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
 export const roleService = {
-  getAll: async (): Promise<Role[]> => {
+  getAll: async (params?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Role[]; total: number }> => {
     try {
-      const response = await apiClient.get<Role[]>(API_ENDPOINTS.ROLES.GET_ALL);
-      return response.data.map((role: any) => ({
+      const response = await apiClient.get<any>(API_ENDPOINTS.ROLES.GET_ALL, { params });
+      const { data, total } = response.data;
+
+      const mappedData = data.map((role: any) => ({
         ...role,
         name: role.name || (role as any).fullName || "Unnamed Role",
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       }));
+
+      return { data: mappedData, total };
     } catch (error) {
-      return [];
+      return { data: [], total: 0 };
     }
   },
 

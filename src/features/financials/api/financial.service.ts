@@ -1,4 +1,5 @@
-import { apiClient } from "./api-client";
+import { apiClient } from "@/api/api-client";
+import { API_ENDPOINTS } from "@/api/endpoints";
 
 export interface Wallet {
   id: string;
@@ -87,6 +88,7 @@ export interface PaymentAnalytics {
   overview: {
     totalPayments: number;
     totalRevenue: number;
+    pendingAmount: number;
     avgTransaction: number;
     successRate: number;
     failureRate: number;
@@ -129,7 +131,9 @@ export const financialsApi = {
     sortField?: string;
     sortOrder?: string;
   }) => {
-    const response = await apiClient.get<{ wallets: Wallet[]; total: number }>(`/admin/financials/wallets`, { params });
+    const response = await apiClient.get<{ data: Wallet[]; total: number }>(API_ENDPOINTS.FINANCIALS.WALLETS, {
+      params,
+    });
     return response.data;
   },
 
@@ -138,8 +142,8 @@ export const financialsApi = {
     walletId: string,
     params: { limit?: number; offset?: number; type?: string; startDate?: string; endDate?: string },
   ) => {
-    const response = await apiClient.get<{ transactions: WalletTransaction[]; total: number }>(
-      `/admin/financials/wallets/${walletId}/transactions`,
+    const response = await apiClient.get<{ data: WalletTransaction[]; total: number }>(
+      API_ENDPOINTS.FINANCIALS.WALLET_TRANSACTIONS(walletId),
       { params },
     );
     return response.data;
@@ -154,8 +158,8 @@ export const financialsApi = {
     endDate?: string;
     search?: string;
   }) => {
-    const response = await apiClient.get<{ transactions: WalletTransaction[]; total: number }>(
-      `/admin/financials/wallet-transactions`,
+    const response = await apiClient.get<{ data: WalletTransaction[]; total: number }>(
+      API_ENDPOINTS.FINANCIALS.GLOBAL_WALLET_TRANSACTIONS,
       { params },
     );
     return response.data;
@@ -163,7 +167,7 @@ export const financialsApi = {
 
   getWalletDetails: async (id: string) => {
     const response = await apiClient.get<Wallet & { stats: { totalCredit: number; totalDebit: number } }>(
-      `/admin/financials/wallets/${id}`,
+      API_ENDPOINTS.FINANCIALS.WALLET_DETAILS(id),
     );
     return response.data;
   },
@@ -176,7 +180,7 @@ export const financialsApi = {
     status?: string;
     method?: string;
   }) => {
-    const response = await apiClient.get<{ payments: Payment[]; total: number }>(`/admin/financials/payments`, {
+    const response = await apiClient.get<{ data: Payment[]; total: number }>(API_ENDPOINTS.FINANCIALS.PAYMENTS, {
       params,
     });
     return response.data;
@@ -184,20 +188,20 @@ export const financialsApi = {
 
   // 6. Payment Details
   getPaymentDetails: async (id: string) => {
-    const response = await apiClient.get<Payment>(`/admin/financials/payments/${id}`);
+    const response = await apiClient.get<Payment>(API_ENDPOINTS.FINANCIALS.PAYMENT_DETAILS(id));
     return response.data;
   },
 
   // 7. Payment Analytics
   getAnalytics: async () => {
-    const response = await apiClient.get<PaymentAnalytics>(`/admin/financials/analytics`);
+    const response = await apiClient.get<PaymentAnalytics>(API_ENDPOINTS.FINANCIALS.ANALYTICS);
     return response.data;
   },
 
   // 8. Universal Tracker
   trackId: async (id: string) => {
     const response = await apiClient.get<{ type: "PAYMENT" | "TRANSACTION" | "BOOKING"; data: any }>(
-      `/admin/financials/track/${id}`,
+      API_ENDPOINTS.FINANCIALS.TRACK(id),
     );
     return response.data;
   },

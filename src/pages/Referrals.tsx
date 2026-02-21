@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -25,85 +25,34 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@\/components\/ui\/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TablePagination } from "@/components/ui/table-pagination";
-
-// Mock Data Types
-type Referral = {
-  id: string;
-  referrerName: string;
-  referrerEmail: string;
-  refereeName: string;
-  refereeEmail: string;
-  status: "PENDING" | "COMPLETED" | "EXPIRED";
-  rewardAmount: number;
-  rewardStatus: "CLAIMED" | "UNCLAIMED" | "N/A";
-  date: string;
-};
-
-const MOCK_REFERRALS: Referral[] = [
-  {
-    id: "1",
-    referrerName: "Amit Sharma",
-    referrerEmail: "amit@example.com",
-    refereeName: "Sanjay Gupta",
-    refereeEmail: "sanjay@gmail.com",
-    status: "COMPLETED",
-    rewardAmount: 50,
-    rewardStatus: "CLAIMED",
-    date: "2026-02-10",
-  },
-  {
-    id: "2",
-    referrerName: "Priya Das",
-    referrerEmail: "priya@example.com",
-    refereeName: "Rahul Verma",
-    refereeEmail: "rahul.v@yahoo.com",
-    status: "PENDING",
-    rewardAmount: 50,
-    rewardStatus: "UNCLAIMED",
-    date: "2026-02-11",
-  },
-  {
-    id: "3",
-    referrerName: "Amit Sharma",
-    referrerEmail: "amit@example.com",
-    refereeName: "Vikram Singh",
-    refereeEmail: "vik@hotmail.com",
-    status: "EXPIRED",
-    rewardAmount: 0,
-    rewardStatus: "N/A",
-    date: "2026-02-05",
-  },
-];
+import { useReferrals, useReferralStats } from "@/features/referrals";
+import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 export default function Referrals() {
-  const [referrals] = useState<Referral[]>(MOCK_REFERRALS);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-
-  const filteredReferrals = referrals.filter((r) => {
-    const matchesSearch =
-      r.referrerName.toLowerCase().includes(search.toLowerCase()) ||
-      r.refereeName.toLowerCase().includes(search.toLowerCase()) ||
-      r.referrerEmail.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" ? true : r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [search, statusFilter]);
 
-  const paginatedReferrals = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredReferrals.slice(start, end);
-  }, [filteredReferrals, currentPage, pageSize]);
+  const { data: referralsData, isLoading } = useReferrals({
+    q: search,
+    status: statusFilter,
+    page: currentPage,
+    limit: pageSize,
+  });
+
+  const { data: stats } = useReferralStats();
+
+  const referrals = referralsData?.data ?? [];
+  const totalCount = referralsData?.total ?? 0;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -120,6 +69,7 @@ export default function Referrals() {
 
   return (
     <DashboardLayout>
+      <FullPageLoader show={isLoading} label="Loading referrals..." />
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
@@ -145,7 +95,7 @@ export default function Referrals() {
                 <p className="text-sm font-medium text-blue-900">Total Referrals</p>
                 <Users className="h-4 w-4 text-blue-600" />
               </div>
-              <p className="text-3xl font-bold text-blue-950">{referrals.length}</p>
+              <p className="text-3xl font-bold text-blue-950">{stats?.total ?? 0}</p>
               <div className="mt-2 flex items-center text-xs text-blue-600 font-medium">
                 <ArrowUpRight className="h-3 w-3 mr-1" /> 15% increase
               </div>
@@ -159,7 +109,7 @@ export default function Referrals() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
               </div>
               <p className="text-3xl font-bold text-green-950">
-                {Math.round((referrals.filter((r) => r.status === "COMPLETED").length / referrals.length) * 100)}%
+                {stats?.total ? Math.round((stats.completed / stats.total) * 100) : 0}%
               </p>
               <div className="mt-2 flex items-center text-xs text-green-600 font-medium">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2" /> Healthy
@@ -173,9 +123,7 @@ export default function Referrals() {
                 <p className="text-sm font-medium text-yellow-900">Pending Actions</p>
                 <CalendarIcon className="h-4 w-4 text-yellow-600" />
               </div>
-              <p className="text-3xl font-bold text-yellow-950">
-                {referrals.filter((r) => r.status === "PENDING").length}
-              </p>
+              <p className="text-3xl font-bold text-yellow-950">{stats?.pending ?? 0}</p>
               <p className="mt-2 text-xs text-yellow-600 font-medium italic">Requires verification</p>
             </CardContent>
           </Card>
@@ -188,9 +136,7 @@ export default function Referrals() {
                   ₹
                 </div>
               </div>
-              <p className="text-3xl font-bold text-purple-950">
-                ₹{referrals.reduce((sum, r) => sum + (r.rewardStatus === "CLAIMED" ? r.rewardAmount : 0), 0)}
-              </p>
+              <p className="text-3xl font-bold text-purple-950">₹{stats?.totalRewardValue ?? 0}</p>
               <div className="mt-2 flex items-center text-xs text-purple-600 font-medium">
                 <Gift className="h-3 w-3 mr-1" /> Budget: ₹5,000
               </div>
@@ -241,8 +187,8 @@ export default function Referrals() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedReferrals.length > 0 ? (
-                paginatedReferrals.map((r) => (
+              {referrals.length > 0 ? (
+                referrals.map((r) => (
                   <TableRow key={r.id} className="hover:bg-gray-50/30 transition-colors">
                     <TableCell>
                       <div className="space-y-0.5">
@@ -328,12 +274,12 @@ export default function Referrals() {
           </Table>
 
           <div className="p-4 border-t border-gray-100 bg-gray-50/20 text-xs text-gray-500 text-center">
-            Showing {filteredReferrals.length} of {referrals.length} referral records
+            Showing {referrals.length} of {totalCount} referral records
           </div>
 
           <TablePagination
             currentPage={currentPage}
-            totalCount={filteredReferrals.length}
+            totalCount={totalCount}
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={(size) => {

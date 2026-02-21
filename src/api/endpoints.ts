@@ -12,12 +12,14 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: "/admin/forgot-password",
     RESET_PASSWORD: "/admin/reset-password",
     ME: "/admin/me",
+    GET_PROFILE: "/admin/me",
   },
 
   // Users
   USERS: {
     BASE: "/admin/users",
     GET_ALL: "/admin/users",
+
     GET_BY_ID: (id: string) => `/admin/users/${id}`,
     UPDATE: (id: string) => `/admin/users/${id}`, // PATCH
     DELETE: (id: string) => `/admin/users/${id}`,
@@ -115,6 +117,14 @@ export const API_ENDPOINTS = {
     CREATE: "/admin/drivers",
     UPDATE: (id: string) => `/admin/drivers/${id}`,
     DELETE: (id: string) => `/admin/drivers/${id}`,
+    UPLOAD_PHOTO: (id: string) => `/admin/drivers/${id}/photo`,
+    RATINGS: (id: string) => `/admin/drivers/${id}/ratings`,
+  },
+
+  RATINGS: {
+    TAGS: "/ratings/tags",
+    BY_DRIVER: (driverId: string) => `/ratings/drivers/${driverId}`,
+    BY_BOOKING: (bookingId: string) => `/ratings/bookings/${bookingId}`,
   },
 
   // Trips
@@ -128,6 +138,7 @@ export const API_ENDPOINTS = {
     GET_SEATS: (id: string) => `/admin/trips/${id}/seats`,
     GET_PASSENGERS: (id: string) => `/admin/trips/${id}/passengers`,
     GET_LIVE_LOCATIONS: "/admin/trips/live/locations",
+    STATS: "/admin/trips/stats",
     DELETE: (id: string) => `/admin/trips/${id}`,
   },
 
@@ -180,5 +191,16 @@ export const API_ENDPOINTS = {
     DISTRIBUTION: "/admin/analytics/distribution",
     DASHBOARD_STATS: "/admin/analytics/dashboard-stats",
     BUS_UTILIZATION: "/admin/analytics/bus-utilization",
+  },
+  // Financials
+  FINANCIALS: {
+    WALLETS: "/admin/financials/wallets",
+    WALLET_DETAILS: (id: string) => `/admin/financials/wallets/${id}`,
+    WALLET_TRANSACTIONS: (id: string) => `/admin/financials/wallets/${id}/transactions`,
+    GLOBAL_WALLET_TRANSACTIONS: "/admin/financials/wallet-transactions",
+    PAYMENTS: "/admin/financials/payments",
+    PAYMENT_DETAILS: (id: string) => `/admin/financials/payments/${id}`,
+    ANALYTICS: "/admin/financials/analytics",
+    TRACK: (id: string) => `/admin/financials/track/${id}`,
   },
 };

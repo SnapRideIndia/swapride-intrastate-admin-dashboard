@@ -25,75 +25,29 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+import { useUser, useUpdateUserStatus } from "@/features/users/hooks/useUsers";
+
 const UserDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const fetchUser = async () => {
-    if (!id) return;
-    try {
-      setIsLoading(true);
-      const data = await userService.getById(id);
-      setUser(data);
-    } catch (error) {
+  const { data: user, isLoading, error } = useUser(id || "");
+  const updateUserStatus = useUpdateUserStatus();
+
+  useEffect(() => {
+    if (error) {
       toast({
         title: "Error",
         description: "Failed to fetch user details.",
         variant: "destructive",
       });
       navigate(ROUTES.USERS);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [error, navigate]);
 
-  useEffect(() => {
-    fetchUser();
-  }, [id]);
-
-  const handleBlockUser = async () => {
+  const handleStatusChange = async (action: "block" | "unblock" | "suspend") => {
     if (!id) return;
-    try {
-      setIsActionLoading(true);
-      await userService.blockUser(id);
-      await fetchUser();
-      toast({
-        title: "User Blocked",
-        description: "The user has been blocked successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to block user.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const handleUnblockUser = async () => {
-    if (!id) return;
-    try {
-      setIsActionLoading(true);
-      await userService.unblockUser(id);
-      await fetchUser();
-      toast({
-        title: "User Unblocked",
-        description: "The user has been unblocked successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to unblock user.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsActionLoading(false);
-    }
+    updateUserStatus.mutate({ id, action });
   };
 
   const getStatusBadge = (status: string) => {
@@ -122,7 +76,7 @@ const UserDetails = () => {
 
   return (
     <DashboardLayout>
-      <FullPageLoader show={isActionLoading} label="Processing..." />
+      <FullPageLoader show={updateUserStatus.isPending} label="Processing..." />
 
       <PageHeader title="User Details" subtitle="View and manage user information" backUrl={ROUTES.USERS} />
 
@@ -174,7 +128,7 @@ const UserDetails = () => {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={handleBlockUser}
+                              onClick={() => handleStatusChange("block")}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Yes, Block User
@@ -186,7 +140,7 @@ const UserDetails = () => {
                       <Button
                         variant="outline"
                         className="text-success hover:bg-success/10 border-success/20"
-                        onClick={handleUnblockUser}
+                        onClick={() => handleStatusChange("unblock")}
                       >
                         <CheckCircle className="h-4 w-4 mr-2" /> Unblock User
                       </Button>

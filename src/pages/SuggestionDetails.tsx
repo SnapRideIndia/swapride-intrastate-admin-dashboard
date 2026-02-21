@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useSuggestion, useUpdateSuggestion } from "@/features/suggestions/hooks/useSuggestionQueries";
+import { useSuggestion, useUpdateSuggestion } from "@/features/suggestions/hooks/useSuggestions";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Button } from "@/components/ui/button";

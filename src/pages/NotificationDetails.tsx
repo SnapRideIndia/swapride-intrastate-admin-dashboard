@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -19,47 +19,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { ROUTES } from "@/constants/routes";
-import { notificationService } from "@/features/notifications/api/notification.service";
-import { Notification } from "@/types";
 import { format } from "date-fns";
+import { useNotification, useMarkAsRead } from "@/features/notifications/hooks/useNotifications";
 
 export default function NotificationDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [notification, setNotification] = useState<Notification | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: notification, isLoading: loading } = useNotification(id || "");
+  const markAsReadMutation = useMarkAsRead();
 
   useEffect(() => {
-    const fetchDetails = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const data = await notificationService.getById(id);
-        setNotification(data);
+    if (notification && !notification.read) {
+      markAsReadMutation.mutate(notification.id);
+    }
+  }, [notification]);
 
-        // Auto-mark as read if unread
-        if (data && !data.read) {
-          notificationService.markAsRead(id).catch(() => {});
-        }
-      } catch (error) {
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDetails();
-  }, [id]);
-
-  const getPriorityBadge = (priority: string) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "HIGH":
-        return "bg-destructive/10 text-destructive border-destructive/20";
+        return "bg-red-100 text-red-700 border-red-200";
       case "MEDIUM":
-        return "bg-warning/10 text-warning border-warning/20";
+        return "bg-orange-100 text-orange-700 border-orange-200";
       case "LOW":
-        return "bg-primary/10 text-primary border-primary/20";
+        return "bg-blue-100 text-blue-700 border-blue-200";
       default:
-        return "bg-muted text-muted-foreground";
+        return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
@@ -172,8 +156,8 @@ export default function NotificationDetails() {
 
               <div className="space-y-1.5">
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-tight">Priority</p>
-                <Badge variant="outline" className={`${getPriorityBadge(notification.priority)} font-bold`}>
-                  {notification.priority}
+                <Badge variant="outline" className={`${getPriorityColor(notification.priority || "MEDIUM")} px-3 py-1`}>
+                  {notification.priority || "MEDIUM"}
                 </Badge>
               </div>
 

@@ -25,66 +25,53 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookingStatusBadge, BoardingStatusBadge } from "@/features/bookings/components/StatusBadges";
-import { bookingService } from "@/features/bookings/api/booking.service";
+import { useBooking, BookingStatusBadge, BoardingStatusBadge } from "@/features/bookings";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { Booking } from "@/types";
-import { toast } from "sonner";
+import { Booking, BusLayout } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
-import { LayoutPreviewGrid, busLayoutService } from "@/features/buses";
-import { busService } from "@/features/buses/api/bus.service";
-import { BusLayout } from "@/types";
+import { LayoutPreviewGrid, useBus, useLayout, busLayoutService } from "@/features/buses";
 
 export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [booking, setBooking] = useState<Booking | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [layout, setLayout] = useState<BusLayout | null>(null);
+  const { toast } = useToast();
 
-  const fetchDetails = async () => {
-    if (!id) return;
-    try {
-      setLoading(true);
-      const data = await bookingService.getById(id);
-      setBooking(data);
+  // Fetch Booking Data using Custom Hook
+  const { data: booking, isLoading: isBookingLoading, error: bookingError } = useBooking(id || "");
 
-      // Try to fetch bus layout from booking data or separately
-      if (data.trip?.bus?.layout) {
-        setLayout(data.trip.bus.layout);
-      } else if (data.trip?.busId) {
-        try {
-          const bus = await busService.getById(data.trip.busId);
-          if (bus.layout) {
-            setLayout(bus.layout);
-          } else if (bus.layoutId) {
-            const layoutData = await busLayoutService.getById(bus.layoutId);
-            if (layoutData) setLayout(layoutData);
-          }
-        } catch (e) {
-          // Fallback to a standard template for preview
-          const template = busLayoutService.applyTemplate("standard_2x2_40");
-          setLayout(template as BusLayout);
-        }
-      }
-    } catch (error) {
-      toast.error("Could not load booking records");
-      navigate(ROUTES.BOOKINGS);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Derived BusID and LayoutID
+  const busId = booking?.trip?.busId || "";
+  const layoutIdFromBooking = booking?.trip?.bus?.layoutId || "";
+
+  // Fetch Bus Data
+  const { data: bus } = useBus(busId);
+  const effectiveLayoutId = layoutIdFromBooking || bus?.layoutId || "";
+
+  // Fetch Layout Data
+  const { data: layoutData } = useLayout(effectiveLayoutId);
+
+  const layout =
+    booking?.trip?.bus?.layout ||
+    bus?.layout ||
+    layoutData ||
+    (effectiveLayoutId ? null : (busLayoutService.applyTemplate("standard_2x2_40") as BusLayout));
 
   useEffect(() => {
-    fetchDetails();
-  }, [id]);
-
-  if (!booking && !loading) return null;
+    if (bookingError) {
+      toast({
+        title: "Error",
+        description: "Could not load booking records",
+        variant: "destructive",
+      });
+      navigate(ROUTES.BOOKINGS);
+    }
+  }, [bookingError, navigate, toast]);
 
   return (
     <DashboardLayout>
-      <FullPageLoader show={loading} label="Accessing encrypted booking data..." />
+      <FullPageLoader show={isBookingLoading} label="Accessing encrypted booking data..." />
       {booking && (
         <div className="space-y-6">
           <div className="flex items-center gap-4 mb-2">

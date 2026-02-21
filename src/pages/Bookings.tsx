@@ -28,68 +28,63 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { bookingService } from "@/features/bookings/api/booking.service";
-import { BookingStatusBadge, BoardingStatusBadge } from "@/features/bookings/components/StatusBadges";
+import {
+  useBookings,
+  useBookingStats,
+  useCancelBooking,
+  BookingStatusBadge,
+  BoardingStatusBadge,
+} from "@/features/bookings";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Booking } from "@/types";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Bookings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalBookings: 0,
-    todayBookings: 0,
-    todayRevenue: 0,
-    pendingConfirmations: 0,
-  });
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   const search = searchParams.get("q") || "";
+  const debouncedSearch = useDebounce(search, 500);
   const statusFilter = searchParams.get("status") || "all";
   const boardingFilter = searchParams.get("boarding") || "all";
   const dateFilter = searchParams.get("date") || "all";
 
-  const fetchBookings = async () => {
-    try {
-      setLoading(true);
-      const { data } = await bookingService.getAll({
-        status: statusFilter,
-        date: dateFilter === "all" ? undefined : dateFilter,
-      });
-      setBookings(data);
+  // Fetch Bookings using Custom Hook
+  const {
+    data: bookingsData = { data: [], total: 0 },
+    isLoading: isBookingsLoading,
+    refetch,
+  } = useBookings({
+    status: statusFilter === "all" ? undefined : statusFilter,
+    boardingStatus: boardingFilter === "all" ? undefined : boardingFilter,
+    date: dateFilter === "all" ? undefined : dateFilter,
+    q: debouncedSearch || undefined,
+    page: currentPage,
+    limit: pageSize,
+  });
 
-      // Fetch stats (mocked or from separate endpoint)
-      try {
-        const statsData = await bookingService.getStats();
-        if (statsData) setStats(statsData);
-      } catch (e) {
-        // Fallback stats logic if endpoint doesn't exist yet
-        setStats({
-          totalBookings: data?.length || 0,
-          todayBookings:
-            data?.filter((b) => b.createdAt?.startsWith(new Date().toISOString().split("T")[0])).length || 0,
-          todayRevenue:
-            data
-              ?.filter((b) => b.bookingStatus === "CONFIRMED")
-              .reduce((acc, b) => acc + Number(b.totalAmount || 0), 0) || 0,
-          pendingConfirmations: data?.filter((b) => b.bookingStatus === "HELD").length || 0,
-        });
-      }
-    } catch (error) {
-      toast.error("Failed to sync bookings with server");
-    } finally {
-      setLoading(false);
-    }
+  const bookings = bookingsData.data;
+  const totalCount = bookingsData.total;
+
+  // Fetch Stats using Custom Hook
+  const { data: statsData } = useBookingStats();
+
+  const stats = statsData || {
+    totalBookings: 0,
+    todayBookings: 0,
+    todayRevenue: 0,
+    pendingConfirmations: 0,
   };
 
-  useEffect(() => {
-    fetchBookings();
-  }, [statusFilter, boardingFilter, dateFilter]);
+  // Cancel Booking Mutation
+  const cancelMutation = useCancelBooking();
+
+  // No longer need manual useEffect for fetching
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const newParams = new URLSearchParams(searchParams);
@@ -103,46 +98,21 @@ export default function Bookings() {
     setSearchParams(newParams, { replace: true });
   };
 
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      const matchesSearch =
-        b.id.toLowerCase().includes(search.toLowerCase()) ||
-        b.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-        b.user?.mobileNumber?.includes(search);
-
-      const matchesStatus = statusFilter === "all" ? true : b.bookingStatus === statusFilter.toUpperCase();
-      const matchesBoarding = boardingFilter === "all" ? true : b.boardingStatus === boardingFilter.toUpperCase();
-
-      return matchesSearch && matchesStatus && matchesBoarding;
-    });
-  }, [bookings, search, statusFilter, boardingFilter]);
-
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusFilter, boardingFilter, dateFilter]);
-
-  const paginatedBookings = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredBookings.slice(start, end);
-  }, [filteredBookings, currentPage, pageSize]);
+  }, [debouncedSearch, statusFilter, boardingFilter, dateFilter]);
 
   const handleCancel = async (id: string) => {
     if (confirm("Are you sure you want to cancel this booking? This may initiate a refund.")) {
-      try {
-        await bookingService.cancel(id);
-        toast.success("Booking cancelled successfully");
-        fetchBookings();
-      } catch (e: any) {
-        toast.error(e.response?.data?.message || "Failed to cancel booking");
-      }
+      cancelMutation.mutate(id);
     }
   };
 
   return (
     <DashboardLayout>
-      <FullPageLoader show={loading} label="Loading dispatch records..." />
+      <FullPageLoader show={isBookingsLoading} label="Loading dispatch records..." />
+      <FullPageLoader show={cancelMutation.isPending} label="Cancelling booking..." />
       <div className="space-y-6">
         <PageHeader
           title="Bookings & Dispatch"
@@ -151,7 +121,7 @@ export default function Bookings() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => fetchBookings()}
+              onClick={() => refetch()}
               className="border-border/60 rounded-full h-10 w-10 shadow-sm transition-transform active:rotate-180"
               title="Refresh Data"
             >
@@ -270,7 +240,7 @@ export default function Bookings() {
           <div className="flex-1 min-w-[200px] max-w-sm relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search bookings..."
+              placeholder="Search by passenger, mobile, ID or payment..."
               className="pl-10 h-10 border-border/60 rounded-lg bg-background/50 shadow-none focus-visible:ring-1"
               value={search}
               onChange={(e) => updateFilters({ q: e.target.value })}
@@ -319,14 +289,14 @@ export default function Bookings() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedBookings.length === 0 && !loading ? (
+              {bookings.length === 0 && !isBookingsLoading ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     No matching bookings found.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedBookings.map((b) => (
+                bookings.map((b) => (
                   <TableRow
                     key={b.id}
                     className="group transition-colors hover:bg-slate-50/50 cursor-pointer"
@@ -417,7 +387,7 @@ export default function Bookings() {
 
           <TablePagination
             currentPage={currentPage}
-            totalCount={filteredBookings.length}
+            totalCount={totalCount}
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={(size) => {

@@ -1,6 +1,5 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { financialsApi } from "@/api/financials";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import {
@@ -17,33 +16,51 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useWalletDetails, useWalletTransactions } from "@/features/financials";
 import { PageHeader } from "@/components/ui/page-header";
 import { ROUTES } from "@/constants/routes";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const WalletDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: walletDetails, isLoading: isLoadingDetails } = useQuery({
-    queryKey: ["wallet", id],
-    queryFn: () => financialsApi.getWalletDetails(id!),
-    enabled: !!id,
-  });
+  const searchQuery = searchParams.get("q") || "";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(10);
 
-  const { data: transactionsData, isLoading: isLoadingTxns } = useQuery({
-    queryKey: ["wallet-transactions", id],
-    queryFn: () => financialsApi.getWalletTransactions(id!, { limit: 50 }),
-    enabled: !!id,
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  const { data: walletDetails, isLoading: isLoadingDetails } = useWalletDetails(id!);
+
+  const { data: transactionsData, isLoading: isLoadingTxns } = useWalletTransactions(id!, {
+    limit: pageSize,
+    offset: (currentPage - 1) * pageSize,
   });
 
   const isLoading = isLoadingDetails || isLoadingTxns;
 
+  const transactions = transactionsData?.data || [];
+  const totalTransactions = transactionsData?.total || 0;
+
+  const handlePageChange = (page: number) => {
+    setSearchParams((prev) => {
+      prev.set("page", page.toString());
+      return prev;
+    });
+  };
+
   const formatCurrency = (amount: number) => {
-    return `₹${amount.toLocaleString("en-IN")}`;
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+    }).format(amount);
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-IN", {
+    return new Date(dateStr).toLocaleString("en-IN", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -71,7 +88,7 @@ const WalletDetails = () => {
 
       {walletDetails && (
         <div className="grid gap-6 md:grid-cols-3">
-          {/* User Info & Balance Card - Compact & Aesthetic */}
+          {/* User Info & Balance Card */}
           <Card className="md:col-span-1 shadow-sm border-border/60">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -125,7 +142,7 @@ const WalletDetails = () => {
           </Card>
 
           {/* Transaction History - Main Content */}
-          <Card className="md:col-span-2 shadow-sm border-border/60 flex flex-col h-[600px]">
+          <Card className="md:col-span-2 shadow-sm border-border/60 flex flex-col min-h-[600px]">
             <CardHeader className="border-b bg-muted/10 pb-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -135,38 +152,34 @@ const WalletDetails = () => {
                   </CardTitle>
                   <CardDescription className="mt-1">Recent activity for this wallet</CardDescription>
                 </div>
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm text-right">
                   <div className="flex flex-col items-end">
-                    <span className="text-xs text-muted-foreground">Total Credit</span>
-                    <span className="font-semibold text-success">
-                      {formatCurrency(walletDetails.stats.totalCredit)}
-                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Credit</span>
+                    <span className="font-bold text-success">{formatCurrency(walletDetails.stats.totalCredit)}</span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-xs text-muted-foreground">Total Debit</span>
-                    <span className="font-semibold text-destructive">
-                      {formatCurrency(walletDetails.stats.totalDebit)}
-                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Debit</span>
+                    <span className="font-bold text-destructive">{formatCurrency(walletDetails.stats.totalDebit)}</span>
                   </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-auto">
-              <div className="divide-y divide-border/60">
-                {transactionsData?.transactions.length === 0 ? (
+            <CardContent className="p-0 flex-1 flex flex-col">
+              <div className="divide-y divide-border/60 flex-1">
+                {transactions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-12">
                     <CreditCard className="h-12 w-12 mb-4 opacity-20" />
                     <p>No transactions found</p>
                   </div>
                 ) : (
-                  transactionsData?.transactions.map((txn) => (
+                  transactions.map((txn) => (
                     <div
                       key={txn.id}
                       className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between group"
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`p-2 rounded-full ${txn.type === "CREDIT" ? "bg-success/10" : "bg-destructive/10"}`}
+                          className={`p-2 rounded-full ${txn.type === "CREDIT" || txn.type === "REFUND" || txn.type === "TOPUP" ? "bg-success/10" : "bg-destructive/10"}`}
                         >
                           {getTransactionIcon(txn.type)}
                         </div>
@@ -195,6 +208,18 @@ const WalletDetails = () => {
                     </div>
                   ))
                 )}
+              </div>
+              <div className="p-4 border-t bg-muted/5 mt-auto">
+                <TablePagination
+                  currentPage={currentPage}
+                  totalCount={totalTransactions}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    handlePageChange(1);
+                  }}
+                />
               </div>
             </CardContent>
           </Card>

@@ -98,6 +98,7 @@ export interface Driver {
     type: string;
   };
   rating: number;
+  rating_count: number;
   status: "AVAILABLE" | "ON_TRIP" | "OFF_DUTY" | "ON_LEAVE" | "BLOCKED";
   profileUrl: string | null;
   lastLogin: string | null;
@@ -110,6 +111,43 @@ export interface Driver {
   } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export enum DriverRatingTag {
+  PUNCTUAL = "PUNCTUAL",
+  SAFE_DRIVING = "SAFE_DRIVING",
+  SMOOTH_RIDE = "SMOOTH_RIDE",
+  FRIENDLY = "FRIENDLY",
+  HELPFUL = "HELPFUL",
+  PROFESSIONAL = "PROFESSIONAL",
+  CLEAN_BUS = "CLEAN_BUS",
+  GOOD_COMMUNICATION = "GOOD_COMMUNICATION",
+  RASH_DRIVING = "RASH_DRIVING",
+  LATE_ARRIVAL = "LATE_ARRIVAL",
+  EARLY_DEPARTURE = "EARLY_DEPARTURE",
+  RUDE_BEHAVIOUR = "RUDE_BEHAVIOUR",
+  PHONE_WHILE_DRIVING = "PHONE_WHILE_DRIVING",
+  ROUGH_RIDE = "ROUGH_RIDE",
+  DIRTY_BUS = "DIRTY_BUS",
+  WRONG_ROUTE = "WRONG_ROUTE",
+  MUSIC_TOO_LOUD = "MUSIC_TOO_LOUD",
+}
+
+export interface DriverRating {
+  id: string;
+  driverId: string;
+  bookingId: string;
+  userId: string;
+  tripId: string;
+  rating: number;
+  comment: string | null;
+  tags: DriverRatingTag[] | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    profileUrl?: string | null;
+  };
 }
 
 export interface User {
@@ -231,6 +269,7 @@ export interface Notification {
   relatedId?: string;
   relatedType?: string;
   read: boolean;
+  priority?: "LOW" | "MEDIUM" | "HIGH";
   createdAt: string;
 }
 
@@ -418,4 +457,34 @@ export interface DistributionData {
   paymentStatus: { name: string; value: number }[];
   tripStatus: { name: string; value: number }[];
   peakHours: { hour: string; bookings: number }[];
+}
+export interface RoutePoint {
+  lat: number;
+  lng: number;
+  name: string;
+}
+
+export interface LiveLocation {
+  id: string;
+  tripId: string;
+  busId: string;
+  busNumber: string;
+  driverName: string;
+  routeName: string;
+  routeId: string;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  heading: number;
+  lastUpdatedAt: string;
+  occupiedSeats: number;
+  totalSeats?: number;
+  status: "moving" | "stopped" | "delayed";
+  tripStatus: "On Time" | "Delayed" | "Early";
+  delayMinutes: number;
+  nextStop: string;
+  eta: string;
+  currentLocationName: string;
+  routePoints?: RoutePoint[];
+  encodedPolyline?: string;
 }

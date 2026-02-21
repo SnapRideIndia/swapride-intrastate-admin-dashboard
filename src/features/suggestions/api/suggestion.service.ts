@@ -3,9 +3,17 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
 export const suggestionService = {
-  getAll: async (): Promise<StopSuggestion[]> => {
+  getAll: async (params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    status?: string;
+  }): Promise<{ data: StopSuggestion[]; total: number }> => {
     try {
-      const response = await apiClient.get<StopSuggestion[]>(API_ENDPOINTS.SUGGESTIONS.GET_ALL);
+      const response = await apiClient.get<{ data: StopSuggestion[]; total: number }>(
+        API_ENDPOINTS.SUGGESTIONS.GET_ALL,
+        { params },
+      );
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch suggestions";

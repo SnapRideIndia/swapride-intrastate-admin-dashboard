@@ -11,7 +11,7 @@ import {
   Filter,
   RefreshCw,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -38,8 +38,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRoutes } from "@/features/routes";
 import { useBuses } from "@/features/buses";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { analyticsService } from "@/features/analytics/api/analytics.service";
+import {
+  useAnalyticsSummary,
+  useAnalyticsTrends,
+  useRoutePerformance,
+  useFleetPerformance,
+  useDistributionMetrics,
+} from "@/features/analytics";
 import { AnalyticsFilters } from "@/types";
+import { useSearchParams } from "react-router-dom";
 
 const STATUS_COLORS: Record<string, string> = {
   CONFIRMED: "hsl(142, 71%, 45%)",
@@ -54,15 +61,19 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const Analytics = () => {
-  const [dateRange, setDateRange] = useState("last7days");
-  const [routeFilter, setRouteFilter] = useState("all");
-  const [busFilter, setBusFilter] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [activeTab, setActiveTab] = useState("revenue");
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: routes = [], isLoading: isRoutesLoading } = useRoutes();
-  const { data: buses = [], isLoading: isBusesLoading } = useBuses();
+  const dateRange = searchParams.get("range") || "last7days";
+  const routeFilter = searchParams.get("route") || "all";
+  const busFilter = searchParams.get("bus") || "all";
+  const startDate = searchParams.get("start") || "";
+  const endDate = searchParams.get("end") || "";
+  const activeTab = searchParams.get("tab") || "revenue";
+
+  const { data: routesData, isLoading: isRoutesLoading } = useRoutes();
+  const routes = routesData?.data || [];
+  const { data: busesData, isLoading: isBusesLoading } = useBuses();
+  const buses = busesData?.buses || [];
 
   const filters: AnalyticsFilters = {
     dateRange: dateRange as any,
@@ -72,47 +83,23 @@ const Analytics = () => {
     busId: busFilter === "all" ? undefined : busFilter,
   };
 
-  const { data: summary, isLoading: isSummaryLoading } = useQuery({
-    queryKey: ["analytics", "summary", filters],
-    queryFn: () => analyticsService.getSummary(filters),
-  });
+  const { data: summary, isLoading: isSummaryLoading } = useAnalyticsSummary(filters);
+  const { data: trends, isLoading: isTrendsLoading } = useAnalyticsTrends(filters);
+  const { data: routesPerf, isLoading: isRoutesPerfLoading } = useRoutePerformance(filters);
+  const { data: fleetPerf, isLoading: isFleetPerfLoading } = useFleetPerformance(filters);
+  const { data: distribution, isLoading: isDistributionLoading } = useDistributionMetrics(filters);
 
-  const { data: trends, isLoading: isTrendsLoading } = useQuery({
-    queryKey: ["analytics", "trends", filters],
-    queryFn: () => analyticsService.getTrends(filters),
-  });
-
-  const { data: routesPerf, isLoading: isRoutesPerfLoading } = useQuery({
-    queryKey: ["analytics", "routes", filters],
-    queryFn: () => analyticsService.getRoutePerformance(filters),
-  });
-
-  const { data: fleetPerf, isLoading: isFleetPerfLoading } = useQuery({
-    queryKey: ["analytics", "fleet", filters],
-    queryFn: () => analyticsService.getFleetPerformance(filters),
-  });
-
-  const { data: distribution, isLoading: isDistributionLoading } = useQuery({
-    queryKey: ["analytics", "distribution", filters],
-    queryFn: () => analyticsService.getDistribution(filters),
-  });
-
-  const resetFilters = () => {
-    setDateRange("last7days");
-    setRouteFilter("all");
-    setBusFilter("all");
-    setStartDate("");
-    setEndDate("");
+  const updateFilters = (key: string, value: string) => {
+    setSearchParams((prev) => {
+      if (value && value !== "all") prev.set(key, value);
+      else prev.delete(key);
+      return prev;
+    });
   };
 
-  const isLoading =
-    isRoutesLoading ||
-    isBusesLoading ||
-    isSummaryLoading ||
-    isTrendsLoading ||
-    isRoutesPerfLoading ||
-    isFleetPerfLoading ||
-    isDistributionLoading;
+  const resetFilters = () => {
+    setSearchParams(new URLSearchParams());
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -125,6 +112,15 @@ const Analytics = () => {
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat("en-IN").format(value);
   };
+
+  const isLoading =
+    isRoutesLoading ||
+    isBusesLoading ||
+    isSummaryLoading ||
+    isTrendsLoading ||
+    isRoutesPerfLoading ||
+    isFleetPerfLoading ||
+    isDistributionLoading;
 
   return (
     <DashboardLayout>
@@ -147,7 +143,7 @@ const Analytics = () => {
           <span className="text-sm font-medium">Filters</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Select value={dateRange} onValueChange={setDateRange}>
+          <Select value={dateRange} onValueChange={(val) => updateFilters("range", val)}>
             <SelectTrigger>
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Date Range" />
@@ -168,14 +164,19 @@ const Analytics = () => {
               <Input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => updateFilters("start", e.target.value)}
                 placeholder="Start Date"
               />
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} placeholder="End Date" />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => updateFilters("end", e.target.value)}
+                placeholder="End Date"
+              />
             </>
           )}
 
-          <Select value={routeFilter} onValueChange={setRouteFilter}>
+          <Select value={routeFilter} onValueChange={(val) => updateFilters("route", val)}>
             <SelectTrigger>
               <Route className="h-4 w-4 mr-2" />
               <SelectValue placeholder="All Routes" />
@@ -190,7 +191,7 @@ const Analytics = () => {
             </SelectContent>
           </Select>
 
-          <Select value={busFilter} onValueChange={setBusFilter}>
+          <Select value={busFilter} onValueChange={(val) => updateFilters("bus", val)}>
             <SelectTrigger>
               <Bus className="h-4 w-4 mr-2" />
               <SelectValue placeholder="All Buses" />
@@ -319,7 +320,7 @@ const Analytics = () => {
       </div>
 
       {/* Analytics Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+      <Tabs value={activeTab} onValueChange={(val) => updateFilters("tab", val)} className="mb-6">
         <TabsList className="mb-4">
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="bookings">Bookings</TabsTrigger>

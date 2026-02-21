@@ -12,9 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BusLayout, LayoutSeat, LayoutType, SeatType, NumberingDirection } from "@/types";
-import { busLayoutService, LAYOUT_TEMPLATES } from "@/features/buses";
-import { LayoutPreviewGrid } from "@/features/buses";
-import { toast } from "@/hooks/use-toast";
+import { busLayoutService, LAYOUT_TEMPLATES, useLayout, useCreateLayout, useUpdateLayout } from "@/features/buses";
+import { LayoutPreviewGrid } from "@/features/buses/components/LayoutPreviewGrid";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 
@@ -38,7 +38,15 @@ const BusLayoutBuilder = () => {
   const [configOpen, setConfigOpen] = useState(true);
   const [seatConfigOpen, setSeatConfigOpen] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+
+  // Queries
+  const { data: existingLayout, isLoading: isFetching } = useLayout(id || "");
+
+  // Mutations
+  const createMutation = useCreateLayout();
+  const updateMutation = useUpdateLayout();
+
   const [activeBrush, setActiveBrush] = useState<SeatType | "CLEAR">("SEATER");
   const [numberingDirection, setNumberingDirection] = useState<NumberingDirection>("RTL");
 
@@ -52,27 +60,17 @@ const BusLayoutBuilder = () => {
 
   // Load existing layout
   useEffect(() => {
-    const fetchLayout = async () => {
-      if (isEditing) {
-        try {
-          const layout = await busLayoutService.getById(id!);
-          if (layout) {
-            setName(layout.name);
-            setDescription(layout.description);
-            setLayoutType(layout.layoutType);
-            setTotalRows(layout.totalRows);
-            setTotalColumns(layout.totalColumns);
-            setStatus(layout.status === "archived" ? "inactive" : layout.status);
-            setNumberingDirection(layout.numberingDirection || "RTL");
-            setSeats(layout.seats);
-          }
-        } catch {
-          toast({ title: "Error", description: "Failed to load layout", variant: "destructive" });
-        }
-      }
-    };
-    fetchLayout();
-  }, [id, isEditing]);
+    if (isEditing && existingLayout) {
+      setName(existingLayout.name);
+      setDescription(existingLayout.description || "");
+      setLayoutType(existingLayout.layoutType);
+      setTotalRows(existingLayout.totalRows);
+      setTotalColumns(existingLayout.totalColumns);
+      setStatus(existingLayout.status === "archived" ? "inactive" : (existingLayout.status as any));
+      setNumberingDirection(existingLayout.numberingDirection || "RTL");
+      setSeats(existingLayout.seats);
+    }
+  }, [existingLayout, isEditing]);
 
   // Auto-regenerate grid when layout type changes for new layouts
   useEffect(() => {
@@ -250,47 +248,32 @@ const BusLayoutBuilder = () => {
       return;
     }
 
-    setIsSaving(true);
+    const layoutData = {
+      name,
+      description,
+      layoutType,
+      totalRows,
+      totalColumns,
+      totalSeats,
+      status,
+      seats,
+      numberingDirection,
+    };
 
-    try {
-      if (isEditing) {
-        await busLayoutService.update(id!, {
-          name,
-          description,
-          layoutType,
-          totalRows,
-          totalColumns,
-          totalSeats,
-          status,
-          seats,
-          numberingDirection,
-        });
-        toast({ title: "Layout Updated", description: "Changes saved successfully." });
-      } else {
-        await busLayoutService.create({
-          name,
-          description,
-          layoutType,
-          totalRows,
-          totalColumns,
-          totalSeats,
-          status,
-          seats,
-          numberingDirection,
-          createdBy: "admin_001",
-        });
-        toast({ title: "Layout Created", description: "New layout saved successfully." });
-      }
-      navigate(ROUTES.BUS_LAYOUTS);
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || "Failed to save layout";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
+    if (isEditing) {
+      updateMutation.mutate(
+        { id: id!, data: layoutData },
+        {
+          onSuccess: () => navigate(ROUTES.BUS_LAYOUTS),
+        },
+      );
+    } else {
+      createMutation.mutate(
+        { ...layoutData, createdBy: "admin_001" },
+        {
+          onSuccess: () => navigate(ROUTES.BUS_LAYOUTS),
+        },
+      );
     }
   };
 
@@ -332,14 +315,22 @@ const BusLayoutBuilder = () => {
             <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
             <Save className="h-4 w-4 mr-2" />
-            {isSaving ? "Creating..." : isEditing ? "Update Layout" : "Create Layout"}
+            {createMutation.isPending || updateMutation.isPending
+              ? "Saving..."
+              : isEditing
+                ? "Update Layout"
+                : "Create Layout"}
           </Button>
         </div>
       </div>
 
-      <FullPageLoader show={isSaving} label={isEditing ? "Updating Layout..." : "Creating Layout..."} />
+      <FullPageLoader show={isFetching} label="Loading layout data..." />
+      <FullPageLoader
+        show={createMutation.isPending || updateMutation.isPending}
+        label={isEditing ? "Updating Layout..." : "Creating Layout..."}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Panel - Configuration */}

@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,20 @@ import {
   MessageSquare,
   Trash2,
   Loader2,
+  Camera,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { driverService, EditDriverDialog } from "@/features/drivers";
-import { Driver, Trip } from "@/types";
+import {
+  useDriver,
+  useDeleteDriver,
+  useUpdateDriverPhoto,
+  useDriverRatings,
+  EditDriverDialog,
+} from "@/features/drivers";
+import { Driver, Trip, DriverRatingTag } from "@/types";
 import { PageHeader } from "@/components/ui/page-header";
 import { TablePagination } from "@/components/ui/table-pagination";
 import {
@@ -52,33 +59,30 @@ const DriverDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [driver, setDriver] = useState<Driver | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isActionLoading, setIsActionLoading] = useState(false);
+  const { data: driver, isLoading: isDriverLoading, refetch } = useDriver(id || "");
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const uploadPhotoMutation = useUpdateDriverPhoto(id || "");
 
-  // Trips Pagination
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+    uploadPhotoMutation.mutate(file, {
+      onSuccess: () => refetch(),
+    });
+    e.target.value = "";
+  };
+
   const [tripsPage, setTripsPage] = useState(1);
   const [tripsPageSize, setTripsPageSize] = useState(5);
 
-  const fetchDriver = async () => {
-    if (!id) return;
-    try {
-      setIsLoading(true);
-      const data = await driverService.getById(id);
-      setDriver(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch driver details.",
-        variant: "destructive",
-      });
-      navigate(ROUTES.DRIVERS);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [ratingsPage, setRatingsPage] = useState(1);
+  const ratingsPageSize = 5;
 
   const { data: tripsData = { data: [], total: 0 }, isLoading: isTripsLoading } = useQuery({
     queryKey: ["driver-trips", id, tripsPage, tripsPageSize],
@@ -91,34 +95,24 @@ const DriverDetails = () => {
     enabled: !!id,
   });
 
+  const { data: ratingsData = { data: [], total: 0 } } = useDriverRatings(id || "", {
+    limit: ratingsPageSize,
+    offset: (ratingsPage - 1) * ratingsPageSize,
+  });
+
   const paginatedTrips = tripsData.data;
   const totalTripsCount = tripsData.total;
 
+  const deleteMutation = useDeleteDriver();
+
   const handleDelete = async () => {
     if (!driver) return;
-    try {
-      setIsActionLoading(true);
-      await driverService.delete(driver.id);
-      toast({
-        title: "Driver Deleted",
-        description: `${driver.name} has been removed successfully.`,
-      });
-      navigate(ROUTES.DRIVERS);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete driver.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsActionLoading(false);
-      setIsDeleteAlertOpen(false);
-    }
+    deleteMutation.mutate(driver.id, {
+      onSuccess: () => {
+        navigate(ROUTES.DRIVERS);
+      },
+    });
   };
-
-  useEffect(() => {
-    fetchDriver();
-  }, [id]);
 
   const getStatusBadge = (status: string) => {
     const s = (status || "").toUpperCase();
@@ -142,7 +136,7 @@ const DriverDetails = () => {
     }
   };
 
-  if (isLoading) {
+  if (isDriverLoading) {
     return <FullPageLoader show={true} label="Fetching driver details..." />;
   }
 
@@ -150,7 +144,7 @@ const DriverDetails = () => {
 
   return (
     <DashboardLayout>
-      <FullPageLoader show={isActionLoading} label="Processing..." />
+      <FullPageLoader show={deleteMutation.isPending} label="Deleting driver..." />
 
       <PageHeader title="Driver Details" subtitle={`Viewing profile of ${driver.name}`} backUrl={ROUTES.DRIVERS} />
 
@@ -162,12 +156,35 @@ const DriverDetails = () => {
             <CardContent className="p-0">
               <div className="h-32 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-border/60 relative">
                 <div className="absolute -bottom-12 left-8">
-                  <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                    <AvatarImage src={driver.profileUrl || ""} />
-                    <AvatarFallback className="text-2xl bg-muted text-muted-foreground uppercase">
-                      {driver.name.substring(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
+                  {/* Hidden file input for photo upload */}
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
+                  {/* Clickable Avatar with camera overlay */}
+                  <div
+                    className="relative group cursor-pointer"
+                    onClick={() => photoInputRef.current?.click()}
+                    title="Click to update profile photo"
+                  >
+                    <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                      <AvatarImage src={driver.profileUrl || ""} />
+                      <AvatarFallback className="text-2xl bg-muted text-muted-foreground uppercase">
+                        {driver.name.substring(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* Upload overlay */}
+                    <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {uploadPhotoMutation.isPending ? (
+                        <Loader2 className="h-6 w-6 text-white animate-spin" />
+                      ) : (
+                        <Camera className="h-6 w-6 text-white" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="pt-16 px-8 pb-8">
@@ -326,6 +343,91 @@ const DriverDetails = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Ratings Card */}
+          <Card className="shadow-sm border-border/60">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Star className="h-4 w-4 text-warning" />
+                Ratings & Reviews
+                <span className="ml-auto text-sm font-normal text-muted-foreground">
+                  {ratingsData.total} review{ratingsData.total !== 1 ? "s" : ""}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {ratingsData.data.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground text-sm">No reviews yet.</div>
+              ) : (
+                <div className="space-y-4">
+                  {ratingsData.data.map((r) => {
+                    const positiveTags = [
+                      DriverRatingTag.PUNCTUAL,
+                      DriverRatingTag.SAFE_DRIVING,
+                      DriverRatingTag.SMOOTH_RIDE,
+                      DriverRatingTag.FRIENDLY,
+                      DriverRatingTag.HELPFUL,
+                      DriverRatingTag.PROFESSIONAL,
+                      DriverRatingTag.CLEAN_BUS,
+                      DriverRatingTag.GOOD_COMMUNICATION,
+                    ];
+                    return (
+                      <div key={r.id} className="p-4 rounded-lg bg-muted/20 border border-border/60 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`h-4 w-4 ${
+                                  s <= r.rating ? "fill-warning text-warning" : "text-muted-foreground/30"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {safeFormatDate(r.createdAt, "dd MMM yyyy")}
+                          </span>
+                        </div>
+                        {r.user && (
+                          <p className="text-xs text-muted-foreground">
+                            by <span className="font-medium text-foreground">{r.user.fullName}</span>
+                          </p>
+                        )}
+                        {r.comment && <p className="text-sm text-foreground/80 italic">"{r.comment}"</p>}
+                        {r.tags && r.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {r.tags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="outline"
+                                className={`text-[10px] py-0 px-2 ${
+                                  positiveTags.includes(tag)
+                                    ? "border-success/40 text-success bg-success/10"
+                                    : "border-destructive/40 text-destructive bg-destructive/10"
+                                }`}
+                              >
+                                {tag.replace(/_/g, " ")}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {ratingsData.total > ratingsPageSize && (
+                <div className="mt-4">
+                  <TablePagination
+                    currentPage={ratingsPage}
+                    totalCount={ratingsData.total}
+                    pageSize={ratingsPageSize}
+                    onPageChange={setRatingsPage}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar - Documents & Actions */}
@@ -409,7 +511,12 @@ const DriverDetails = () => {
         </div>
       </div>
 
-      <EditDriverDialog driver={driver} open={isEditOpen} onOpenChange={setIsEditOpen} onDriverUpdated={fetchDriver} />
+      <EditDriverDialog
+        driver={driver}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        onDriverUpdated={() => refetch()}
+      />
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>

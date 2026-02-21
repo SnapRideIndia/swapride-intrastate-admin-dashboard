@@ -97,6 +97,7 @@ export function StatCard({
   };
 
   const getFontSizeClass = () => {
+    if (value === undefined || value === null) return "text-2xl";
     const valueString = value.toString();
     if (valueString.length > 10) return "text-lg";
     if (valueString.length > 7) return "text-xl";

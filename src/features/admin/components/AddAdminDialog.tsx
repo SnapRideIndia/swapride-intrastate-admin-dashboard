@@ -32,7 +32,8 @@ export function AddAdminDialog({ open, onOpenChange, onSuccess, editAdmin }: Add
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Tanstack Query hooks
-  const { data: roles = [], isLoading: loadingRoles } = useRoles();
+  const { data: rolesData, isLoading: loadingRoles } = useRoles();
+  const roles = rolesData?.data || [];
   const createMutation = useCreateAdmin();
   const updateMutation = useUpdateAdmin();
 

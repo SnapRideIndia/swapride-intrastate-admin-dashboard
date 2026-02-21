@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { formatService } from "@/utils/format.service";
-import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,7 @@ import { useRoles } from "@/features/admin/hooks/useRoleQueries";
 import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const Admins = () => {
   const { toast } = useToast();
@@ -64,20 +65,41 @@ const Admins = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+  const debouncedSearch = useDebounce(searchQuery, 500);
+  const roleFilter = searchParams.get("roleId") || "all";
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const pageSize = Number(searchParams.get("limit")) || 20;
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editAdmin, setEditAdmin] = useState<AdminUser | null>(null);
   const [deleteAdmin, setDeleteAdmin] = useState<AdminUser | null>(null);
   const [suspendAdmin, setSuspendAdmin] = useState<AdminUser | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
 
-  // Tanstack Query hooks
-  const { data: admins = [], isLoading: loadingAdmins } = useAdmins();
+  const updateFilters = (updates: Record<string, string | number | null>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === "" || value === "all") {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+    if (!updates.page && (updates.q !== undefined || updates.roleId !== undefined)) {
+      newParams.delete("page");
+    }
+    setSearchParams(newParams);
+  };
+
+  const { data: adminsData, isLoading: loadingAdmins } = useAdmins({
+    page: currentPage,
+    limit: pageSize,
+    search: debouncedSearch,
+    roleId: roleFilter,
+  });
   const { data: stats, isLoading: loadingStats } = useAdminStats();
-  const { data: roles = [], isLoading: loadingRoles } = useRoles();
+  const { data: rolesData, isLoading: loadingRoles } = useRoles();
 
   const deleteMutation = useDeleteAdmin();
   const suspendMutation = useSuspendAdmin();
@@ -85,28 +107,10 @@ const Admins = () => {
 
   const isLoading = loadingAdmins || loadingStats || loadingRoles;
 
-  const filteredAdmins = useMemo(() => {
-    return admins.filter((admin) => {
-      const matchesSearch =
-        admin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        admin.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (admin.phone && admin.phone.includes(searchQuery));
-      const matchesStatus = statusFilter === "all" || admin.status === statusFilter;
-      const matchesRole = roleFilter === "all" || admin.roleId === roleFilter;
-      return matchesSearch && matchesStatus && matchesRole;
-    });
-  }, [admins, searchQuery, statusFilter, roleFilter]);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter, roleFilter]);
-
-  const paginatedAdmins = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredAdmins.slice(start, end);
-  }, [filteredAdmins, currentPage, pageSize]);
+  const admins = adminsData?.data || [];
+  const totalCount = adminsData?.total || 0;
+  const roles = rolesData?.data || [];
+  const totalRoles = rolesData?.total || 0;
 
   const handleDelete = async () => {
     if (!deleteAdmin) return;
@@ -214,7 +218,7 @@ const Admins = () => {
           iconColor="text-destructive"
           vibrant={true}
         />
-        <StatCard title="Roles" value={roles.length} icon={Shield} iconColor="text-info" vibrant={true} />
+        <StatCard title="Roles" value={totalRoles} icon={Shield} iconColor="text-info" vibrant={true} />
       </div>
 
       <div className="dashboard-card p-4 mb-6">
@@ -222,24 +226,13 @@ const Admins = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search by name or email..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => updateFilters({ q: e.target.value })}
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-              <SelectItem value="Suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <Select value={roleFilter} onValueChange={(val) => updateFilters({ roleId: val })}>
             <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Role" />
             </SelectTrigger>
@@ -269,7 +262,7 @@ const Admins = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!isLoading && filteredAdmins.length === 0 ? (
+            {!isLoading && admins.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-20 text-muted-foreground">
                   <div className="flex flex-col items-center gap-3">
@@ -282,7 +275,7 @@ const Admins = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedAdmins.map((admin) => (
+              admins.map((admin) => (
                 <TableRow key={admin.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -372,12 +365,11 @@ const Admins = () => {
         <TablePagination
           className="mt-4"
           currentPage={currentPage}
-          totalCount={filteredAdmins.length}
+          totalCount={totalCount}
           pageSize={pageSize}
-          onPageChange={setCurrentPage}
+          onPageChange={(page) => updateFilters({ page })}
           onPageSizeChange={(size) => {
-            setPageSize(size);
-            setCurrentPage(1);
+            updateFilters({ limit: size, page: 1 });
           }}
         />
       </div>

@@ -24,6 +24,7 @@ import CreateNotification from "@/pages/CreateNotification";
 import NotificationDetails from "@/pages/NotificationDetails";
 import SearchEngineTester from "@/pages/TestModules/SearchEngineTester";
 import FcmTester from "@/pages/TestModules/FcmTester";
+import RazorpayTester from "@/pages/TestModules/RazorpayTester";
 import Suggestions from "@/pages/Suggestions";
 import SuggestionDetails from "@/pages/SuggestionDetails";
 import UserDetails from "@/pages/UserDetails";
@@ -73,6 +74,7 @@ export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.ROLES, element: <Roles /> },
   { path: ROUTES.SEARCH_ENGINE_TESTER, element: <SearchEngineTester /> },
   { path: ROUTES.FCM_TEST, element: <FcmTester /> },
+  { path: ROUTES.RAZORPAY_TEST, element: <RazorpayTester /> },
   { path: ROUTES.BOOKINGS, element: <Bookings /> },
   { path: ROUTES.BOOKING_DETAILS, element: <BookingDetails /> },
 ];

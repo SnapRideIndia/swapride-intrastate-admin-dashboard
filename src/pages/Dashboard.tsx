@@ -1,17 +1,19 @@
-import { useState, useEffect } from "react";
 import { Bus, Users, Route, IndianRupee, UserCog, CalendarCheck, Plus, MapPin, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/features/analytics";
-import { RevenueChart } from "@/features/analytics";
-import { LiveBusTracker } from "@/features/analytics";
-import { RecentTickets } from "@/features/analytics";
-import { RouteDistribution } from "@/features/analytics";
+import {
+  StatCard,
+  RevenueChart,
+  LiveBusTracker,
+  RecentTickets,
+  RouteDistribution,
+  useDashboardStats,
+  useBusUtilization,
+} from "@/features/analytics";
 import { Button } from "@/components/ui/button";
-import { analyticsService } from "@/features/analytics";
-import { bookingService } from "@/features/bookings";
-import { notificationService } from "@/features/notifications";
+import { useBookings } from "@/features/bookings/hooks/useBookings";
+import { useRecentNotifications } from "@/features/notifications";
 import { AddBusDialog } from "@/features/buses";
 import { AddRouteDialog } from "@/features/routes";
 import { AssignTripDialog } from "@/features/trips/components/AssignTripDialog";
@@ -22,8 +24,17 @@ import { DashboardStats } from "@/types";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats>({
+
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: busUtilization = [], isLoading: utilLoading } = useBusUtilization();
+  const { data: recentBookingsData, isLoading: bookingsLoading } = useBookings({
+    limit: 5,
+  });
+  const recentBookings = recentBookingsData?.data || [];
+  const { data: recentNotifications = [], isLoading: notifsLoading } = useRecentNotifications(5);
+
+  // Default stats to avoid undefined errors
+  const defaultStats: DashboardStats = {
     totalBuses: 0,
     activeBuses: 0,
     totalDrivers: 0,
@@ -34,34 +45,10 @@ const Dashboard = () => {
     todayBookings: 0,
     busesOnTime: 0,
     busesDelayed: 0,
-  });
-  const [recentBookings, setRecentBookings] = useState<any[]>([]);
-  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
-  const [busUtilization, setBusUtilization] = useState<any[]>([]);
+  };
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const [dashboardStats, utilization, bookings, notifications] = await Promise.all([
-          analyticsService.getDashboardStats(),
-          analyticsService.getBusUtilization(),
-          bookingService.getAll({ limit: 5 }).then((res) => res.data),
-          notificationService.getRecent(5),
-        ]);
-        setStats(dashboardStats);
-        setBusUtilization(utilization);
-        setRecentBookings(bookings);
-        setRecentNotifications(notifications);
-      } catch (error) {
-        console.error("❌ [Dashboard] Error fetching stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
+  const displayStats = stats || defaultStats;
+  const loading = statsLoading || utilLoading || bookingsLoading || notifsLoading;
 
   return (
     <DashboardLayout>
@@ -84,8 +71,8 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             <StatCard
               title="Total Buses"
-              value={stats.totalBuses}
-              change={`${stats.activeBuses} active`}
+              value={displayStats.totalBuses}
+              change={`${displayStats.activeBuses} active`}
               changeType="positive"
               icon={Bus}
               iconBgColor="bg-primary/10"
@@ -95,7 +82,7 @@ const Dashboard = () => {
             />
             <StatCard
               title="Active Trips"
-              value={stats.activeTripsToday}
+              value={displayStats.activeTripsToday}
               change="In progress now"
               changeType="neutral"
               icon={Route}
@@ -106,7 +93,7 @@ const Dashboard = () => {
             />
             <StatCard
               title="Total Users"
-              value={stats.totalUsers}
+              value={displayStats.totalUsers}
               change="Registered users"
               changeType="neutral"
               icon={Users}
@@ -117,8 +104,8 @@ const Dashboard = () => {
             />
             <StatCard
               title="Total Drivers"
-              value={stats.totalDrivers}
-              change={`${stats.availableDrivers} available`}
+              value={displayStats.totalDrivers}
+              change={`${displayStats.availableDrivers} available`}
               changeType="positive"
               icon={UserCog}
               iconBgColor="bg-warning/10"
@@ -128,7 +115,7 @@ const Dashboard = () => {
             />
             <StatCard
               title="Today's Revenue"
-              value={`₹${stats.todayRevenue.toLocaleString()}`}
+              value={`₹${displayStats.todayRevenue.toLocaleString()}`}
               change="+8.2% from yesterday"
               changeType="positive"
               icon={IndianRupee}
@@ -139,7 +126,7 @@ const Dashboard = () => {
             />
             <StatCard
               title="Today's Bookings"
-              value={stats.todayBookings}
+              value={displayStats.todayBookings}
               change="Total bookings"
               changeType="neutral"
               icon={CalendarCheck}
@@ -243,7 +230,7 @@ const Dashboard = () => {
                     )}
                   >
                     <p className="text-sm font-medium">{notification.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{notification.message}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{notification.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {new Date(notification.createdAt).toLocaleString()}
                     </p>

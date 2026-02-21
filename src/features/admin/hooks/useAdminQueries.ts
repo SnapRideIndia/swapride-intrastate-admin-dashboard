@@ -4,16 +4,16 @@ import { adminService } from "../api/admin.service";
 export const adminKeys = {
   all: ["admins"] as const,
   lists: () => [...adminKeys.all, "list"] as const,
-  list: (filters: string) => [...adminKeys.lists(), { filters }] as const,
+  list: (params: any) => [...adminKeys.lists(), params] as const,
   details: () => [...adminKeys.all, "detail"] as const,
   detail: (id: string) => [...adminKeys.details(), id] as const,
   stats: () => [...adminKeys.all, "stats"] as const,
 };
 
-export const useAdmins = () => {
+export const useAdmins = (params?: { page?: number; limit?: number; search?: string; roleId?: string }) => {
   return useQuery({
-    queryKey: adminKeys.lists(),
-    queryFn: () => adminService.getAll(),
+    queryKey: adminKeys.list(params || {}),
+    queryFn: () => adminService.getAll(params),
   });
 };
 

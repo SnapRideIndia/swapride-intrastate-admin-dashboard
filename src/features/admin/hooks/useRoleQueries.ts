@@ -5,16 +5,17 @@ import { Role } from "@/types";
 export const roleKeys = {
   all: ["roles"] as const,
   lists: () => [...roleKeys.all, "list"] as const,
+  list: (params: any) => [...roleKeys.lists(), params] as const,
   details: () => [...roleKeys.all, "detail"] as const,
   detail: (id: string) => [...roleKeys.details(), id] as const,
   permissions: (id: string) => [...roleKeys.detail(id), "permissions"] as const,
   adminCount: (id: string) => [...roleKeys.detail(id), "admin-count"] as const,
 };
 
-export const useRoles = () => {
+export const useRoles = (params?: { search?: string; page?: number; limit?: number }) => {
   return useQuery({
-    queryKey: roleKeys.lists(),
-    queryFn: () => roleService.getAll(),
+    queryKey: roleKeys.list(params || {}),
+    queryFn: () => roleService.getAll(params),
   });
 };
 

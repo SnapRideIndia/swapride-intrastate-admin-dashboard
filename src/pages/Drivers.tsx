@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Phone, Star, Users, UserCheck, Route, UserCog } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
@@ -19,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { driverService } from "@/features/drivers";
+import { driverApi, useDrivers, useCreateDriver, useDeleteDriver } from "@/features/drivers";
 import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { useToast } from "@/hooks/use-toast";
@@ -57,11 +57,9 @@ const driverFormSchema = z.object({
 type DriverFormData = z.infer<typeof driverFormSchema>;
 
 const Drivers = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -69,9 +67,22 @@ const Drivers = () => {
   const [pageSize, setPageSize] = useState(20);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // Details Logic
-  const { toast } = useToast();
-  const navigate = useNavigate();
+  const {
+    data: driversData = { drivers: [], total: 0 },
+    isLoading: isFetching,
+    refetch,
+  } = useDrivers({
+    limit: pageSize,
+    offset: (currentPage - 1) * pageSize,
+    search: debouncedSearchQuery,
+    status: statusFilter === "all" ? undefined : statusFilter,
+  });
+
+  const drivers = driversData.drivers;
+  const totalCount = driversData.total;
+
+  const createMutation = useCreateDriver();
+  const deleteMutation = useDeleteDriver();
 
   const form = useForm<DriverFormData>({
     resolver: zodResolver(driverFormSchema),
@@ -83,74 +94,30 @@ const Drivers = () => {
     },
   });
 
-  const fetchDrivers = async () => {
-    setLoading(true);
-    try {
-      const response = await driverService.getAll({
-        limit: pageSize,
-        offset: (currentPage - 1) * pageSize,
-        search: debouncedSearchQuery,
-        status: statusFilter,
-      });
-      setDrivers(response.drivers);
-      setTotalCount(response.total);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch drivers. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDrivers();
-  }, [currentPage, pageSize, debouncedSearchQuery, statusFilter]);
-
   // Reset to page 1 when filters change
   useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [searchQuery, statusFilter]);
-
-  const paginatedDrivers = drivers;
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, statusFilter]);
 
   const onSubmit = async (data: DriverFormData) => {
-    setIsCreating(true);
-    try {
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("licenseNumber", data.licenseNumber);
-      formData.append("mobileNumber", data.mobileNumber);
-      formData.append("password", data.password);
-      if (data.license && data.license[0]) {
-        formData.append("license", data.license[0]);
-      }
-      if (data.photo && data.photo[0]) {
-        formData.append("photo", data.photo[0]);
-      }
-
-      await driverService.create(formData);
-
-      toast({
-        title: "Driver Added",
-        description: `${data.name} has been added successfully.`,
-      });
-      form.reset();
-      setDialogOpen(false);
-      fetchDrivers();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to create driver. Please check your inputs.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("licenseNumber", data.licenseNumber);
+    formData.append("mobileNumber", data.mobileNumber);
+    formData.append("password", data.password);
+    if (data.license && data.license[0]) {
+      formData.append("license", data.license[0]);
     }
+    if (data.photo && data.photo[0]) {
+      formData.append("photo", data.photo[0]);
+    }
+
+    createMutation.mutate(formData, {
+      onSuccess: () => {
+        form.reset();
+        setDialogOpen(false);
+      },
+    });
   };
 
   const handleViewDriver = (driver: Driver) => {
@@ -159,23 +126,7 @@ const Drivers = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this driver?")) return;
-    setDeletingId(id);
-    try {
-      await driverService.delete(id);
-      toast({
-        title: "Driver Deleted",
-        description: "The driver has been removed.",
-      });
-      fetchDrivers();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete driver.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeletingId(null);
-    }
+    deleteMutation.mutate(id);
   };
 
   const getStatusBadge = (status: string) => {
@@ -204,13 +155,13 @@ const Drivers = () => {
 
   return (
     <>
-      <FullPageLoader show={loading} label="Loading drivers..." />
-      <FullPageLoader show={isCreating} label="Adding driver..." />
-      <FullPageLoader show={!!deletingId} label="Deleting driver..." />
+      <FullPageLoader show={isFetching && drivers.length === 0} label="Loading drivers..." />
+      <FullPageLoader show={createMutation.isPending} label="Adding driver..." />
+      <FullPageLoader show={deleteMutation.isPending} label="Deleting driver..." />
       <DashboardLayout>
         <PageHeader
           title="Driver Management"
-          subtitle={`Manage ${drivers.length} drivers`}
+          subtitle={`Managing ${totalCount} driver${totalCount !== 1 ? "s" : ""}`}
           actions={
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
@@ -333,11 +284,11 @@ const Drivers = () => {
                         type="button"
                         variant="outline"
                         onClick={() => setDialogOpen(false)}
-                        disabled={isCreating}
+                        disabled={createMutation.isPending}
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={isCreating}>
+                      <Button type="submit" disabled={createMutation.isPending}>
                         Add Driver
                       </Button>
                     </div>
@@ -348,9 +299,8 @@ const Drivers = () => {
           }
         />
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-          <StatCard title="Total Drivers" value={drivers.length} icon={Users} iconColor="text-primary" vibrant={true} />
+          <StatCard title="Total Drivers" value={totalCount} icon={Users} iconColor="text-primary" vibrant={true} />
           <StatCard
             title="Available"
             value={drivers.filter((d) => d.status === "AVAILABLE").length}
@@ -374,7 +324,6 @@ const Drivers = () => {
           />
         </div>
 
-        {/* Filters */}
         <div className="dashboard-card p-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
@@ -401,7 +350,6 @@ const Drivers = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="table-container min-h-[400px] relative">
           <Table>
             <TableHeader>
@@ -417,14 +365,14 @@ const Drivers = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!loading && paginatedDrivers.length === 0 ? (
+              {!isFetching && drivers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                     No drivers found.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedDrivers.map((driver) => {
+                drivers.map((driver) => {
                   const driverIdShort = driver.id.substring(0, 8).toUpperCase();
                   return (
                     <TableRow
@@ -459,9 +407,12 @@ const Drivers = () => {
                       </TableCell>
                       <TableCell>{driver.totalTrips}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-warning text-warning" />
-                          <span>{Number(driver.rating || 0).toFixed(1)}</span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-warning text-warning" />
+                            <span>{Number(driver.rating || 0).toFixed(1)}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">{driver.rating_count || 0} reviews</span>
                         </div>
                       </TableCell>
                       <TableCell>

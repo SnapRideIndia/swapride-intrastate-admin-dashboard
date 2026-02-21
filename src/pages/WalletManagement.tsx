@@ -1,66 +1,69 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { Search, ArrowUpCircle, ArrowDownCircle, RotateCcw } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { financialsApi } from "@/api/financials";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { useWallets, useGlobalWalletTransactions } from "@/features/financials";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const WalletManagement = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeSubTab, setActiveSubTab] = useState("user-wallets");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
 
-  // Fetch Wallets (only when user-wallets tab is active)
-  const { data: walletsData, isLoading: isLoadingWallets } = useQuery({
-    queryKey: ["admin-wallets"],
-    queryFn: () => financialsApi.getWallets({ limit: 100 }),
-    enabled: activeSubTab === "user-wallets",
+  const searchQuery = searchParams.get("q") || "";
+  const activeSubTab = searchParams.get("tab") || "user-wallets";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(10);
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Fetch Wallets
+  const { data: walletsData, isLoading: isLoadingWallets } = useWallets({
+    limit: pageSize,
+    offset: activeSubTab === "user-wallets" ? (currentPage - 1) * pageSize : 0,
+    search: debouncedSearch,
   });
 
-  // Fetch Global Wallet Transactions (only when wallet-transactions tab is active)
-  const { data: globalWalletTxnsData, isLoading: isLoadingGlobalTxns } = useQuery({
-    queryKey: ["admin-global-wallet-transactions"],
-    queryFn: () => financialsApi.getGlobalWalletTransactions({ limit: 100 }),
-    enabled: activeSubTab === "wallet-transactions",
+  // Fetch Global Wallet Transactions
+  const { data: globalWalletTxnsData, isLoading: isLoadingGlobalTxns } = useGlobalWalletTransactions({
+    limit: pageSize,
+    offset: activeSubTab === "wallet-transactions" ? (currentPage - 1) * pageSize : 0,
+    search: debouncedSearch,
   });
 
-  // Reset page when tab changes or search term changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeSubTab, searchTerm]);
+  const wallets = walletsData?.data || [];
+  const globalTransactions = globalWalletTxnsData?.data || [];
 
-  const wallets = walletsData?.wallets || [];
-  const globalTransactions = globalWalletTxnsData?.transactions || [];
+  const totalWalletsCount = walletsData?.total || 0;
+  const totalTransactionsCount = globalWalletTxnsData?.total || 0;
 
-  const filteredWallets = useMemo(() => {
-    if (!searchTerm) return wallets;
-    return wallets.filter(
-      (w) =>
-        w.user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.user.mobileNumber.includes(searchTerm),
-    );
-  }, [wallets, searchTerm]);
+  const handlePageChange = (page: number) => {
+    setSearchParams((prev) => {
+      prev.set("page", page.toString());
+      return prev;
+    });
+  };
 
-  const paginatedWallets = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredWallets.slice(start, end);
-  }, [filteredWallets, currentPage, pageSize]);
+  const handleSearch = (val: string) => {
+    setSearchParams((prev) => {
+      if (val) prev.set("q", val);
+      else prev.delete("q");
+      prev.set("page", "1");
+      return prev;
+    });
+  };
 
-  const paginatedGlobalTransactions = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return globalTransactions.slice(start, end);
-  }, [globalTransactions, currentPage, pageSize]);
+  const handleTabChange = (tab: string) => {
+    setSearchParams((prev) => {
+      prev.set("tab", tab);
+      prev.set("page", "1");
+      return prev;
+    });
+  };
 
   const handleViewWallet = (walletId: string) => {
     navigate(`/payments/wallet-management/wallet/${walletId}`);
@@ -112,7 +115,7 @@ const WalletManagement = () => {
 
   return (
     <TabsContent value="wallets" className="space-y-6">
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-6">
+      <Tabs value={activeSubTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
           <TabsTrigger value="user-wallets">User Wallets</TabsTrigger>
           <TabsTrigger value="wallet-transactions">Wallet Transactions</TabsTrigger>
@@ -131,10 +134,10 @@ const WalletManagement = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by user name or email..."
+                  placeholder="Search by user name, email or mobile..."
                   className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -153,14 +156,14 @@ const WalletManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedWallets.length === 0 ? (
+                  {wallets.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="text-center py-8 text-muted-foreground">
                         No wallets found
                       </td>
                     </tr>
                   ) : (
-                    paginatedWallets.map((wallet) => (
+                    wallets.map((wallet) => (
                       <tr
                         key={wallet.id}
                         className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
@@ -211,12 +214,12 @@ const WalletManagement = () => {
             <TablePagination
               className="mt-4"
               currentPage={currentPage}
-              totalCount={filteredWallets.length}
+              totalCount={totalWalletsCount}
               pageSize={pageSize}
-              onPageChange={setCurrentPage}
+              onPageChange={handlePageChange}
               onPageSizeChange={(size) => {
                 setPageSize(size);
-                setCurrentPage(1);
+                handlePageChange(1);
               }}
             />
           </div>
@@ -228,6 +231,19 @@ const WalletManagement = () => {
             <div className="mb-4">
               <h3 className="text-lg font-semibold">Wallet Transaction History</h3>
               <p className="text-sm text-muted-foreground">All wallet credit, debit, and refund transactions</p>
+            </div>
+
+            {/* Search */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by user name, email, or reference ID..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -244,14 +260,14 @@ const WalletManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedGlobalTransactions.length === 0 ? (
+                  {globalTransactions.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
                         No transactions found
                       </td>
                     </tr>
                   ) : (
-                    paginatedGlobalTransactions.map((txn) => (
+                    globalTransactions.map((txn) => (
                       <tr key={txn.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                         <td className="py-3 px-4">
                           <span className="text-sm font-medium text-primary">{txn.id.split("-")[0]}...</span>
@@ -320,12 +336,12 @@ const WalletManagement = () => {
             <TablePagination
               className="mt-4"
               currentPage={currentPage}
-              totalCount={globalTransactions.length}
+              totalCount={totalTransactionsCount}
               pageSize={pageSize}
-              onPageChange={setCurrentPage}
+              onPageChange={handlePageChange}
               onPageSizeChange={(size) => {
                 setPageSize(size);
-                setCurrentPage(1);
+                handlePageChange(1);
               }}
             />
           </div>

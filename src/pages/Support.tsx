@@ -19,121 +19,33 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/features/analytics";
-
-interface Ticket {
-  id: string;
-  subject: string;
-  passenger: string;
-  phone: string;
-  email: string;
-  category: string;
-  priority: "high" | "medium" | "low";
-  status: "open" | "in_progress" | "resolved";
-  createdAt: string;
-  lastUpdated: string;
-  description: string;
-  messages: { sender: string; message: string; time: string }[];
-}
-
-const initialTickets: Ticket[] = [
-  {
-    id: "TKT-001",
-    subject: "Payment failed but seat allocated",
-    passenger: "Priya Sharma",
-    phone: "+91 98765 43210",
-    email: "priya.sharma@email.com",
-    category: "Payment",
-    priority: "high",
-    status: "open",
-    createdAt: "2024-01-21 09:30 AM",
-    lastUpdated: "10 min ago",
-    description: "I made a payment of ₹150 for seat 12A but it shows pending. However, the seat is allocated to me.",
-    messages: [
-      {
-        sender: "Priya Sharma",
-        message: "I made a payment of ₹150 for seat 12A but it shows pending. However, the seat is allocated to me.",
-        time: "09:30 AM",
-      },
-      {
-        sender: "Support",
-        message: "We are looking into this issue. Can you please share the transaction ID?",
-        time: "09:45 AM",
-      },
-    ],
-  },
-  {
-    id: "TKT-002",
-    subject: "Request for seat change",
-    passenger: "Rajesh Gupta",
-    phone: "+91 87654 32109",
-    email: "rajesh.g@email.com",
-    category: "Booking",
-    priority: "medium",
-    status: "in_progress",
-    createdAt: "2024-01-21 08:45 AM",
-    lastUpdated: "25 min ago",
-    description: "I want to change my seat from 8B to 8A for tomorrow's trip.",
-    messages: [
-      {
-        sender: "Rajesh Gupta",
-        message: "I want to change my seat from 8B to 8A for tomorrow's trip.",
-        time: "08:45 AM",
-      },
-    ],
-  },
-  {
-    id: "TKT-003",
-    subject: "Refund request for cancelled trip",
-    passenger: "Meera Patel",
-    phone: "+91 76543 21098",
-    email: "meera.p@email.com",
-    category: "Refund",
-    priority: "high",
-    status: "open",
-    createdAt: "2024-01-21 07:15 AM",
-    lastUpdated: "1 hour ago",
-    description: "The morning trip was cancelled due to bus breakdown. I need a full refund for my ticket.",
-    messages: [],
-  },
-  {
-    id: "TKT-004",
-    subject: "Bus delay complaint",
-    passenger: "Arun Verma",
-    phone: "+91 65432 10987",
-    email: "arun.v@email.com",
-    category: "Complaint",
-    priority: "low",
-    status: "resolved",
-    createdAt: "2024-01-20 06:00 PM",
-    lastUpdated: "2 hours ago",
-    description: "The bus was 30 minutes late yesterday. This caused me to miss an important meeting.",
-    messages: [],
-  },
-  {
-    id: "TKT-005",
-    subject: "Unable to book seat",
-    passenger: "Kavitha Reddy",
-    phone: "+91 54321 09876",
-    email: "kavitha.r@email.com",
-    category: "Booking",
-    priority: "medium",
-    status: "in_progress",
-    createdAt: "2024-01-20 04:30 PM",
-    lastUpdated: "3 hours ago",
-    description: "Getting error while trying to book a seat for the evening shuttle.",
-    messages: [],
-  },
-];
+import { useSupportTickets, useUpdateTicketStatus, useReplyTicket } from "@/features/support/hooks/useSupport";
+import { Ticket } from "@/features/support/api/support.service";
+import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 const Support = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const [activeTab, setActiveTab] = useState("all");
-  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  const { data: ticketsData, isLoading } = useSupportTickets({
+    page: currentPage,
+    limit: pageSize,
+    q: searchQuery,
+    status: activeTab !== "all" ? activeTab : undefined,
+  });
+
+  const tickets = ticketsData?.data || [];
+  const totalCount = ticketsData?.total || 0;
+
+  const updateStatusMutation = useUpdateTicketStatus();
+  const replyMutation = useReplyTicket();
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
@@ -156,9 +68,9 @@ const Support = () => {
     return filteredTickets.slice(start, end);
   }, [filteredTickets, currentPage, pageSize]);
 
-  const openCount = tickets.filter((t) => t.status === "open").length;
-  const inProgressCount = tickets.filter((t) => t.status === "in_progress").length;
-  const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
+  const openCount = 0; // Stats need separate API or calculation from list
+  const inProgressCount = 0;
+  const resolvedCount = 0;
 
   const viewTicketDetails = (ticket: Ticket) => {
     setSelectedTicket(ticket);
@@ -167,14 +79,10 @@ const Support = () => {
   };
 
   const updateTicketStatus = (id: string, status: Ticket["status"]) => {
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status, lastUpdated: "Just now" } : t)));
-    if (selectedTicket?.id === id) {
-      setSelectedTicket((prev) => (prev ? { ...prev, status, lastUpdated: "Just now" } : null));
+    updateStatusMutation.mutate({ id, status });
+    if (selectedTicket) {
+      setSelectedTicket({ ...selectedTicket, status });
     }
-    toast({
-      title: "Status Updated",
-      description: `Ticket marked as ${status === "in_progress" ? "In Progress" : status === "resolved" ? "Resolved" : "Open"}`,
-    });
   };
 
   const sendReply = () => {

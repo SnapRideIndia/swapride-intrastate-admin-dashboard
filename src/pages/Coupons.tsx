@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Plus,
   Search,
@@ -29,66 +29,59 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { couponService, Coupon } from "@/api/coupons";
+import { useCoupons, useUpdateCoupon, useDeleteCoupon } from "@/features/coupons/hooks/useCoupons";
+import { Coupon } from "@/features/coupons/api/coupon.service";
 import { toast } from "@/components/ui/sonner";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { ROUTES } from "@/constants/routes";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 export default function Coupons() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Filters State
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  // Filters from URL
+  const search = searchParams.get("q") || "";
+  const statusFilter = searchParams.get("status") || "all";
+  const typeFilter = searchParams.get("type") || "all";
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const pageSize = Number(searchParams.get("limit")) || 20;
 
-  // Fetch Coupons
-  const { data: coupons = [], isLoading: isCouponsLoading } = useQuery({
-    queryKey: ["coupons"],
-    queryFn: couponService.getCoupons,
+  const debouncedSearch = useDebounce(search, 500);
+
+  // Fetch Coupons (Server-side)
+  const { data: couponsData, isLoading: isCouponsLoading } = useCoupons({
+    page: currentPage,
+    limit: pageSize,
+    search: debouncedSearch,
+    status: statusFilter,
+    type: typeFilter,
   });
+
+  const coupons = couponsData?.data || [];
+  const totalCount = couponsData?.total || 0;
 
   // Mutations
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => couponService.updateCoupon(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["coupons"] });
-      toast.success("Coupon updated successfully");
-    },
-    onError: (error: any) => toast.error(error.message || "Failed to update coupon"),
-  });
+  const updateMutation = useUpdateCoupon();
+  const deleteMutation = useDeleteCoupon();
 
-  const deleteMutation = useMutation({
-    mutationFn: couponService.deleteCoupon,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["coupons"] });
-      toast.success("Coupon deleted successfully");
-    },
-    onError: (error: any) => toast.error(error.message || "Failed to delete coupon"),
-  });
+  const updateFilters = (updates: Record<string, string | number | null>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === "all" || value === "" || (key === "page" && value === 1)) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
 
-  const filteredCoupons = coupons.filter((c) => {
-    const matchesSearch = c.code.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" ? true : statusFilter === "active" ? c.isActive : !c.isActive;
-    const matchesType = typeFilter === "all" ? true : c.discountType === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
+    // Reset page if filters change (except when page itself is being changed)
+    if (!updates.page) {
+      newParams.delete("page");
+    }
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter, typeFilter]);
-
-  const paginatedCoupons = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredCoupons.slice(start, end);
-  }, [filteredCoupons, currentPage, pageSize]);
+    setSearchParams(newParams, { replace: true });
+  };
 
   const handleToggleActive = (coupon: Coupon) => {
     updateMutation.mutate({
@@ -105,12 +98,6 @@ export default function Coupons() {
 
   const handleEdit = (id: string) => {
     navigate(ROUTES.COUPON_EDIT.replace(":id", id));
-  };
-
-  const resetFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-    setTypeFilter("all");
   };
 
   const isAnyLoading = isCouponsLoading || updateMutation.isPending || deleteMutation.isPending;
@@ -187,15 +174,15 @@ export default function Coupons() {
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search by code..."
+                placeholder="Search by code or description..."
                 className="pl-10 h-10 border-gray-200 focus:ring-blue-500 rounded-lg"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => updateFilters({ q: e.target.value })}
               />
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(val) => updateFilters({ status: val })}>
                 <SelectTrigger className="w-full md:w-[130px] h-10 border-gray-200 rounded-lg">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -206,7 +193,7 @@ export default function Coupons() {
                 </SelectContent>
               </Select>
 
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select value={typeFilter} onValueChange={(val) => updateFilters({ type: val })}>
                 <SelectTrigger className="w-full md:w-[150px] h-10 border-gray-200 rounded-lg">
                   <SelectValue placeholder="Discount Type" />
                 </SelectTrigger>
@@ -222,7 +209,7 @@ export default function Coupons() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={resetFilters}
+                  onClick={() => setSearchParams({})}
                   className="text-gray-500 hover:text-red-500 h-10 px-3"
                 >
                   <X className="h-4 w-4 mr-1" /> Reset
@@ -246,8 +233,8 @@ export default function Coupons() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCoupons.length > 0 ? (
-                paginatedCoupons.map((coupon) => (
+              {coupons.length > 0 ? (
+                coupons.map((coupon) => (
                   <TableRow
                     key={coupon.id}
                     className="group hover:bg-gray-50/50 transition-colors cursor-pointer"
@@ -407,7 +394,7 @@ export default function Coupons() {
                     <div className="flex flex-col items-center justify-center opacity-40">
                       <Ticket className="h-12 w-12 mb-2 text-gray-300" />
                       <p className="text-lg font-medium">No coupons found</p>
-                      <Button variant="link" onClick={resetFilters}>
+                      <Button variant="link" onClick={() => setSearchParams({})}>
                         Clear filters
                       </Button>
                     </div>
@@ -420,13 +407,10 @@ export default function Coupons() {
           <TablePagination
             className="mt-4"
             currentPage={currentPage}
-            totalCount={filteredCoupons.length}
+            totalCount={totalCount}
             pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setCurrentPage(1);
-            }}
+            onPageChange={(page) => updateFilters({ page })}
+            onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
           />
         </div>
       </div>

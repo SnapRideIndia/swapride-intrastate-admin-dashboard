@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import {
   ExternalLink,
   MapPin,
@@ -18,24 +17,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { financialsApi } from "@/api/financials";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { PageHeader } from "@/components/ui/page-header";
 import { ROUTES } from "@/constants/routes";
+import { usePaymentDetails } from "@/features/financials";
 
 const PaymentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const {
-    data: payment,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["payment-details", id],
-    queryFn: () => financialsApi.getPaymentDetails(id!),
-    enabled: !!id,
-  });
+  const { data: payment, isLoading, error } = usePaymentDetails(id!);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {

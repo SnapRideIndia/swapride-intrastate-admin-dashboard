@@ -3,9 +3,16 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
 export const routeService = {
-  getAll: async (): Promise<Route[]> => {
+  getAll: async (params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    status?: string;
+  }): Promise<{ data: Route[]; total: number }> => {
     try {
-      const response = await apiClient.get<Route[]>(API_ENDPOINTS.ROUTES.GET_ALL);
+      const response = await apiClient.get<{ data: Route[]; total: number }>(API_ENDPOINTS.ROUTES.GET_ALL, {
+        params,
+      });
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch routes";
@@ -105,9 +112,15 @@ export const routeService = {
   },
 
   // Point Management
-  getAllPoints: async (): Promise<any[]> => {
+  getAllPoints: async (params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+  }): Promise<{ data: any[]; total: number }> => {
     try {
-      const response = await apiClient.get<any[]>(API_ENDPOINTS.POINTS.GET_ALL);
+      const response = await apiClient.get<{ data: any[]; total: number }>(API_ENDPOINTS.POINTS.GET_ALL, {
+        params,
+      });
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch points";

@@ -10,6 +10,9 @@ import {
   AlertTriangle,
   Tag,
   CheckCircle2,
+  XCircle,
+  Megaphone,
+  Loader2,
 } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -22,7 +25,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ROUTES } from "@/constants/routes";
 import { toast } from "sonner";
 import { CreatableSelect } from "@/components/ui/creatable-select";
-import { notificationService } from "@/features/notifications/api/notification.service";
+import { useCreateNotification } from "@/features/notifications/hooks/useNotifications";
 
 type NotificationType = string;
 type TargetGroup = "ALL" | "USERS" | "DRIVERS" | "ADMINS";
@@ -39,31 +42,33 @@ export default function CreateNotification() {
   const [targetType, setTargetType] = useState<"BROADCAST" | "INDIVIDUAL">("BROADCAST");
   const [targetGroup, setTargetGroup] = useState<TargetGroup>("USERS");
 
-  const handleSend = async () => {
+  const createMutation = useCreateNotification();
+
+  const handleSend = () => {
     if (!title || !content) {
-      toast.error("Please fill in title and message content");
+      toast.error("Please fill in all required fields");
       return;
     }
 
-    setLoading(true);
-    try {
-      await notificationService.create({
+    createMutation.mutate(
+      {
         title,
         content,
         type,
-        priority,
-        targetGroup: targetType === "BROADCAST" ? targetGroup : "NONE",
-        metadata: {
-          targetType,
+        priority: priority as "LOW" | "MEDIUM" | "HIGH",
+        targetGroup: targetType === "BROADCAST" ? "ALL_USERS" : "INDIVIDUAL", // Simplified for now
+        // relatedId and relatedType handling could be added here
+      },
+      {
+        onSuccess: () => {
+          toast.success("Notification broadcasted successfully!");
+          navigate(ROUTES.NOTIFICATIONS);
         },
-      });
-
-      toast.success("Notification broadcasted successfully!");
-    } catch (error) {
-      toast.error("Failed to send notification");
-    } finally {
-      setLoading(false);
-    }
+        onError: () => {
+          toast.error("Failed to send notification");
+        },
+      },
+    );
   };
 
   return (
@@ -73,13 +78,24 @@ export default function CreateNotification() {
         subtitle="Reach your users and drivers instantly via push alerts."
         backUrl={ROUTES.NOTIFICATIONS}
         actions={
-          <div className="flex gap-3">
+          <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => navigate(ROUTES.NOTIFICATIONS)}>
               Cancel
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" onClick={handleSend} disabled={loading}>
-              <Send className="h-4 w-4 mr-2" />
-              {loading ? "Sending..." : "Dispatch Now"}
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 min-w-[120px]"
+              onClick={handleSend}
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" /> Broadcast Now
+                </>
+              )}
             </Button>
           </div>
         }

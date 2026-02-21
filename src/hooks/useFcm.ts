@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { getToken, onMessage, MessagePayload } from "firebase/messaging";
 import { getMessagingInstance } from "@/lib/firebase";
 import { toast } from "sonner";
-import { apiClient } from "@/api/api-client";
+import { useRegisterDevice } from "@/features/notifications";
 
 export function useFcm() {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
+  const { mutate: registerDevice } = useRegisterDevice();
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -27,7 +28,7 @@ export function useFcm() {
             setFcmToken(token);
             localStorage.setItem("fcm_token", token);
             // Register token with backend
-            await apiClient.post("/notifications/devices/register", {
+            registerDevice({
               fcmToken: token,
               deviceType: "WEB_DASHBOARD",
             });

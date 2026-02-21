@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Search, Plus, MoreVertical, Edit, Trash2, Eye, Copy, Grid, Layout as LayoutIcon } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -33,118 +34,113 @@ import {
 } from "@/components/ui/alert-dialog";
 import { StatCard } from "@/features/analytics";
 import { BusLayout } from "@/types";
-import { busLayoutService } from "@/features/buses";
+import { useLayouts, useLayoutStats, useDuplicateLayout, useDeleteLayout } from "@/features/buses";
 import { usePermissions } from "@/hooks/usePermissions";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
-import { LayoutPreviewGrid } from "@/features/buses";
+import { LayoutPreviewGrid } from "@/features/buses/components/LayoutPreviewGrid";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 const BusLayouts = () => {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [layouts, setLayouts] = useState<BusLayout[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const { toast } = useToast();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+  const statusFilter = searchParams.get("status") || "all";
+  const typeFilter = searchParams.get("type") || "all";
+  const currentPage = parseInt(searchParams.get("page") || "1");
   const [pageSize, setPageSize] = useState(20);
-  const [stats, setStats] = useState<any>({
+
+  const setSearchQuery = (q: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (q) params.set("q", q);
+    else params.delete("q");
+    params.set("page", "1");
+    setSearchParams(params);
+  };
+
+  const setStatusFilter = (status: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (status && status !== "all") params.set("status", status);
+    else params.delete("status");
+    params.set("page", "1");
+    setSearchParams(params);
+  };
+
+  const setTypeFilter = (type: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (type && type !== "all") params.set("type", type);
+    else params.delete("type");
+    params.set("page", "1");
+    setSearchParams(params);
+  };
+
+  const setCurrentPage = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", page.toString());
+    setSearchParams(params);
+  };
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Queries
+  const {
+    data: layoutsData,
+    isLoading,
+    refetch,
+  } = useLayouts({
+    search: debouncedSearch || undefined,
+    status: statusFilter === "all" ? undefined : statusFilter,
+    type: typeFilter === "all" ? undefined : typeFilter,
+    offset: (currentPage - 1) * pageSize,
+    limit: pageSize,
+  });
+
+  const layouts = layoutsData?.data || [];
+  const totalCount = layoutsData?.total || 0;
+
+  const { data: statsData } = useLayoutStats();
+
+  // Mutations
+  const duplicateMutation = useDuplicateLayout();
+  const deleteMutation = useDeleteLayout();
+
+  const stats = statsData || {
     totalLayouts: 0,
     activeLayouts: 0,
     totalBusesUsing: 0,
-    mostUsedLayout: "Loading...",
-  });
-
-  // Preview dialog
-  const [previewLayout, setPreviewLayout] = useState<BusLayout | null>(null);
-
-  // Duplicate dialog
-  const [duplicateLayout, setDuplicateLayout] = useState<BusLayout | null>(null);
-  const [duplicateName, setDuplicateName] = useState("");
-
-  // Delete dialog
-  const [deleteLayout, setDeleteLayout] = useState<BusLayout | null>(null);
-
-  const fetchLayouts = async () => {
-    setIsLoading(true);
-    try {
-      const [data, statsData] = await Promise.all([busLayoutService.getAll(), busLayoutService.getStats()]);
-      setLayouts(data);
-      setStats(statsData);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to load bus layouts", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
+    mostUsedLayout: "N/A",
   };
 
-  useEffect(() => {
-    fetchLayouts();
-  }, []);
+  // Dialog states
+  const [previewLayout, setPreviewLayout] = useState<BusLayout | null>(null);
+  const [duplicateLayout, setDuplicateLayout] = useState<BusLayout | null>(null);
+  const [duplicateName, setDuplicateName] = useState("");
+  const [deleteLayout, setDeleteLayout] = useState<BusLayout | null>(null);
 
-  const filteredLayouts = useMemo(() => {
-    return layouts.filter((layout) => {
-      const matchesSearch =
-        layout.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        layout.description.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesStatus = statusFilter === "all" || layout.status === statusFilter;
-      const matchesType = typeFilter === "all" || layout.layoutType === typeFilter;
-
-      return matchesSearch && matchesStatus && matchesType;
-    });
-  }, [layouts, searchQuery, statusFilter, typeFilter]);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter, typeFilter]);
-
-  const paginatedLayouts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredLayouts.slice(start, end);
-  }, [filteredLayouts, currentPage, pageSize]);
+  const paginatedLayouts = layouts;
 
   const handleDuplicate = async () => {
     if (!duplicateLayout || !duplicateName.trim()) return;
-
-    try {
-      const newLayout = await busLayoutService.duplicate(duplicateLayout.id);
-      if (newLayout) {
-        fetchLayouts();
-        toast({ title: "Layout Duplicated", description: `Created "${duplicateName}" successfully.` });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to duplicate layout", variant: "destructive" });
-    }
-    setDuplicateLayout(null);
-    setDuplicateName("");
+    duplicateMutation.mutate(duplicateLayout.id, {
+      onSuccess: () => {
+        setDuplicateLayout(null);
+        setDuplicateName("");
+      },
+    });
   };
 
   const handleDelete = async () => {
     if (!deleteLayout) return;
-
-    setIsDeleting(true);
-    try {
-      const result = await busLayoutService.delete(deleteLayout.id);
-      if (result.success) {
-        fetchLayouts();
-        toast({ title: "Layout Deleted", description: "Layout has been removed successfully." });
-      } else {
-        toast({ title: "Cannot Delete", description: result.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });
-    } finally {
-      setIsDeleting(false);
-      setDeleteLayout(null);
-    }
+    deleteMutation.mutate(deleteLayout.id, {
+      onSuccess: () => {
+        setDeleteLayout(null);
+      },
+    });
   };
 
   const canCreate = hasPermission("BUS_LAYOUT_CREATE");
@@ -154,7 +150,7 @@ const BusLayouts = () => {
   return (
     <DashboardLayout>
       <FullPageLoader show={isLoading} label="Loading Layouts..." />
-      <FullPageLoader show={isDeleting} label="Deleting Layout..." />
+      <FullPageLoader show={deleteMutation.isPending} label="Deleting Layout..." />
       <PageHeader
         title="Bus Layout Templates"
         subtitle="Manage reusable seating configurations"
@@ -194,7 +190,7 @@ const BusLayouts = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search layouts..."
+              placeholder="Search by name or description..."
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -327,7 +323,7 @@ const BusLayouts = () => {
 
         <TablePagination
           currentPage={currentPage}
-          totalCount={filteredLayouts.length}
+          totalCount={totalCount}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
           onPageSizeChange={(size) => {

@@ -1,32 +1,50 @@
-import { useState, useMemo } from "react";
-import { ArrowUpCircle, ArrowDownCircle, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpCircle, ArrowDownCircle, RotateCcw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TabsContent } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { financialsApi } from "@/api/financials";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { useGlobalWalletTransactions } from "@/features/financials";
+import { useDebounce } from "@/hooks/useDebounce";
+import { Input } from "@/components/ui/input";
 
 const TransactionLedger = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+
+  const searchQuery = searchParams.get("q") || "";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(10);
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
   // Fetch Global Wallet Transactions
-  const { data: globalWalletTxnsData, isLoading: isLoadingGlobalTxns } = useQuery({
-    queryKey: ["admin-global-wallet-transactions"],
-    queryFn: () => financialsApi.getGlobalWalletTransactions({ limit: 100 }), // Fetch more for client-side pagination demo
+  const { data: globalWalletTxnsData, isLoading: isLoadingGlobalTxns } = useGlobalWalletTransactions({
+    limit: pageSize,
+    offset: (currentPage - 1) * pageSize,
+    search: debouncedSearch,
   });
 
-  const transactions = globalWalletTxnsData?.transactions || [];
+  const transactions = globalWalletTxnsData?.data || [];
+  const totalCount = globalWalletTxnsData?.total || 0;
 
-  const paginatedTransactions = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return transactions.slice(start, end);
-  }, [transactions, currentPage, pageSize]);
+  const handlePageChange = (page: number) => {
+    setSearchParams((prev) => {
+      prev.set("page", page.toString());
+      return prev;
+    });
+  };
+
+  const handleSearch = (val: string) => {
+    setSearchParams((prev) => {
+      if (val) prev.set("q", val);
+      else prev.delete("q");
+      prev.set("page", "1");
+      return prev;
+    });
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -76,6 +94,19 @@ const TransactionLedger = () => {
           <p className="text-sm text-muted-foreground">Complete financial transaction history</p>
         </div>
 
+        {/* Search */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by user name, email, mobile or reference ID..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -90,14 +121,14 @@ const TransactionLedger = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedTransactions.length === 0 ? (
+              {transactions.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-muted-foreground">
                     No transactions found
                   </td>
                 </tr>
               ) : (
-                paginatedTransactions.map((txn) => (
+                transactions.map((txn) => (
                   <tr key={txn.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                     <td className="py-3 px-4">
                       <span className="text-sm font-medium text-primary">{txn.id.split("-")[0]}...</span>
@@ -109,7 +140,7 @@ const TransactionLedger = () => {
                           <AvatarFallback className="bg-primary/5 text-primary text-xs">
                             {txn.wallet?.user.fullName
                               ?.split(" ")
-                              .map((n) => n[0])
+                              .map((n: string) => n[0])
                               .join("")
                               .toUpperCase() || "UN"}
                           </AvatarFallback>
@@ -156,13 +187,14 @@ const TransactionLedger = () => {
         </div>
 
         <TablePagination
+          className="mt-4"
           currentPage={currentPage}
-          totalCount={transactions.length}
+          totalCount={totalCount}
           pageSize={pageSize}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
           onPageSizeChange={(size) => {
             setPageSize(size);
-            setCurrentPage(1);
+            handlePageChange(1);
           }}
         />
       </div>

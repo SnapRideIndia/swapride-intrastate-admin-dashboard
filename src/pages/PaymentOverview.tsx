@@ -17,55 +17,89 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TabsContent } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { financialsApi } from "@/api/financials";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { usePayments, usePaymentAnalytics } from "@/features/financials";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const PaymentOverview = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [methodFilter, setMethodFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
 
-  // Fetch Global Payments (Overview)
-  const { data: paymentsData, isLoading: isLoadingPayments } = useQuery({
-    queryKey: ["admin-payments", statusFilter, methodFilter, searchTerm, currentPage, pageSize],
-    queryFn: () =>
-      financialsApi.getPayments({
-        limit: pageSize,
-        offset: (currentPage - 1) * pageSize,
-        status: statusFilter,
-        method: methodFilter,
-        search: searchTerm,
-      }),
+  const searchQuery = searchParams.get("q") || "";
+  const statusFilter = searchParams.get("status") || "all";
+  const methodFilter = searchParams.get("method") || "all";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(10);
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Fetch Payment Analytics
+  const { data: analytics, isLoading: isLoadingAnalytics } = usePaymentAnalytics();
+
+  // Fetch Global Payments
+  const { data: paymentsData, isLoading: isLoadingPayments } = usePayments({
+    limit: pageSize,
+    offset: (currentPage - 1) * pageSize,
+    status: statusFilter === "all" ? undefined : statusFilter,
+    method: methodFilter === "all" ? undefined : methodFilter,
+    search: debouncedSearch,
   });
 
-  const payments = paymentsData?.payments || [];
+  const payments = paymentsData?.data || [];
+  const totalCount = paymentsData?.total || 0;
+
+  const handlePageChange = (page: number) => {
+    setSearchParams((prev) => {
+      prev.set("page", page.toString());
+      return prev;
+    });
+  };
+
+  const handleSearch = (val: string) => {
+    setSearchParams((prev) => {
+      if (val) prev.set("q", val);
+      else prev.delete("q");
+      prev.set("page", "1");
+      return prev;
+    });
+  };
+
+  const handleStatusFilter = (val: string) => {
+    setSearchParams((prev) => {
+      if (val !== "all") prev.set("status", val);
+      else prev.delete("status");
+      prev.set("page", "1");
+      return prev;
+    });
+  };
+
+  const handleMethodFilter = (val: string) => {
+    setSearchParams((prev) => {
+      if (val !== "all") prev.set("method", val);
+      else prev.delete("method");
+      prev.set("page", "1");
+      return prev;
+    });
+  };
 
   const handleViewPayment = (paymentId: string) => {
     navigate(`/payments/${paymentId}`);
   };
 
-  // Calculate metrics
-  const calculateMetrics = () => {
-    const total = payments.reduce((sum, p) => sum + (p.paymentStatus === "SUCCESS" ? Number(p.amount) : 0), 0);
-    const successCount = payments.filter((p) => p.paymentStatus === "SUCCESS").length;
-    const pendingAmount = payments
-      .filter((p) => p.paymentStatus === "PENDING")
-      .reduce((sum, p) => sum + Number(p.amount), 0);
-    const pendingCount = payments.filter((p) => p.paymentStatus === "PENDING").length;
-    const failedCount = payments.filter((p) => p.paymentStatus === "FAILED").length;
-    const successRate = payments.length > 0 ? ((successCount / payments.length) * 100).toFixed(1) : "0.0";
-    const failureRate = payments.length > 0 ? ((failedCount / payments.length) * 100).toFixed(1) : "0.0";
-
-    return { total, successRate, pendingAmount, pendingCount, failedCount, failureRate };
+  const overview = analytics?.overview || {
+    totalRevenue: 0,
+    successRate: 0,
+    pendingAmount: 0,
+    failureRate: 0,
+    totalPayments: 0,
   };
-
-  const metrics = calculateMetrics();
+  const statusBreakdown = analytics?.statusBreakdown || {
+    pending: 0,
+    failed: 0,
+    successful: 0,
+  };
 
   // Payment status badge
   const getStatusBadge = (status: string) => {
@@ -105,9 +139,8 @@ const PaymentOverview = () => {
     });
   };
 
-  const filteredPayments = payments;
-
-  if (isLoadingPayments) return <FullPageLoader show={true} label="Fetching payments..." />;
+  if (isLoadingPayments || isLoadingAnalytics)
+    return <FullPageLoader show={true} label="Fetching payments overview..." />;
 
   return (
     <TabsContent value="overview" className="space-y-6">
@@ -119,9 +152,9 @@ const PaymentOverview = () => {
               <p className="text-sm font-medium text-blue-900">Total Revenue</p>
               <DollarSign className="h-4 w-4 text-blue-600" />
             </div>
-            <p className="text-3xl font-bold text-blue-950">{formatCurrency(metrics.total)}</p>
+            <p className="text-3xl font-bold text-blue-950">{formatCurrency(overview.totalRevenue)}</p>
             <div className="mt-2 flex items-center text-xs text-blue-600 font-medium">
-              <TrendingUp className="h-3 w-3 mr-1" /> 12% increase
+              <TrendingUp className="h-3 w-3 mr-1" /> from {statusBreakdown.successful} successful payments
             </div>
           </CardContent>
         </Card>
@@ -132,9 +165,9 @@ const PaymentOverview = () => {
               <p className="text-sm font-medium text-green-900">Success Rate</p>
               <CheckCircle className="h-4 w-4 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-green-950">{metrics.successRate}%</p>
+            <p className="text-3xl font-bold text-green-950">{overview.successRate}%</p>
             <div className="mt-2 flex items-center text-xs text-green-600 font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2" /> Very Healthy
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2" /> Out of {overview.totalPayments} payments
             </div>
           </CardContent>
         </Card>
@@ -142,10 +175,10 @@ const PaymentOverview = () => {
         <Card className="dashboard-card border-none bg-gradient-to-br from-yellow-50/50 to-white shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-yellow-900">Pending ({metrics.pendingCount})</p>
+              <p className="text-sm font-medium text-yellow-900">Pending ({statusBreakdown.pending})</p>
               <Clock className="h-4 w-4 text-yellow-600" />
             </div>
-            <p className="text-3xl font-bold text-yellow-950">{formatCurrency(metrics.pendingAmount)}</p>
+            <p className="text-3xl font-bold text-yellow-950">{formatCurrency(overview.pendingAmount)}</p>
             <p className="mt-2 text-xs text-yellow-600 font-medium italic">Awaiting settlement</p>
           </CardContent>
         </Card>
@@ -156,9 +189,9 @@ const PaymentOverview = () => {
               <p className="text-sm font-medium text-red-900">Failed Payments</p>
               <AlertCircle className="h-4 w-4 text-red-600" />
             </div>
-            <p className="text-3xl font-bold text-red-950">{metrics.failedCount}</p>
+            <p className="text-3xl font-bold text-red-950">{statusBreakdown.failed}</p>
             <div className="mt-2 flex items-center text-xs text-red-600 font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-2" /> Needs Attention
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-2" /> {overview.failureRate}% failure rate
             </div>
           </CardContent>
         </Card>
@@ -190,11 +223,11 @@ const PaymentOverview = () => {
             <Input
               placeholder="Search by user, transaction ID..."
               className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <Select value={methodFilter} onValueChange={setMethodFilter}>
+          <Select value={methodFilter} onValueChange={handleMethodFilter}>
             <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Method" />
             </SelectTrigger>
@@ -204,7 +237,7 @@ const PaymentOverview = () => {
               <SelectItem value="WALLET">Wallet</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusFilter}>
             <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -233,78 +266,86 @@ const PaymentOverview = () => {
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
-                <tr
-                  key={payment.id}
-                  className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => handleViewPayment(payment.id)}
-                >
-                  <td className="py-3 px-4">
-                    <span className="text-sm font-medium text-primary hover:underline">
-                      {payment.id.split("-")[0]}...
-                    </span>
-                    {payment.gatewayOrderId && (
-                      <p className="text-[10px] text-muted-foreground truncate max-w-[100px]">
-                        {payment.gatewayOrderId}
-                      </p>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={payment.user.profileUrl || ""} />
-                        <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                          {payment.user.fullName
-                            ?.split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .toUpperCase() || "UN"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium">{payment.user.fullName}</p>
-                        <p className="text-xs text-muted-foreground">{payment.user.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    {payment.bookingId ? (
-                      <span
-                        className="text-sm text-primary hover:underline cursor-pointer"
-                        onClick={() => navigate(`/bookings/${payment.bookingId}`)}
-                      >
-                        {payment.bookingId.split("-")[0]}...
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm font-semibold">{formatCurrency(payment.amount)}</span>
-                  </td>
-                  <td className="py-3 px-4">{getMethodBadge(payment.paymentMethod)}</td>
-                  <td className="py-3 px-4">{getStatusBadge(payment.paymentStatus)}</td>
-                  <td className="py-3 px-4">
-                    <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[100px] block">
-                      {payment.transactionId || "—"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-muted-foreground">{formatDate(payment.createdAt)}</span>
+              {payments.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                    No payments found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                payments.map((payment) => (
+                  <tr
+                    key={payment.id}
+                    className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => handleViewPayment(payment.id)}
+                  >
+                    <td className="py-3 px-4">
+                      <span className="text-sm font-medium text-primary hover:underline">
+                        {payment.id.split("-")[0]}...
+                      </span>
+                      {payment.gatewayOrderId && (
+                        <p className="text-[10px] text-muted-foreground truncate max-w-[100px]">
+                          {payment.gatewayOrderId}
+                        </p>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={payment.user.profileUrl || ""} />
+                          <AvatarFallback className="bg-primary/5 text-primary text-xs">
+                            {payment.user.fullName
+                              ?.split(" ")
+                              .map((n: string) => n[0])
+                              .join("")
+                              .toUpperCase() || "UN"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <p className="text-sm font-medium">{payment.user.fullName}</p>
+                          <p className="text-xs text-muted-foreground">{payment.user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {payment.bookingId ? (
+                        <span
+                          className="text-sm text-primary hover:underline cursor-pointer"
+                          onClick={() => navigate(`/bookings/${payment.bookingId}`)}
+                        >
+                          {payment.bookingId.split("-")[0]}...
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm font-semibold">{formatCurrency(payment.amount)}</span>
+                    </td>
+                    <td className="py-3 px-4">{getMethodBadge(payment.paymentMethod)}</td>
+                    <td className="py-3 px-4">{getStatusBadge(payment.paymentStatus)}</td>
+                    <td className="py-3 px-4">
+                      <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[100px] block">
+                        {payment.transactionId || "—"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-muted-foreground">{formatDate(payment.createdAt)}</span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
         <TablePagination
           currentPage={currentPage}
-          totalCount={paymentsData?.total || 0}
+          totalCount={totalCount}
           pageSize={pageSize}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
           onPageSizeChange={(size) => {
             setPageSize(size);
-            setCurrentPage(1);
+            handlePageChange(1);
           }}
           className="mt-4"
         />

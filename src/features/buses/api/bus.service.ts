@@ -3,9 +3,18 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
 export const busService = {
-  getAll: async (): Promise<Bus[]> => {
+  getAll: async (params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    status?: string;
+  }): Promise<{ buses: Bus[]; total: number }> => {
     try {
-      const response = await apiClient.get<Bus[]>(API_ENDPOINTS.FLEET.BUSES.GET_ALL);
+      const response = await apiClient.get(API_ENDPOINTS.FLEET.BUSES.GET_ALL, { params });
+      // Backend might return plain array if not paginated, so handle both
+      if (Array.isArray(response.data)) {
+        return { buses: response.data, total: response.data.length };
+      }
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch buses";

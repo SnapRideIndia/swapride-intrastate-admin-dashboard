@@ -8,6 +8,7 @@ export const bookingService = {
     tripId?: string;
     status?: string;
     date?: string; // Format: 'today', 'yesterday', or YYYY-MM-DD
+    boardingStatus?: string;
     q?: string;
     page?: number;
     limit?: number;
@@ -57,10 +58,8 @@ export const bookingService = {
     return response.data;
   },
 
-  getTripPassengers: async (tripId: string): Promise<Booking[]> => {
-    const response = await apiClient.get<Booking[]>(API_ENDPOINTS.BOOKINGS.BASE, {
-      params: { tripId },
-    });
+  getTripPassengers: async (tripId: string): Promise<any[]> => {
+    const response = await apiClient.get<any[]>(API_ENDPOINTS.TRIPS.GET_PASSENGERS(tripId));
     return response.data;
   },
 };

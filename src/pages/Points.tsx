@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Search, MapPin, MoreVertical, Edit, Trash2, Map, Navigation, Eye } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -15,10 +17,17 @@ import { PointDialog } from "@/features/points/components/PointDialog";
 import { PointDetailsDialog } from "@/features/points/components/PointDetailsDialog";
 import { usePoints, useDeletePoint } from "@/features/routes/hooks/useRouteQueries";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { toast } from "@/hooks/use-toast";
 
 const Points = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(10);
+
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -26,8 +35,37 @@ const Points = () => {
   const [detailsPoint, setDetailsPoint] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const { data: points = [], isLoading } = usePoints();
+  const { data: pointsData, isLoading } = usePoints({
+    search: debouncedSearch,
+    offset: (currentPage - 1) * pageSize,
+    limit: pageSize,
+  });
+
+  const points = pointsData?.data || [];
+  const totalCount = pointsData?.total || 0;
+
   const deletePointMutation = useDeletePoint();
+
+  // Sync search changes to page 1
+  useEffect(() => {
+    if (currentPage !== 1 && debouncedSearch) {
+      handlePageChange(1);
+    }
+  }, [debouncedSearch]);
+
+  const handleSearchChange = (val: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (val) newParams.set("q", val);
+    else newParams.delete("q");
+    newParams.set("page", "1");
+    setSearchParams(newParams);
+  };
+
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("page", page.toString());
+    setSearchParams(newParams);
+  };
 
   const handleEdit = (point: any) => {
     setSelectedPoint(point);
@@ -52,20 +90,13 @@ const Points = () => {
     }
   };
 
-  const filteredPoints = (points || []).filter(
-    (point: any) =>
-      point.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      point.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      point.address.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-
   return (
     <DashboardLayout>
       <FullPageLoader show={isLoading} label="Loading Points..." />
       <FullPageLoader show={deletePointMutation.isPending} label="Deleting point..." />
       <PageHeader
         title="Points & Locations"
-        subtitle={`Manage ${points.length} pickup and drop locations across the network`}
+        subtitle={`Manage ${totalCount} pickup and drop locations across the network`}
         actions={<PointDialog onSuccess={() => {}} />}
       />
 
@@ -76,15 +107,15 @@ const Points = () => {
             placeholder="Search points by name, city or address..."
             className="pl-9 h-10"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
       </div>
 
       {/* Loading state handled by FullPageLoader */}
-      {!isLoading && filteredPoints.length > 0 ? (
+      {!isLoading && points.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPoints.map((point: any) => (
+          {points.map((point: any) => (
             <div
               key={point.id}
               className="group dashboard-card overflow-hidden border border-transparent hover:border-primary/20 hover:shadow-xl transition-all duration-300 cursor-pointer"
@@ -213,12 +244,24 @@ const Points = () => {
             <MapPin className="h-10 w-10 text-muted-foreground/50" />
           </div>
           <h3 className="text-xl font-semibold mb-2">No points found</h3>
-          <p className="text-muted-foreground max-w-sm">
+          <p className="text-muted-foreground max-w-sm mb-6">
             We couldn't find any points matching your search. Try a different term or add a new point.
           </p>
           <PointDialog onSuccess={() => {}} />
         </div>
       )}
+
+      {totalCount > 0 && !isLoading && (
+        <div className="mt-8">
+          <TablePagination
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            totalCount={totalCount}
+            pageSize={pageSize}
+          />
+        </div>
+      )}
+
       <PointDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

@@ -8,27 +8,13 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/providers/AuthContext";
-import { useState, useEffect } from "react";
-import { apiClient } from "@/api/api-client";
+import { useUserProfile } from "@/features/users/hooks/useUsers";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 const Settings = () => {
   const { user } = useAuth();
-  const [rawUserData, setRawUserData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRawUserData = async () => {
-      try {
-        const response = await apiClient.get("/admin/me");
-        setRawUserData(response.data);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRawUserData();
-  }, []);
+  const { data: rawUserData, isLoading: isProfileLoading } = useUserProfile();
+  const isLoading = isProfileLoading;
 
   return (
     <DashboardLayout>

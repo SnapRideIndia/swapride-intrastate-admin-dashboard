@@ -15,20 +15,12 @@ import { useForm } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { driverService } from "@/features/drivers";
+import { useUpdateDriver } from "../hooks/useDrivers";
 import { toast } from "@/hooks/use-toast";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 const editDriverSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  // Currently backend only supports name update in UpdateDriverProfileDto?
-  // But UpdateDriverDto might exist? I implemented generic update in backend service.
-  // Let's assume generic update works for other fields or we'll stick to what backend allows.
-  // Step 11053 showed I added generic update to service and controller using UpdateDriverProfileDto
-  // which only had name?. I should actually check if I can update others.
-  // The backend controller uses UpdateDriverProfileDto for PATCH.
-  // I should update UpdateDriverProfileDto in backend to allow other fields if I want to edit them.
-  // For now, I'll allow name, mobile, license.
   mobileNumber: z.string().min(10, "Valid mobile number is required"),
   licenseNumber: z.string().min(5, "License number is required"),
   status: z.string(),
@@ -44,7 +36,7 @@ interface EditDriverDialogProps {
 }
 
 export const EditDriverDialog = ({ driver, open, onOpenChange, onDriverUpdated }: EditDriverDialogProps) => {
-  const [isUpdating, setIsUpdating] = useState(false);
+  const updateMutation = useUpdateDriver(driver?.id || "");
   const form = useForm<EditDriverFormData>({
     resolver: zodResolver(editDriverSchema),
     defaultValues: {
@@ -68,30 +60,17 @@ export const EditDriverDialog = ({ driver, open, onOpenChange, onDriverUpdated }
 
   const onSubmit = async (data: EditDriverFormData) => {
     if (!driver) return;
-    setIsUpdating(true);
-    try {
-      // Cast data to any or specific type to match Partial<Driver> if status type mismatches
-      await driverService.update(driver.id, data as any);
-      toast({
-        title: "Driver Updated",
-        description: "Driver details have been updated successfully.",
-      });
-      onDriverUpdated();
-      onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update driver.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
+    updateMutation.mutate(data as any, {
+      onSuccess: () => {
+        onDriverUpdated();
+        onOpenChange(false);
+      },
+    });
   };
 
   return (
     <>
-      <FullPageLoader show={isUpdating} label="Updating Driver..." />
+      <FullPageLoader show={updateMutation.isPending} label="Updating Driver..." />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -164,11 +143,16 @@ export const EditDriverDialog = ({ driver, open, onOpenChange, onDriverUpdated }
                 )}
               />
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUpdating}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={updateMutation.isPending}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isUpdating}>
-                  {isUpdating ? "Saving..." : "Save Changes"}
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </DialogFooter>
             </form>

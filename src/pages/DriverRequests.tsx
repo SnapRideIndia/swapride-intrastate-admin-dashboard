@@ -17,109 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-interface DriverRequest {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  licenseNumber: string;
-  licenseExpiry: string;
-  experience: string;
-  busDetails: {
-    registrationNumber: string;
-    make: string;
-    model: string;
-    capacity: number;
-    yearOfManufacture: number;
-  };
-  documents: string[];
-  status: "Pending" | "Approved" | "Rejected";
-  appliedDate: string;
-  notes?: string;
-}
-
-const initialRequests: DriverRequest[] = [
-  {
-    id: "REQ-001",
-    name: "Suresh Kumar",
-    phone: "+91 98765 43210",
-    email: "suresh.kumar@email.com",
-    licenseNumber: "TS-DL-2020-123456",
-    licenseExpiry: "2027-05-15",
-    experience: "8 years",
-    busDetails: {
-      registrationNumber: "TS07-4321",
-      make: "Ashok Leyland",
-      model: "Viking BS6",
-      capacity: 48,
-      yearOfManufacture: 2022,
-    },
-    documents: ["License", "Insurance", "RC Book", "Fitness Certificate"],
-    status: "Pending",
-    appliedDate: "2024-01-18",
-  },
-  {
-    id: "REQ-002",
-    name: "Ravi Shankar",
-    phone: "+91 87654 32109",
-    email: "ravi.shankar@email.com",
-    licenseNumber: "TS-DL-2019-654321",
-    licenseExpiry: "2026-08-20",
-    experience: "10 years",
-    busDetails: {
-      registrationNumber: "TS07-8765",
-      make: "Tata",
-      model: "Starbus Ultra",
-      capacity: 52,
-      yearOfManufacture: 2021,
-    },
-    documents: ["License", "Insurance", "RC Book"],
-    status: "Pending",
-    appliedDate: "2024-01-17",
-  },
-  {
-    id: "REQ-003",
-    name: "Prakash Reddy",
-    phone: "+91 76543 21098",
-    email: "prakash.r@email.com",
-    licenseNumber: "TS-DL-2018-789012",
-    licenseExpiry: "2025-12-10",
-    experience: "12 years",
-    busDetails: {
-      registrationNumber: "TS07-5432",
-      make: "Eicher",
-      model: "Skyline Pro",
-      capacity: 45,
-      yearOfManufacture: 2023,
-    },
-    documents: ["License", "Insurance", "RC Book", "Fitness Certificate", "PUC"],
-    status: "Approved",
-    appliedDate: "2024-01-10",
-  },
-  {
-    id: "REQ-004",
-    name: "Mahesh Babu",
-    phone: "+91 65432 10987",
-    email: "mahesh.b@email.com",
-    licenseNumber: "TS-DL-2021-456789",
-    licenseExpiry: "2024-03-25",
-    experience: "5 years",
-    busDetails: {
-      registrationNumber: "TS07-9876",
-      make: "Ashok Leyland",
-      model: "Viking BS6",
-      capacity: 50,
-      yearOfManufacture: 2020,
-    },
-    documents: ["License", "RC Book"],
-    status: "Rejected",
-    appliedDate: "2024-01-08",
-    notes: "License expiring soon, incomplete documents",
-  },
-];
+import { useDriverRequests, DriverRequest } from "@/features/drivers";
 
 const DriverRequests = () => {
-  const [requests, setRequests] = useState(initialRequests);
+  const { requests, approveRequest, rejectRequest, stats } = useDriverRequests();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<DriverRequest | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -146,21 +47,12 @@ const DriverRequests = () => {
   });
 
   const handleApprove = (id: string) => {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Approved" as const } : r)));
-    toast({
-      title: "Driver Approved",
-      description: "The driver application has been approved. Notification sent.",
-    });
+    approveRequest(id);
     setDetailsOpen(false);
   };
 
   const handleReject = (id: string) => {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Rejected" as const } : r)));
-    toast({
-      title: "Driver Rejected",
-      description: "The driver application has been rejected. Notification sent.",
-      variant: "destructive",
-    });
+    rejectRequest(id);
     setDetailsOpen(false);
   };
 
@@ -169,9 +61,7 @@ const DriverRequests = () => {
     setDetailsOpen(true);
   };
 
-  const pendingCount = requests.filter((r) => r.status === "Pending").length;
-  const approvedCount = requests.filter((r) => r.status === "Approved").length;
-  const rejectedCount = requests.filter((r) => r.status === "Rejected").length;
+  const { pending: pendingCount, approved: approvedCount, rejected: rejectedCount } = stats;
 
   return (
     <DashboardLayout>

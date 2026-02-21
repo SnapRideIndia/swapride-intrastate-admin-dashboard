@@ -3,8 +3,15 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
 export const notificationService = {
-  getAll: async (page = 1, limit = 20): Promise<{ data: Notification[]; total: number }> => {
-    const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.BASE, { params: { page, limit } });
+  getAll: async (params: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    type?: string;
+    priority?: string;
+    status?: string;
+  }): Promise<{ data: Notification[]; total: number }> => {
+    const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.BASE, { params });
     return response.data;
   },
 
@@ -14,7 +21,7 @@ export const notificationService = {
   },
 
   getRecent: async (limit = 5): Promise<Notification[]> => {
-    const { data } = await notificationService.getAll(1, limit);
+    const { data } = await notificationService.getAll({ page: 1, limit });
     return data;
   },
 
@@ -45,5 +52,9 @@ export const notificationService = {
   getStats: async (): Promise<{ sentCount: number; openRate: number; criticalAlerts: number }> => {
     const response = await apiClient.get(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/stats`);
     return response.data;
+  },
+
+  registerDevice: async (data: { fcmToken: string; deviceType: string }): Promise<void> => {
+    await apiClient.post("/notifications/devices/register", data);
   },
 };

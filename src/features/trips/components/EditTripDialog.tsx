@@ -9,14 +9,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useRoutes } from "@/features/routes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { tripsApi } from "../api/trips-api";
-import { driversApi } from "@/features/drivers/api/drivers-api";
-import { busesApi } from "@/features/fleet/api/buses-api";
 import { Trip } from "@/types";
+import { tripsApi } from "@/features/trips";
+import { useDrivers } from "@/features/drivers";
+import { useBuses } from "@/features/buses";
 
 const tripFormSchema = z.object({
   driverId: z.string().min(1, "Driver is required"),
@@ -38,17 +38,15 @@ interface EditTripDialogProps {
 
 export function EditTripDialog({ trip, open, onOpenChange, onTripUpdated }: EditTripDialogProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch data from APIs
   const { data: routes = [], isLoading: isRoutesLoading } = useRoutes();
-  const { data: drivers = [], isLoading: isDriversLoading } = useQuery({
-    queryKey: ["drivers"],
-    queryFn: driversApi.getAll,
-  });
-  const { data: buses = [], isLoading: isBusesLoading } = useQuery({
-    queryKey: ["buses"],
-    queryFn: busesApi.getAll,
-  });
+  const { data: driversData, isLoading: isDriversLoading } = useDrivers();
+  const { data: busesData, isLoading: isBusesLoading } = useBuses();
+
+  const drivers = driversData?.drivers || [];
+  const buses = busesData?.buses || [];
 
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripFormSchema),

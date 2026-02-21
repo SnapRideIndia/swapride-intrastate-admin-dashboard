@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Search,
   Tag,
@@ -35,102 +35,77 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { notificationService } from "@/features/notifications/api/notification.service";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
+import {
+  useNotifications,
+  useNotificationStats,
+  useMarkAsRead,
+  useDeleteNotification,
+} from "@/features/notifications/hooks/useNotifications";
 
 // Mock Data Type based on DB Design
-type AppNotification = {
-  id: string;
-  title: string;
-  content: string;
-  type: "TRIP_UPDATE" | "PAYMENT_SUCCESS" | "TICKET_REPLY" | "SYSTEM_ALERT" | "PROMOTIONAL";
-  priority: "LOW" | "MEDIUM" | "HIGH";
-  recipient: string; // "ALL_USERS", "ALL_DRIVERS", "INDIVIDUAL"
-  isRead: boolean;
-  createdAt: string;
-};
-
-const MOCK_NOTIFICATIONS: AppNotification[] = [];
 
 export default function Notifications() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ sentCount: 0, openRate: 0, criticalAlerts: 0 });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
 
-  // Sync state with URL params
+  // URL State
   const search = searchParams.get("q") || "";
   const typeFilter = searchParams.get("type") || "all";
   const priorityFilter = searchParams.get("priority") || "all";
   const statusFilter = searchParams.get("status") || "all";
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const pageSize = Number(searchParams.get("limit")) || 20;
 
-  const updateFilters = (updates: Record<string, string | null>) => {
+  const debouncedSearch = useDebounce(search, 500);
+
+  const updateFilters = (updates: Record<string, string | number | null>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === "all" || value === "") {
+      if (value === null || value === "all" || value === "" || (key === "page" && value === 1)) {
         newParams.delete(key);
       } else {
-        newParams.set(key, value);
+        newParams.set(key, String(value));
       }
     });
+
+    // Reset page if filters change
+    if (!updates.page) {
+      newParams.delete("page");
+    }
+
     setSearchParams(newParams, { replace: true });
   };
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const { data } = await notificationService.getAll(1, 100);
-      try {
-        const statsData = await notificationService.getStats();
-        setStats(statsData);
-      } catch (e) {}
-      // Map API fields to UI fields if necessary
-      const mapped = data.map((n: any) => ({
-        id: n.id,
-        title: n.title,
-        content: n.content,
-        type: n.type,
-        priority: n.priority,
-        recipient: n.targetGroup || "INDIVIDUAL",
-        isRead: n.read,
-        createdAt: n.createdAt,
-      }));
-      setNotifications(mapped);
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-
-    // Listen for new messages to refresh list
-    const handleRefresh = () => fetchNotifications();
-    window.addEventListener("fcm-message-received", handleRefresh);
-    return () => window.removeEventListener("fcm-message-received", handleRefresh);
-  }, [searchParams]); // Re-fetch when search params change
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, typeFilter, priorityFilter, statusFilter]);
-
-  const filteredNotifications = notifications.filter((n) => {
-    const matchesSearch =
-      n.title.toLowerCase().includes(search.toLowerCase()) || n.content.toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === "all" ? true : n.type === typeFilter;
-    const matchesPriority = priorityFilter === "all" ? true : n.priority === priorityFilter;
-    const matchesStatus = statusFilter === "all" ? true : statusFilter === "unread" ? !n.isRead : n.isRead;
-    return matchesSearch && matchesType && matchesPriority && matchesStatus;
+  const { data: notificationsData, isLoading: loadingNotifications } = useNotifications({
+    page: currentPage,
+    limit: pageSize,
+    q: debouncedSearch,
+    type: typeFilter !== "all" ? typeFilter : undefined,
+    priority: priorityFilter !== "all" ? priorityFilter : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
-  const paginatedNotifications = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredNotifications.slice(start, end);
-  }, [filteredNotifications, currentPage, pageSize]);
+  const { data: statsData } = useNotificationStats();
+
+  const markAsReadMutation = useMarkAsRead();
+  const deleteMutation = useDeleteNotification();
+
+  const notifications = notificationsData?.data || [];
+  const totalCount = notificationsData?.total || 0;
+  // Stats fallback
+  const stats = statsData || { sentCount: 0, openRate: 0, criticalAlerts: 0 };
+
+  const loading = loadingNotifications;
+
+  const handleMarkAsRead = (id: string) => {
+    markAsReadMutation.mutate(id);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Delete this notification history?")) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -159,22 +134,6 @@ export default function Notifications() {
         return "bg-blue-100 text-blue-700 border-blue-200";
       default:
         return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      await notificationService.markAsRead(id);
-      setNotifications(notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-    } catch (error) {}
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm("Delete this notification history?")) {
-      try {
-        await notificationService.delete(id);
-        setNotifications(notifications.filter((n) => n.id !== id));
-      } catch (error) {}
     }
   };
 
@@ -254,7 +213,7 @@ export default function Notifications() {
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search history..."
+              placeholder="Search history by title or content..."
               className="pl-10 h-10 border-border/60 rounded-lg bg-background/50 shadow-none focus-visible:ring-1"
               value={search}
               onChange={(e) => updateFilters({ q: e.target.value })}
@@ -313,26 +272,26 @@ export default function Notifications() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedNotifications.length === 0 && !loading ? (
+              {notifications.length === 0 && !loading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                     No notifications found.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedNotifications.map((n) => (
+                notifications.map((n) => (
                   <TableRow
                     key={n.id}
                     className={`group transition-all duration-200 hover:bg-blue-50/30 cursor-pointer ${
-                      !n.isRead ? "border-l-4 border-l-blue-500" : "border-l-4 border-l-transparent"
+                      !n.read ? "border-l-4 border-l-blue-500" : "border-l-4 border-l-transparent"
                     }`}
                     onClick={() => navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", n.id))}
                   >
                     <TableCell className="max-w-md">
                       <div className="flex flex-col gap-1">
-                        <span className={`font-bold text-gray-900 ${!n.isRead ? "flex items-center" : ""}`}>
+                        <span className={`font-bold text-gray-900 ${!n.read ? "flex items-center" : ""}`}>
                           {n.title}
-                          {!n.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 ml-2" />}
+                          {!n.read && <span className="h-2 w-2 rounded-full bg-blue-500 ml-2" />}
                         </span>
                         <span className="text-sm text-gray-500 line-clamp-1">{n.content}</span>
                       </div>
@@ -346,14 +305,14 @@ export default function Notifications() {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={`${getPriorityBadge(n.priority)} text-[10px] py-0 px-2 font-bold`}
+                        className={`${getPriorityBadge(n.priority || "MEDIUM")} text-[10px] py-0 px-2 font-bold`}
                       >
-                        {n.priority}
+                        {n.priority || "MEDIUM"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-xs font-medium text-gray-700 bg-gray-100 rounded px-2 py-0.5 inline-block">
-                        {n.recipient.replace("_", " ")}
+                        {(n.targetGroup || "INDIVIDUAL").replace("_", " ")}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -379,7 +338,7 @@ export default function Notifications() {
                               e.stopPropagation();
                               handleMarkAsRead(n.id);
                             }}
-                            disabled={n.isRead}
+                            disabled={n.read}
                           >
                             <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Read
                           </DropdownMenuItem>
@@ -404,13 +363,10 @@ export default function Notifications() {
           <TablePagination
             className="mt-4"
             currentPage={currentPage}
-            totalCount={filteredNotifications.length}
+            totalCount={totalCount}
             pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setCurrentPage(1);
-            }}
+            onPageChange={(page) => updateFilters({ page })}
+            onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
           />
         </div>
       </div>

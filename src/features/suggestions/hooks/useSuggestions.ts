@@ -9,10 +9,10 @@ export const suggestionKeys = {
   detail: (id: string) => [...suggestionKeys.details(), id] as const,
 };
 
-export const useSuggestions = () => {
+export const useSuggestions = (params?: { limit?: number; offset?: number; search?: string; status?: string }) => {
   return useQuery({
-    queryKey: suggestionKeys.lists(),
-    queryFn: () => suggestionService.getAll(),
+    queryKey: [...suggestionKeys.lists(), params || {}],
+    queryFn: () => suggestionService.getAll(params),
   });
 };
 

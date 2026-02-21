@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { PageHeader } from "@/components/ui/page-header";
-import { couponService } from "@\/api\/coupons";
+import { useCoupon, useCreateCoupon, useUpdateCoupon } from "@/features/coupons/hooks/useCoupons";
 import { routeService } from "@/features/routes/api/route.service";
 import { toast } from "@/components/ui/sonner";
 import { ROUTES } from "@/constants/routes";
@@ -24,7 +24,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 const CreateCoupon = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const isEditing = Boolean(id);
 
   const [selectedRoutes, setSelectedRoutes] = useState<string[]>([]);
@@ -34,11 +33,7 @@ const CreateCoupon = () => {
   const [isAutoApply, setIsAutoApply] = useState(false);
 
   // Fetch Coupon Details if editing
-  const { data: coupon, isLoading: isCouponLoading } = useQuery({
-    queryKey: ["coupon", id],
-    queryFn: () => couponService.getCouponById(id!),
-    enabled: isEditing,
-  });
+  const { data: coupon, isLoading: isCouponLoading } = useCoupon(id || "");
 
   useEffect(() => {
     if (coupon) {
@@ -56,25 +51,8 @@ const CreateCoupon = () => {
   });
 
   // Mutations
-  const createMutation = useMutation({
-    mutationFn: couponService.createCoupon,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["coupons"] });
-      toast.success("Coupon created successfully");
-      navigate(ROUTES.COUPONS);
-    },
-    onError: (error: any) => toast.error(error.message || "Failed to create coupon"),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => couponService.updateCoupon(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["coupons"] });
-      toast.success("Coupon updated successfully");
-      navigate(ROUTES.COUPONS);
-    },
-    onError: (error: any) => toast.error(error.message || "Failed to update coupon"),
-  });
+  const createMutation = useCreateCoupon();
+  const updateMutation = useUpdateCoupon();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -99,9 +77,20 @@ const CreateCoupon = () => {
     };
 
     if (isEditing) {
-      updateMutation.mutate({ id: id!, data: payload });
+      updateMutation.mutate(
+        { id: id!, data: payload },
+        {
+          onSuccess: () => {
+            navigate(ROUTES.COUPONS);
+          },
+        },
+      );
     } else {
-      createMutation.mutate(payload);
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          navigate(ROUTES.COUPONS);
+        },
+      });
     }
   };
 

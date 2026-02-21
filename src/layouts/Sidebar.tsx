@@ -24,6 +24,7 @@ import {
   Bell,
   Search,
   Microscope,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/providers/SidebarContext";
@@ -90,6 +91,7 @@ const testModulesCategory = {
   items: [
     { name: "Search Engine", href: ROUTES.SEARCH_ENGINE_TESTER, icon: Search, permission: null },
     { name: "FCM Test", href: ROUTES.FCM_TEST, icon: Bell, permission: null },
+    { name: "Razorpay Test", href: ROUTES.RAZORPAY_TEST, icon: CreditCard, permission: null },
   ],
 };
 

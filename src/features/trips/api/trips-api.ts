@@ -1,6 +1,7 @@
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 import { Trip } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 
 export const tripsApi = {
   /**
@@ -13,8 +14,8 @@ export const tripsApi = {
     status?: string;
     date?: string;
     search?: string;
-  }): Promise<{ data: Trip[]; total: number }> => {
-    const response = await apiClient.get(API_ENDPOINTS.TRIPS.GET_ALL, { params });
+  }): Promise<PaginatedResponse<Trip>> => {
+    const response = await apiClient.get<PaginatedResponse<Trip>>(API_ENDPOINTS.TRIPS.GET_ALL, { params });
     return response.data;
   },
 

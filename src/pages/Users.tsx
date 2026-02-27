@@ -54,8 +54,8 @@ const Users = () => {
 
   const updateUserStatus = useUpdateUserStatus();
 
-  const users = usersData?.users || [];
-  const totalCount = usersData?.total || 0;
+  const users = usersData?.data || [];
+  const totalCount = usersData?.pagination?.total || 0;
 
   const handleViewDetails = (id: string) => {
     navigate(`/users/${id}`);

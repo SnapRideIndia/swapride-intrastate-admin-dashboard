@@ -1,4 +1,5 @@
 import { BusLayout, LayoutSeat, SeatType, LayoutType } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 import { storageService } from "@/utils/storage";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
@@ -164,8 +165,8 @@ export const busLayoutService = {
     search?: string;
     status?: string;
     type?: string;
-  }): Promise<{ data: BusLayout[]; total: number }> => {
-    const response = await apiClient.get(API_ENDPOINTS.FLEET.LAYOUTS.GET_ALL, { params });
+  }): Promise<PaginatedResponse<BusLayout>> => {
+    const response = await apiClient.get<PaginatedResponse<BusLayout>>(API_ENDPOINTS.FLEET.LAYOUTS.GET_ALL, { params });
     return response.data;
   },
 
@@ -493,7 +494,7 @@ export const busLayoutService = {
     const mostUsed = layouts.reduce((max, l) => (l.busesUsing > max.busesUsing ? l : max), layouts[0]);
 
     return {
-      totalLayouts: result.total,
+      totalLayouts: result.pagination.total,
       activeLayouts: activeLayouts.length,
       totalBusesUsing,
       mostUsedLayout: mostUsed?.name || "N/A",

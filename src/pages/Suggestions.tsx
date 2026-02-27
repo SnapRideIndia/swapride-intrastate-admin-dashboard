@@ -38,7 +38,7 @@ const Suggestions = () => {
   });
 
   const suggestions = suggestionsData?.data || [];
-  const totalCount = suggestionsData?.total || 0;
+  const totalCount = suggestionsData?.pagination?.total || 0;
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("stops");

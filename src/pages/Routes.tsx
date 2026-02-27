@@ -45,7 +45,7 @@ const Routes = () => {
   });
 
   const routes = routesData?.data || [];
-  const totalCount = routesData?.total || 0;
+  const totalCount = routesData?.pagination?.total || 0;
 
   const deleteRouteMutation = useDeleteRoute();
   const deleteStopMutation = useDeleteStop();

@@ -155,15 +155,18 @@ export interface User {
   fullName: string;
   email: string;
   mobileNumber: string;
-  bloodGroup?: string;
-  address?: string;
-  dob?: string;
-  profileUrl?: string; // Added missing property
+  bloodGroup?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  profileUrl?: string | null;
+  referralCode?: string;
+  referredById?: string | null;
   totalBookings: number;
   totalAmountSpent: number;
-  lastBookingDate?: string;
+  lastBookingDate?: string | null;
+  lastLogin?: string | null;
   registrationDate: string;
-  status: "ACTIVE" | "BLOCKED" | "SUSPENDED" | string;
+  status: "ACTIVE" | "BLOCKED" | "SUSPENDED" | "DELETION_PENDING" | "DELETED" | string;
   createdAt: string;
   updatedAt: string;
 }
@@ -487,4 +490,35 @@ export interface LiveLocation {
   currentLocationName: string;
   routePoints?: RoutePoint[];
   encodedPolyline?: string;
+}
+
+export interface DemandHeatmap {
+  sourceName: string;
+  destinationName: string;
+  searchCount: number;
+}
+
+export interface DropoffReason {
+  name: string;
+  value: number;
+}
+
+export interface RecentOverload {
+  id: string;
+  userId: string | null;
+  userName: string;
+  sourceName: string;
+  destinationName: string;
+  travelDate: string;
+  createdAt: string;
+}
+
+export interface KpiMetrics {
+  demandHeatmap: DemandHeatmap[];
+  recentOverloads: RecentOverload[];
+  dropoffReasons: DropoffReason[];
+  summary: {
+    totalFullTripSearches: number;
+    totalLayoutDropoffs: number;
+  };
 }

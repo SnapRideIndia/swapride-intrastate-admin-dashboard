@@ -56,20 +56,20 @@ export default function Bookings() {
 
   // Fetch Bookings using Custom Hook
   const {
-    data: bookingsData = { data: [], total: 0 },
+    data: bookingsData,
     isLoading: isBookingsLoading,
     refetch,
   } = useBookings({
     status: statusFilter === "all" ? undefined : statusFilter,
     boardingStatus: boardingFilter === "all" ? undefined : boardingFilter,
     date: dateFilter === "all" ? undefined : dateFilter,
+    offset: (currentPage - 1) * pageSize,
     q: debouncedSearch || undefined,
-    page: currentPage,
     limit: pageSize,
   });
 
-  const bookings = bookingsData.data;
-  const totalCount = bookingsData.total;
+  const bookings = bookingsData?.data || [];
+  const totalCount = bookingsData?.pagination?.total || 0;
 
   // Fetch Stats using Custom Hook
   const { data: statsData } = useBookingStats();

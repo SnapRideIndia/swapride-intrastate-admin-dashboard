@@ -93,16 +93,14 @@ export function NotificationDropdown() {
     try {
       await notificationService.markAsRead(id);
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const markAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   return (

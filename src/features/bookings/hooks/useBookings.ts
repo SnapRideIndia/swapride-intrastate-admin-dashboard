@@ -33,7 +33,7 @@ export const useBookings = (params?: {
   boardingStatus?: string;
   date?: string;
   q?: string;
-  page?: number;
+  offset?: number;
   limit?: number;
 }) => {
   return useQuery({

@@ -1,4 +1,5 @@
 import { Route, Stop } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
@@ -8,9 +9,9 @@ export const routeService = {
     offset?: number;
     search?: string;
     status?: string;
-  }): Promise<{ data: Route[]; total: number }> => {
+  }): Promise<PaginatedResponse<Route>> => {
     try {
-      const response = await apiClient.get<{ data: Route[]; total: number }>(API_ENDPOINTS.ROUTES.GET_ALL, {
+      const response = await apiClient.get<PaginatedResponse<Route>>(API_ENDPOINTS.ROUTES.GET_ALL, {
         params,
       });
       return response.data;
@@ -116,9 +117,9 @@ export const routeService = {
     limit?: number;
     offset?: number;
     search?: string;
-  }): Promise<{ data: any[]; total: number }> => {
+  }): Promise<PaginatedResponse<any>> => {
     try {
-      const response = await apiClient.get<{ data: any[]; total: number }>(API_ENDPOINTS.POINTS.GET_ALL, {
+      const response = await apiClient.get<PaginatedResponse<any>>(API_ENDPOINTS.POINTS.GET_ALL, {
         params,
       });
       return response.data;

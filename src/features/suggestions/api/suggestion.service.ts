@@ -1,4 +1,5 @@
 import { StopSuggestion, SuggestionStatus } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
@@ -8,12 +9,11 @@ export const suggestionService = {
     offset?: number;
     search?: string;
     status?: string;
-  }): Promise<{ data: StopSuggestion[]; total: number }> => {
+  }): Promise<PaginatedResponse<StopSuggestion>> => {
     try {
-      const response = await apiClient.get<{ data: StopSuggestion[]; total: number }>(
-        API_ENDPOINTS.SUGGESTIONS.GET_ALL,
-        { params },
-      );
+      const response = await apiClient.get<PaginatedResponse<StopSuggestion>>(API_ENDPOINTS.SUGGESTIONS.GET_ALL, {
+        params,
+      });
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch suggestions";

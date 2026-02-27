@@ -1,4 +1,5 @@
 import { User } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
@@ -8,13 +9,13 @@ export const userService = {
     offset?: number;
     search?: string;
     status?: string;
-  }): Promise<{
-    users: User[];
-    total: number;
-    activeUsersCount: number;
-    blockedUsersCount: number;
-    totalBookingsCount: number;
-  }> => {
+  }): Promise<
+    PaginatedResponse<User> & {
+      activeUsersCount: number;
+      blockedUsersCount: number;
+      totalBookingsCount: number;
+    }
+  > => {
     const { data } = await apiClient.get(API_ENDPOINTS.USERS.GET_ALL, { params });
     return data;
   },

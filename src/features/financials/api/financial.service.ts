@@ -1,5 +1,6 @@
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
+import { PaginatedResponse } from "@/types/pagination";
 
 export interface Wallet {
   id: string;
@@ -130,8 +131,8 @@ export const financialsApi = {
     offset?: number;
     sortField?: string;
     sortOrder?: string;
-  }) => {
-    const response = await apiClient.get<{ data: Wallet[]; total: number }>(API_ENDPOINTS.FINANCIALS.WALLETS, {
+  }): Promise<PaginatedResponse<Wallet>> => {
+    const response = await apiClient.get<PaginatedResponse<Wallet>>(API_ENDPOINTS.FINANCIALS.WALLETS, {
       params,
     });
     return response.data;
@@ -141,8 +142,8 @@ export const financialsApi = {
   getWalletTransactions: async (
     walletId: string,
     params: { limit?: number; offset?: number; type?: string; startDate?: string; endDate?: string },
-  ) => {
-    const response = await apiClient.get<{ data: WalletTransaction[]; total: number }>(
+  ): Promise<PaginatedResponse<WalletTransaction>> => {
+    const response = await apiClient.get<PaginatedResponse<WalletTransaction>>(
       API_ENDPOINTS.FINANCIALS.WALLET_TRANSACTIONS(walletId),
       { params },
     );
@@ -157,8 +158,8 @@ export const financialsApi = {
     startDate?: string;
     endDate?: string;
     search?: string;
-  }) => {
-    const response = await apiClient.get<{ data: WalletTransaction[]; total: number }>(
+  }): Promise<PaginatedResponse<WalletTransaction>> => {
+    const response = await apiClient.get<PaginatedResponse<WalletTransaction>>(
       API_ENDPOINTS.FINANCIALS.GLOBAL_WALLET_TRANSACTIONS,
       { params },
     );
@@ -179,8 +180,8 @@ export const financialsApi = {
     offset?: number;
     status?: string;
     method?: string;
-  }) => {
-    const response = await apiClient.get<{ data: Payment[]; total: number }>(API_ENDPOINTS.FINANCIALS.PAYMENTS, {
+  }): Promise<PaginatedResponse<Payment>> => {
+    const response = await apiClient.get<PaginatedResponse<Payment>>(API_ENDPOINTS.FINANCIALS.PAYMENTS, {
       params,
     });
     return response.data;

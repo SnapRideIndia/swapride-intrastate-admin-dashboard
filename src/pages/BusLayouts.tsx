@@ -101,7 +101,7 @@ const BusLayouts = () => {
   });
 
   const layouts = layoutsData?.data || [];
-  const totalCount = layoutsData?.total || 0;
+  const totalCount = layoutsData?.pagination?.total || 0;
 
   const { data: statsData } = useLayoutStats();
 

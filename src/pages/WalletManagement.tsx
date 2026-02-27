@@ -37,9 +37,8 @@ const WalletManagement = () => {
 
   const wallets = walletsData?.data || [];
   const globalTransactions = globalWalletTxnsData?.data || [];
-
-  const totalWalletsCount = walletsData?.total || 0;
-  const totalTransactionsCount = globalWalletTxnsData?.total || 0;
+  const totalWalletsCount = walletsData?.pagination?.total || 0;
+  const totalTransactionsCount = globalWalletTxnsData?.pagination?.total || 0;
 
   const handlePageChange = (page: number) => {
     setSearchParams((prev) => {
@@ -175,23 +174,25 @@ const WalletManagement = () => {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={wallet.user.profileUrl || ""} />
+                              <AvatarImage src={wallet.user?.profileUrl || ""} />
                               <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                                {wallet.user.fullName
-                                  .split(" ")
+                                {wallet.user?.fullName
+                                  ?.split(" ")
                                   .map((n: string) => n[0])
                                   .join("")
-                                  .toUpperCase()}
+                                  .toUpperCase() || "UN"}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="text-sm font-medium">{wallet.user.fullName}</p>
-                              <p className="text-xs text-muted-foreground">{wallet.user.email}</p>
+                              <p className="text-sm font-medium">{wallet.user?.fullName || "Unknown User"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {wallet.user?.email || "No email provided"}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="text-sm">{wallet.user.mobileNumber}</span>
+                          <span className="text-sm">{wallet.user?.mobileNumber || "—"}</span>
                         </td>
                         <td className="py-3 px-4">
                           <span className="text-sm font-semibold">{formatCurrency(wallet.balance)}</span>
@@ -275,9 +276,9 @@ const WalletManagement = () => {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={txn.wallet?.user.profileUrl || ""} />
+                              <AvatarImage src={txn.wallet?.user?.profileUrl || ""} />
                               <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                                {txn.wallet?.user.fullName
+                                {txn.wallet?.user?.fullName
                                   ?.split(" ")
                                   .map((n: string) => n[0])
                                   .join("")
@@ -285,8 +286,10 @@ const WalletManagement = () => {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <p className="text-sm font-medium">{txn.wallet?.user.fullName || "Unknown"}</p>
-                              <p className="text-[10px] text-muted-foreground">{txn.wallet?.user.email}</p>
+                              <p className="text-sm font-medium">{txn.wallet?.user?.fullName || "Unknown User"}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {txn.wallet?.user?.email || "No email"}
+                              </p>
                             </div>
                           </div>
                         </td>

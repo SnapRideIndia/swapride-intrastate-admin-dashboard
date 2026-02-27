@@ -1,4 +1,5 @@
 import { Booking } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
@@ -10,10 +11,10 @@ export const bookingService = {
     date?: string; // Format: 'today', 'yesterday', or YYYY-MM-DD
     boardingStatus?: string;
     q?: string;
-    page?: number;
+    offset?: number;
     limit?: number;
-  }): Promise<{ data: Booking[]; total: number }> => {
-    const response = await apiClient.get<{ data: Booking[]; total: number }>(API_ENDPOINTS.BOOKINGS.BASE, {
+  }): Promise<PaginatedResponse<Booking>> => {
+    const response = await apiClient.get<PaginatedResponse<Booking>>(API_ENDPOINTS.BOOKINGS.BASE, {
       params,
     });
     return response.data;
@@ -38,8 +39,8 @@ export const bookingService = {
     return response.data;
   },
 
-  getMyBookings: async (): Promise<Booking[]> => {
-    const response = await apiClient.get<Booking[]>(API_ENDPOINTS.BOOKINGS.MY_BOOKINGS);
+  getMyBookings: async (params?: { limit?: number; offset?: number }): Promise<PaginatedResponse<Booking>> => {
+    const response = await apiClient.get<PaginatedResponse<Booking>>(API_ENDPOINTS.BOOKINGS.MY_BOOKINGS, { params });
     return response.data;
   },
 

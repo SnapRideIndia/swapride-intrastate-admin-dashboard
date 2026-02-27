@@ -5,8 +5,7 @@ import { ROUTES } from "@/constants/routes";
 const NotFound = () => {
   const location = useLocation();
 
-  useEffect(() => {
-  }, [location.pathname]);
+  useEffect(() => {}, [location.pathname]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted">

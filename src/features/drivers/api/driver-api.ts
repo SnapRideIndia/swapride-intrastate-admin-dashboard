@@ -1,6 +1,7 @@
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 import { Driver, DriverRating } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 
 export const driverApi = {
   /**
@@ -11,7 +12,7 @@ export const driverApi = {
     offset?: number;
     search?: string;
     status?: string;
-  }): Promise<{ drivers: Driver[]; total: number }> => {
+  }): Promise<PaginatedResponse<Driver>> => {
     const { data } = await apiClient.get(API_ENDPOINTS.DRIVERS.GET_ALL, { params });
     return data;
   },
@@ -66,7 +67,7 @@ export const driverApi = {
   getDriverRatings: async (
     driverId: string,
     params?: { limit?: number; offset?: number },
-  ): Promise<{ data: DriverRating[]; total: number }> => {
+  ): Promise<PaginatedResponse<DriverRating>> => {
     const { data } = await apiClient.get(API_ENDPOINTS.DRIVERS.RATINGS(driverId), { params });
     return data;
   },

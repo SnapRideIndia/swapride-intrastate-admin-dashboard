@@ -28,7 +28,7 @@ const TransactionLedger = () => {
   });
 
   const transactions = globalWalletTxnsData?.data || [];
-  const totalCount = globalWalletTxnsData?.total || 0;
+  const totalCount = globalWalletTxnsData?.pagination?.total || 0;
 
   const handlePageChange = (page: number) => {
     setSearchParams((prev) => {
@@ -136,9 +136,9 @@ const TransactionLedger = () => {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={txn.wallet?.user.profileUrl || ""} />
+                          <AvatarImage src={txn.wallet?.user?.profileUrl || ""} />
                           <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                            {txn.wallet?.user.fullName
+                            {txn.wallet?.user?.fullName
                               ?.split(" ")
                               .map((n: string) => n[0])
                               .join("")
@@ -146,8 +146,10 @@ const TransactionLedger = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">{txn.wallet?.user.fullName || "Unknown"}</span>
-                          <span className="text-[10px] text-muted-foreground">{txn.wallet?.user.email}</span>
+                          <span className="text-sm font-medium">{txn.wallet?.user?.fullName || "Unknown User"}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {txn.wallet?.user?.email || "No email"}
+                          </span>
                         </div>
                       </div>
                     </td>

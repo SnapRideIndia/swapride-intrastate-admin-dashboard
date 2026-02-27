@@ -1,5 +1,6 @@
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
+import { PaginatedResponse } from "@/types/pagination";
 
 export interface Coupon {
   id: string;
@@ -29,8 +30,8 @@ export const couponService = {
     search?: string;
     status?: string;
     type?: string;
-  }): Promise<{ data: Coupon[]; total: number }> => {
-    const { data } = await apiClient.get<{ data: Coupon[]; total: number }>(API_ENDPOINTS.COUPONS.GET_ALL, { params });
+  }): Promise<PaginatedResponse<Coupon>> => {
+    const { data } = await apiClient.get<PaginatedResponse<Coupon>>(API_ENDPOINTS.COUPONS.GET_ALL, { params });
     return data;
   },
 

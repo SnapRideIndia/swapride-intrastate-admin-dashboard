@@ -1,4 +1,5 @@
 import { Bus } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
@@ -8,13 +9,9 @@ export const busService = {
     offset?: number;
     search?: string;
     status?: string;
-  }): Promise<{ buses: Bus[]; total: number }> => {
+  }): Promise<PaginatedResponse<Bus>> => {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.FLEET.BUSES.GET_ALL, { params });
-      // Backend might return plain array if not paginated, so handle both
-      if (Array.isArray(response.data)) {
-        return { buses: response.data, total: response.data.length };
-      }
+      const response = await apiClient.get<PaginatedResponse<Bus>>(API_ENDPOINTS.FLEET.BUSES.GET_ALL, { params });
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch buses";

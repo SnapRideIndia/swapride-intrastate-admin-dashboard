@@ -39,7 +39,8 @@ const LiveTracking = () => {
     libraries: MAP_LIBRARIES,
   });
 
-  const { data: routes = [], isLoading: isRoutesLoading } = useRoutes();
+  const { data: routesData, isLoading: isRoutesLoading } = useRoutes();
+  const routes = routesData?.data || [];
 
   const { data: liveLocations = [], isLoading: isLiveLoading, refetch } = useLiveLocations();
 

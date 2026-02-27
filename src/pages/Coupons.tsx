@@ -59,7 +59,7 @@ export default function Coupons() {
   });
 
   const coupons = couponsData?.data || [];
-  const totalCount = couponsData?.total || 0;
+  const totalCount = couponsData?.pagination?.total || 0;
 
   // Mutations
   const updateMutation = useUpdateCoupon();

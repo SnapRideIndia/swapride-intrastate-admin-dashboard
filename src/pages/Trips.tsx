@@ -92,7 +92,7 @@ const Trips = () => {
   }, [activeTab]);
 
   const {
-    data: tripsData = { data: [], total: 0 },
+    data: tripsData,
     isLoading,
     refetch,
   } = useTrips({
@@ -110,8 +110,8 @@ const Trips = () => {
   const updateStatusMutation = useUpdateTripStatus();
   const deleteTripMutation = useDeleteTrip();
 
-  const trips = tripsData.data;
-  const totalCount = tripsData.total;
+  const trips = tripsData?.data || [];
+  const totalCount = tripsData?.pagination?.total || 0;
 
   const getDelayStatusColor = (tripStatus: Trip["tripStatus"], delayMinutes: number) => {
     if (tripStatus === "On Time" || tripStatus === "Early") return "text-success bg-success/10";

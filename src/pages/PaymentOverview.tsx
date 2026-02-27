@@ -48,7 +48,7 @@ const PaymentOverview = () => {
   });
 
   const payments = paymentsData?.data || [];
-  const totalCount = paymentsData?.total || 0;
+  const totalCount = paymentsData?.pagination?.total || 0;
 
   const handlePageChange = (page: number) => {
     setSearchParams((prev) => {
@@ -292,9 +292,9 @@ const PaymentOverview = () => {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={payment.user.profileUrl || ""} />
+                          <AvatarImage src={payment.user?.profileUrl || ""} />
                           <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                            {payment.user.fullName
+                            {payment.user?.fullName
                               ?.split(" ")
                               .map((n: string) => n[0])
                               .join("")
@@ -302,8 +302,8 @@ const PaymentOverview = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                          <p className="text-sm font-medium">{payment.user.fullName}</p>
-                          <p className="text-xs text-muted-foreground">{payment.user.email}</p>
+                          <p className="text-sm font-medium">{payment.user?.fullName || "Unknown User"}</p>
+                          <p className="text-xs text-muted-foreground">{payment.user?.email || "No email"}</p>
                         </div>
                       </div>
                     </td>

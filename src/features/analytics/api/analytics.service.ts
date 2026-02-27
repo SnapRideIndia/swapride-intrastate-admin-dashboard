@@ -6,9 +6,10 @@ import {
   RoutePerformance,
   FleetPerformance,
   DistributionData,
+  KpiMetrics,
 } from "@/types";
 import { busService } from "@/features/buses";
-import { driverService } from "@/features/drivers";
+import { driverApi } from "@/features/drivers";
 import { userService } from "@/features/users";
 import { tripsApi } from "@/features/trips/api/trips-api";
 import { bookingService } from "@/features/bookings";
@@ -97,6 +98,17 @@ export const analyticsService = {
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Failed to fetch distribution metrics");
+    }
+  },
+
+  getKpiMetrics: async (filters: AnalyticsFilters): Promise<KpiMetrics> => {
+    try {
+      const response = await apiClient.get<KpiMetrics>(API_ENDPOINTS.ANALYTICS.KPI_METRICS, {
+        params: filters,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to fetch KPI metrics");
     }
   },
 };

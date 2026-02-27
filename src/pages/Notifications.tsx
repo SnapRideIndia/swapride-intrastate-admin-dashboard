@@ -91,7 +91,7 @@ export default function Notifications() {
   const deleteMutation = useDeleteNotification();
 
   const notifications = notificationsData?.data || [];
-  const totalCount = notificationsData?.total || 0;
+  const totalCount = notificationsData?.pagination?.total || 0;
   // Stats fallback
   const stats = statsData || { sentCount: 0, openRate: 0, criticalAlerts: 0 };
 

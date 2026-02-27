@@ -1,4 +1,5 @@
 // Mock service for Referrals — replace with real API calls when backend is ready.
+import { PaginatedResponse } from "@/types/pagination";
 
 export interface Referral {
   id: string;
@@ -71,7 +72,7 @@ const MOCK_REFERRALS: Referral[] = [
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const referralService = {
-  getAll: async (query?: ReferralsQuery): Promise<ReferralListResponse> => {
+  getAll: async (query?: ReferralsQuery): Promise<PaginatedResponse<Referral>> => {
     await delay(300);
     let filtered = [...MOCK_REFERRALS];
 
@@ -96,7 +97,12 @@ export const referralService = {
 
     return {
       data: filtered.slice(start, end),
-      total: filtered.length,
+      pagination: {
+        total: filtered.length,
+        limit: limit,
+        offset: start,
+        hasMore: end < filtered.length,
+      },
     };
   },
 

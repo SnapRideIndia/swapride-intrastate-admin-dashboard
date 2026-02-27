@@ -99,12 +99,12 @@ const WalletDetails = () => {
             <CardContent>
               <div className="flex flex-col items-center text-center mb-6">
                 <Avatar className="h-20 w-20 border-4 border-background shadow-lg mb-3">
-                  <AvatarImage src={walletDetails.user.profileUrl || ""} />
+                  <AvatarImage src={walletDetails.user?.profileUrl || ""} />
                   <AvatarFallback className="text-xl bg-primary/5 text-primary">
-                    {walletDetails.user.fullName.substring(0, 2).toUpperCase()}
+                    {walletDetails.user?.fullName?.substring(0, 2).toUpperCase() || "UN"}
                   </AvatarFallback>
                 </Avatar>
-                <h2 className="text-lg font-bold">{walletDetails.user.fullName}</h2>
+                <h2 className="text-lg font-bold">{walletDetails.user?.fullName || "Unknown User"}</h2>
                 <Badge
                   variant={walletDetails.isActive ? "default" : "secondary"}
                   className="mt-2 text-xs px-2 py-0.5 h-auto"
@@ -126,11 +126,11 @@ const WalletDetails = () => {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="truncate">{walletDetails.user.email}</span>
+                    <span className="truncate">{walletDetails.user?.email || "No email"}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{walletDetails.user.mobileNumber}</span>
+                    <span>{walletDetails.user?.mobileNumber || "—"}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Calendar className="h-4 w-4 text-muted-foreground" />

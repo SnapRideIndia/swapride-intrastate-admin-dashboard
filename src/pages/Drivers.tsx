@@ -68,7 +68,7 @@ const Drivers = () => {
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const {
-    data: driversData = { drivers: [], total: 0 },
+    data: driversData,
     isLoading: isFetching,
     refetch,
   } = useDrivers({
@@ -78,8 +78,8 @@ const Drivers = () => {
     status: statusFilter === "all" ? undefined : statusFilter,
   });
 
-  const drivers = driversData.drivers;
-  const totalCount = driversData.total;
+  const drivers = driversData?.data || [];
+  const totalCount = driversData?.pagination?.total || 0;
 
   const createMutation = useCreateDriver();
   const deleteMutation = useDeleteDriver();

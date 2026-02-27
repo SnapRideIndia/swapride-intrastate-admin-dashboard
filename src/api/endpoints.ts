@@ -191,6 +191,7 @@ export const API_ENDPOINTS = {
     DISTRIBUTION: "/admin/analytics/distribution",
     DASHBOARD_STATS: "/admin/analytics/dashboard-stats",
     BUS_UTILIZATION: "/admin/analytics/bus-utilization",
+    KPI_METRICS: "/admin/analytics/kpi-metrics",
   },
   // Financials
   FINANCIALS: {

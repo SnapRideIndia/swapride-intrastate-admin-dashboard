@@ -11,6 +11,7 @@ export const ANALYTICS_QUERY_KEYS = {
   routes: (filters: AnalyticsFilters) => [...ANALYTICS_QUERY_KEYS.all, "routes", filters] as const,
   fleet: (filters: AnalyticsFilters) => [...ANALYTICS_QUERY_KEYS.all, "fleet", filters] as const,
   distribution: (filters: AnalyticsFilters) => [...ANALYTICS_QUERY_KEYS.all, "distribution", filters] as const,
+  kpi: (filters: AnalyticsFilters) => [...ANALYTICS_QUERY_KEYS.all, "kpi", filters] as const,
 };
 
 export const useDashboardStats = () => {
@@ -59,5 +60,12 @@ export const useDistributionMetrics = (filters: AnalyticsFilters) => {
   return useQuery({
     queryKey: ANALYTICS_QUERY_KEYS.distribution(filters),
     queryFn: () => analyticsService.getDistribution(filters),
+  });
+};
+
+export const useAnalyticsKpi = (filters: AnalyticsFilters) => {
+  return useQuery({
+    queryKey: ANALYTICS_QUERY_KEYS.kpi(filters),
+    queryFn: () => analyticsService.getKpiMetrics(filters),
   });
 };

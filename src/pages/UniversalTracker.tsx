@@ -122,13 +122,13 @@ const UniversalTracker = () => {
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Payer Information</p>
           <div className="flex items-center gap-4 py-2">
             <Avatar className="h-16 w-16 border-2 border-primary/10">
-              <AvatarImage src={payment.user.profileUrl || ""} />
-              <AvatarFallback className="text-xl">{payment.user.fullName[0]}</AvatarFallback>
+              <AvatarImage src={payment.user?.profileUrl || ""} />
+              <AvatarFallback className="text-xl">{payment.user?.fullName?.[0] || "?"}</AvatarFallback>
             </Avatar>
             <div>
-              <h4 className="text-lg font-bold">{payment.user.fullName}</h4>
-              <p className="text-sm text-muted-foreground">{payment.user.email}</p>
-              <p className="text-sm text-muted-foreground">{payment.user.mobileNumber}</p>
+              <h4 className="text-lg font-bold">{payment.user?.fullName || "Unknown User"}</h4>
+              <p className="text-sm text-muted-foreground">{payment.user?.email || "No email"}</p>
+              <p className="text-sm text-muted-foreground">{payment.user?.mobileNumber || "—"}</p>
             </div>
           </div>
           <div className="mt-6 flex gap-2">
@@ -183,11 +183,11 @@ const UniversalTracker = () => {
             <h5 className="text-xs font-bold uppercase text-muted-foreground">User Context</h5>
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarFallback>{txn.wallet.user.fullName[0]}</AvatarFallback>
+                <AvatarFallback>{txn.wallet?.user?.fullName?.[0] || "?"}</AvatarFallback>
               </Avatar>
               <div className="overflow-hidden">
-                <p className="text-sm font-medium truncate">{txn.wallet.user.fullName}</p>
-                <p className="text-xs text-muted-foreground truncate">{txn.wallet.user.email}</p>
+                <p className="text-sm font-medium truncate">{txn.wallet?.user?.fullName || "Unknown User"}</p>
+                <p className="text-xs text-muted-foreground truncate">{txn.wallet?.user?.email || "No email"}</p>
               </div>
             </div>
           </div>
@@ -228,7 +228,7 @@ const UniversalTracker = () => {
               <User className="h-4 w-4 text-primary" />
               <span className="text-xs font-bold uppercase">Passenger</span>
             </div>
-            <p className="text-sm font-medium">{booking.user.fullName}</p>
+            <p className="text-sm font-medium">{booking.user?.fullName || "Unknown User"}</p>
           </div>
           <div className="p-4 rounded-xl bg-muted/30">
             <div className="flex items-center gap-2 mb-2">

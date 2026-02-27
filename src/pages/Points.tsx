@@ -42,7 +42,7 @@ const Points = () => {
   });
 
   const points = pointsData?.data || [];
-  const totalCount = pointsData?.total || 0;
+  const totalCount = pointsData?.pagination?.total || 0;
 
   const deletePointMutation = useDeletePoint();
 

@@ -70,8 +70,8 @@ const Buses = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
-  const buses = busesData?.buses || [];
-  const totalCount = busesData?.total || 0;
+  const buses = busesData?.data || [];
+  const totalCount = busesData?.pagination?.total || 0;
 
   const viewBusDetails = (bus: Bus) => {
     setSelectedBus(bus);

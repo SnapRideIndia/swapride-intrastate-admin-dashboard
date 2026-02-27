@@ -4,7 +4,26 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
-import { User, Phone, Mail, Ban, CheckCircle, CreditCard, Activity, MapPin } from "lucide-react";
+import {
+  User,
+  Phone,
+  Mail,
+  Ban,
+  CheckCircle,
+  CreditCard,
+  Activity,
+  MapPin,
+  Share2,
+  UserPlus,
+  Calendar,
+  Clock,
+  User as GenderIcon,
+  History,
+  ArrowRight,
+  Copy,
+  Check,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +49,8 @@ import { useUser, useUpdateUserStatus } from "@/features/users/hooks/useUsers";
 const UserDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [userIdCopied, setUserIdCopied] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
 
   const { data: user, isLoading, error } = useUser(id || "");
   const updateUserStatus = useUpdateUserStatus();
@@ -50,6 +71,47 @@ const UserDetails = () => {
     updateUserStatus.mutate({ id, action });
   };
 
+  const copyToClipboard = () => {
+    if (!user?.id) return;
+    navigator.clipboard.writeText(user.id);
+    setUserIdCopied(true);
+    setTimeout(() => setUserIdCopied(false), 2000);
+    toast({
+      title: "Copied",
+      description: "User ID copied to clipboard",
+    });
+  };
+
+  const copyReferralCode = () => {
+    if (!user?.referralCode) return;
+    navigator.clipboard.writeText(user.referralCode);
+    setReferralCopied(true);
+    setTimeout(() => setReferralCopied(false), 2000);
+    toast({
+      title: "Copied",
+      description: "Referral code copied to clipboard",
+    });
+  };
+
+  const handleShare = async () => {
+    if (!user?.referralCode) return;
+    const shareText = `Use my referral code ${user.referralCode} to join SwapRide!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "SwapRide Referral",
+          text: shareText,
+          url: window.location.origin,
+        });
+      } catch (err) {
+        console.error("Error sharing", err);
+      }
+    } else {
+      copyReferralCode();
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const s = (status || "").toUpperCase();
     switch (s) {
@@ -59,8 +121,20 @@ const UserDetails = () => {
         return <Badge variant="destructive">Blocked</Badge>;
       case "SUSPENDED":
         return (
-          <Badge variant="secondary" className="bg-warning text-warning-foreground hover:bg-warning/90">
+          <Badge variant="secondary" className="bg-warning/15 text-warning hover:bg-warning/20 border-warning/20">
             Suspended
+          </Badge>
+        );
+      case "DELETION_PENDING":
+        return (
+          <Badge variant="outline" className="text-destructive border-destructive/30 bg-destructive/5 animate-pulse">
+            Deletion Pending
+          </Badge>
+        );
+      case "DELETED":
+        return (
+          <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30 bg-muted/20">
+            Deleted (Retired)
           </Badge>
         );
       default:
@@ -103,8 +177,22 @@ const UserDetails = () => {
                       {user.fullName}
                       {getStatusBadge(user.status)}
                     </h2>
-                    <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
-                      User ID: <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{user.id}</span>
+                    <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1 px-1">
+                      User ID:{" "}
+                      <span className="font-mono text-[10px] bg-muted px-1.5 py-0.4 rounded flex items-center gap-1.5 border border-border/40 group/id relative">
+                        {user.id}
+                        <button
+                          onClick={copyToClipboard}
+                          className="hover:text-primary transition-colors p-0.5 rounded hover:bg-primary/5"
+                          title="Copy ID"
+                        >
+                          {userIdCopied ? (
+                            <Check className="h-3 w-3 text-success animate-in zoom-in duration-300" />
+                          ) : (
+                            <Copy className="h-3 w-3 opacity-60 group-hover/id:opacity-100 transition-opacity" />
+                          )}
+                        </button>
+                      </span>
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -148,48 +236,136 @@ const UserDetails = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                      <User className="h-4 w-4" /> Personal Information
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-2">
+                      <User className="h-3.5 w-3.5" /> Personal Information
                     </h3>
-                    <div className="space-y-3 pl-6 border-l-2 border-border/60">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Email Address</p>
-                        <p className="font-medium text-sm">{user.email}</p>
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-2 pl-4 border-l-2 border-primary/20">
+                      <div className="col-span-2">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">Email Address</p>
+                        <p className="font-semibold text-sm truncate">{user.email}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Mobile Number</p>
-                        <p className="font-medium text-sm">{user.mobileNumber}</p>
+                      <div className="col-span-1">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">Mobile Number</p>
+                        <p className="font-semibold text-sm">{user.mobileNumber}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Blood Group</p>
-                        <p className="font-medium text-sm">{user.bloodGroup || "Not Provided"}</p>
+                      <div className="col-span-1">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">Referral Code</p>
+                        <div className="flex items-center gap-2">
+                          <code
+                            onClick={copyReferralCode}
+                            className="bg-primary/5 text-primary px-1.5 py-0.5 rounded text-xs font-bold border border-primary/10 tracking-wider cursor-pointer hover:bg-primary/10 transition-all flex items-center gap-1.5"
+                          >
+                            {user.referralCode || "NONE"}
+                            {referralCopied ? (
+                              <Check className="h-2.5 w-2.5 text-success" />
+                            ) : (
+                              <Copy className="h-2.5 w-2.5 opacity-40" />
+                            )}
+                          </code>
+                          {user.referralCode && (
+                            <button
+                              onClick={handleShare}
+                              className="p-1 rounded-full hover:bg-primary/5 transition-colors"
+                            >
+                              <Share2 className="h-3 w-3 text-muted-foreground hover:text-primary transition-colors" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Date of Birth</p>
-                        <p className="font-medium text-sm">
-                          {user.dob ? new Date(user.dob).toLocaleDateString() : "Not Provided"}
+                      <div className="col-span-1">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">Gender</p>
+                        <p className="font-semibold text-sm flex items-center gap-1.5">
+                          <GenderIcon className="h-3 w-3 text-muted-foreground/70" />
+                          {user.gender || "Not Provided"}
+                        </p>
+                      </div>
+                      <div className="col-span-1">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">Blood Group</p>
+                        <p className="font-semibold text-sm">{user.bloodGroup || "N/A"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">Date of Birth</p>
+                        <p className="font-semibold text-sm flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-muted-foreground/70" />
+                          {user.dateOfBirth
+                            ? new Date(user.dateOfBirth).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "Not Provided"}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                      <Activity className="h-4 w-4" /> Account Activity
+                  <div className="space-y-5">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-2">
+                      <Activity className="h-3.5 w-3.5" /> Account Activity
                     </h3>
-                    <div className="space-y-3 pl-6 border-l-2 border-border/60">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Member Since</p>
-                        <p className="font-medium text-sm">{new Date(user.createdAt).toLocaleDateString()}</p>
+                    <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+                      <div className="flex justify-between items-center group">
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">
+                            Member Since
+                          </p>
+                          <p className="font-semibold text-sm">
+                            {new Date(user.createdAt).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <Clock className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary/40 transition-colors" />
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Last Booking</p>
-                        <p className="font-medium text-sm">
-                          {user.lastBookingDate ? new Date(user.lastBookingDate).toLocaleDateString() : "Never"}
-                        </p>
+                      <div className="flex justify-between items-center group">
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">Last Login</p>
+                          <p className="font-semibold text-sm">
+                            {user.lastLogin
+                              ? new Date(user.lastLogin).toLocaleString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "Never"}
+                          </p>
+                        </div>
+                        <History className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary/40 transition-colors" />
                       </div>
+                      <div className="flex justify-between items-center group">
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground/60 mb-0.5">
+                            Last Booking
+                          </p>
+                          <p className="font-semibold text-sm">
+                            {user.lastBookingDate
+                              ? new Date(user.lastBookingDate).toLocaleDateString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                })
+                              : "No Bookings"}
+                          </p>
+                        </div>
+                        <CheckCircle className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary/40 transition-colors" />
+                      </div>
+
+                      {user.referredById && (
+                        <div className="pt-2">
+                          <Link
+                            to={`${ROUTES.USERS}/${user.referredById}`}
+                            className="inline-flex items-center gap-2 group/link text-xs font-bold text-primary bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-lg border border-primary/10 transition-all"
+                          >
+                            <UserPlus className="h-3.5 w-3.5" />
+                            Show Referred By
+                            <ArrowRight className="h-3 w-3 group-hover/link:translate-x-1 transition-transform" />
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

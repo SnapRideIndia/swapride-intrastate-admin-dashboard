@@ -52,7 +52,7 @@ export default function Referrals() {
   const { data: stats } = useReferralStats();
 
   const referrals = referralsData?.data ?? [];
-  const totalCount = referralsData?.total ?? 0;
+  const totalCount = referralsData?.pagination?.total ?? 0;
 
   const getStatusBadge = (status: string) => {
     switch (status) {

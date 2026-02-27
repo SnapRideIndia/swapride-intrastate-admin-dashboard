@@ -44,6 +44,7 @@ import {
   useRoutePerformance,
   useFleetPerformance,
   useDistributionMetrics,
+  KpiAnalyticsTab,
 } from "@/features/analytics";
 import { AnalyticsFilters } from "@/types";
 import { useSearchParams } from "react-router-dom";
@@ -327,6 +328,9 @@ const Analytics = () => {
           <TabsTrigger value="buses">Bus Performance</TabsTrigger>
           <TabsTrigger value="routes">Routes</TabsTrigger>
           <TabsTrigger value="operations">Operations</TabsTrigger>
+          <TabsTrigger value="kpi" className="text-primary font-bold">
+            KPI & Demand
+          </TabsTrigger>
         </TabsList>
 
         {/* Revenue Tab */}
@@ -654,6 +658,11 @@ const Analytics = () => {
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        {/* KPI & Demand Tab */}
+        <TabsContent value="kpi">
+          <KpiAnalyticsTab filters={filters} />
         </TabsContent>
       </Tabs>
     </DashboardLayout>

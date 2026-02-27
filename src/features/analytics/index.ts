@@ -5,3 +5,4 @@ export { RecentTickets } from "./components/RecentTickets";
 export { RevenueChart } from "./components/RevenueChart";
 export { RouteDistribution } from "./components/RouteDistribution";
 export { StatCard } from "./components/StatCard";
+export { KpiAnalyticsTab } from "./components/KpiAnalyticsTab";

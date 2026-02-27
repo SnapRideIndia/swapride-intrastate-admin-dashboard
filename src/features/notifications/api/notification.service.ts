@@ -1,4 +1,5 @@
 import { Notification } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
@@ -10,8 +11,8 @@ export const notificationService = {
     type?: string;
     priority?: string;
     status?: string;
-  }): Promise<{ data: Notification[]; total: number }> => {
-    const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.BASE, { params });
+  }): Promise<PaginatedResponse<Notification>> => {
+    const response = await apiClient.get<PaginatedResponse<Notification>>(API_ENDPOINTS.NOTIFICATIONS.BASE, { params });
     return response.data;
   },
 

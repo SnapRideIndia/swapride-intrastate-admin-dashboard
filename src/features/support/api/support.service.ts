@@ -20,7 +20,7 @@ export interface Ticket {
 }
 
 // Mock Data
-let MOCK_TICKETS: Ticket[] = [
+const MOCK_TICKETS: Ticket[] = [
   {
     id: "TKT-001",
     subject: "Payment failed but seat allocated",

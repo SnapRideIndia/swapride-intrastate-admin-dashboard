@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { useState, useEffect } from "react";
-import { Bell, User, CreditCard, Bus, AlertCircle, CheckCircle, Tag, Info } from "lucide-react";
+import { Bell, User, CreditCard, Bus, AlertCircle, CheckCircle, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -64,9 +64,9 @@ export function NotificationDropdown() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const { data } = await notificationService.getAll(1, 10);
+      const { data } = await notificationService.getAll({ limit: 10 });
       setNotifications(data);
-    } catch (error) {
+    } catch {
     } finally {
       setLoading(false);
     }
@@ -93,14 +93,14 @@ export function NotificationDropdown() {
     try {
       await notificationService.markAsRead(id);
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    } catch (error) {}
+    } catch {}
   };
 
   const markAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    } catch (error) {}
+    } catch {}
   };
 
   return (

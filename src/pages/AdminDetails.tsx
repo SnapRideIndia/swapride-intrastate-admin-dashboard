@@ -52,7 +52,7 @@ const AdminDetails = () => {
       } else {
         setAdmin(null);
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load admin details",

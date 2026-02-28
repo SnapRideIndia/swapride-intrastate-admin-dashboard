@@ -17,7 +17,7 @@ export const notificationService = {
   },
 
   getById: async (id: string): Promise<Notification> => {
-    const response = await apiClient.get(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/${id}`);
+    const response = await apiClient.get<Notification>(API_ENDPOINTS.NOTIFICATIONS.GET_BY_ID(id));
     return response.data;
   },
 
@@ -39,23 +39,25 @@ export const notificationService = {
   },
 
   markAsRead: async (id: string): Promise<void> => {
-    await apiClient.patch(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/${id}/read`);
+    await apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_AS_READ(id));
   },
 
   markAllAsRead: async (): Promise<void> => {
-    await apiClient.patch(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/read-all`);
+    await apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
   },
 
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/${id}`);
+    await apiClient.delete(API_ENDPOINTS.NOTIFICATIONS.DELETE(id));
   },
 
   getStats: async (): Promise<{ sentCount: number; openRate: number; criticalAlerts: number }> => {
-    const response = await apiClient.get(`${API_ENDPOINTS.NOTIFICATIONS.BASE}/stats`);
+    const response = await apiClient.get<{ sentCount: number; openRate: number; criticalAlerts: number }>(
+      API_ENDPOINTS.NOTIFICATIONS.STATS,
+    );
     return response.data;
   },
 
   registerDevice: async (data: { fcmToken: string; deviceType: string }): Promise<void> => {
-    await apiClient.post("/notifications/devices/register", data);
+    await apiClient.post(API_ENDPOINTS.NOTIFICATIONS.REGISTER_DEVICE, data);
   },
 };

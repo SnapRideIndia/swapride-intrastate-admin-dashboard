@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { formatService } from "@/utils/format.service";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -50,7 +50,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 
 const Roles = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { hasPermission } = usePermissions();
 
   const [searchParams, setSearchParams] = useSearchParams();

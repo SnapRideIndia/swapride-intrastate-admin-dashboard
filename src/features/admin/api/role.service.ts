@@ -19,7 +19,7 @@ export const roleService = {
       }));
 
       return { data: mappedData, total };
-    } catch (error) {
+    } catch {
       return { data: [], total: 0 };
     }
   },
@@ -33,7 +33,7 @@ export const roleService = {
         name: role.name || (role as any).fullName || "Unnamed Role",
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       };
-    } catch (error) {
+    } catch {
       return undefined;
     }
   },
@@ -61,7 +61,7 @@ export const roleService = {
         name: role.name || (role as any).fullName || "Unnamed Role",
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       };
-    } catch (error) {
+    } catch {
       return undefined;
     }
   },
@@ -70,7 +70,7 @@ export const roleService = {
     try {
       await apiClient.delete(API_ENDPOINTS.ROLES.DELETE(id));
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   },
@@ -79,7 +79,7 @@ export const roleService = {
     try {
       const response = await apiClient.get<string[]>(API_ENDPOINTS.ROLES.PERMISSIONS(roleId));
       return response.data;
-    } catch (error) {
+    } catch {
       return [];
     }
   },
@@ -88,7 +88,7 @@ export const roleService = {
     try {
       const response = await apiClient.get<{ count: number }>(API_ENDPOINTS.ROLES.ADMIN_COUNT(roleId));
       return response.data.count;
-    } catch (error) {
+    } catch {
       return 0;
     }
   },

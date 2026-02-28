@@ -59,6 +59,16 @@ export const busService = {
     }
   },
 
+  getBusQR: async (busId: string): Promise<string> => {
+    try {
+      const response = await apiClient.get<string>(`/admin/bookings/bus-qr/${busId}`);
+      return response.data;
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to fetch bus QR token";
+      throw new Error(message);
+    }
+  },
+
   // Analytics - Mock for now as backend doesn't have a dedicated endpoint yet
   getBusAnalytics: async (_busId: string) => {
     return {

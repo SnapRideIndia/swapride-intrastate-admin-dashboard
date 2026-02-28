@@ -1,9 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   MoreVertical,
-  Calendar as CalendarIcon,
   Ticket,
   Eye,
   XCircle,
@@ -36,15 +35,12 @@ import {
   BoardingStatusBadge,
 } from "@/features/bookings";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { Booking } from "@/types";
-import { useToast } from "@/hooks/use-toast";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Bookings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 

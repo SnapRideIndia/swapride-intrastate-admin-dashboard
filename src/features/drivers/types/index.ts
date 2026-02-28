@@ -1,4 +1,3 @@
-import { Driver } from "@/types";
 
 export interface BusDetails {
   registrationNumber: string;

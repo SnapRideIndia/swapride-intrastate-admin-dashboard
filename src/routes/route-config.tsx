@@ -2,6 +2,7 @@ import { ROUTES } from "@/constants/routes";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Buses from "@/pages/Buses";
+import BusDetail from "../pages/BusDetail";
 import RoutesPage from "@/pages/Routes";
 import Trips from "@/pages/Trips";
 import Users from "@/pages/Users";
@@ -45,6 +46,7 @@ export const publicRoutes: RouteConfig[] = [{ path: ROUTES.LOGIN, element: <Logi
 export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.DASHBOARD, element: <Dashboard /> },
   { path: ROUTES.BUSES, element: <Buses /> },
+  { path: ROUTES.BUS_DETAILS, element: <BusDetail /> },
   { path: ROUTES.BUS_LAYOUTS, element: <BusLayouts /> },
   { path: ROUTES.BUS_LAYOUT_BUILDER, element: <BusLayoutBuilder /> },
   { path: ROUTES.ROUTES, element: <RoutesPage /> },

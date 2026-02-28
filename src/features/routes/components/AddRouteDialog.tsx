@@ -76,7 +76,8 @@ export function AddRouteDialog({ onRouteAdded, initialData, open: controlledOpen
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
 
-  const { data: points = [] } = usePoints();
+  const { data: pointsData } = usePoints();
+  const points = pointsData?.data || [];
   const createRouteMutation = useCreateRoute();
   const updateRouteMutation = useUpdateRoute();
 

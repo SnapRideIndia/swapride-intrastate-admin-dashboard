@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { couponService, Coupon } from "../api/coupon.service";
+import { couponService } from "../api/coupon.service";
 import { toast } from "sonner";
 
 export const COUPON_QUERY_KEYS = {

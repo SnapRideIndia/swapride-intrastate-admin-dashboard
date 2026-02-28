@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -41,12 +41,13 @@ export function EditTripDialog({ trip, open, onOpenChange, onTripUpdated }: Edit
   const { toast } = useToast();
 
   // Fetch data from APIs
-  const { data: routes = [], isLoading: isRoutesLoading } = useRoutes();
+  const { data: routesData, isLoading: isRoutesLoading } = useRoutes();
   const { data: driversData, isLoading: isDriversLoading } = useDrivers();
   const { data: busesData, isLoading: isBusesLoading } = useBuses();
 
-  const drivers = driversData?.drivers || [];
-  const buses = busesData?.buses || [];
+  const routes = routesData?.data || [];
+  const drivers = driversData?.data || [];
+  const buses = busesData?.data || [];
 
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripFormSchema),

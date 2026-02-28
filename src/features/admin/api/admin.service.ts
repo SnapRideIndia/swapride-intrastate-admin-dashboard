@@ -42,7 +42,7 @@ export const adminService = {
         status: admin.status || "Active",
         phone: admin.phone || "N/A",
       };
-    } catch (error) {
+    } catch {
       return undefined;
     }
   },
@@ -51,7 +51,7 @@ export const adminService = {
     try {
       const response = await adminService.getAll({ search: email, limit: 1 });
       return response.data.find((a) => a.email.toLowerCase() === email.toLowerCase());
-    } catch (error) {
+    } catch {
       return undefined;
     }
   },
@@ -92,7 +92,7 @@ export const adminService = {
         status: admin.status || "Active",
         phone: admin.phone || "N/A",
       };
-    } catch (error) {
+    } catch {
       return null;
     }
   },
@@ -147,7 +147,7 @@ export const adminService = {
           totalRoles: 0,
         };
       }
-    } catch (error) {
+    } catch {
       return {
         totalAdmins: 0,
         activeAdmins: 0,

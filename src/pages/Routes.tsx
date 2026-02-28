@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Search, MoreVertical, Edit, Trash2, Eye, MapPin, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
@@ -29,7 +29,7 @@ const Routes = () => {
   const searchQuery = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "all";
   const currentPage = parseInt(searchParams.get("page") || "1");
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 

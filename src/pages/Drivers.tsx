@@ -19,10 +19,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { driverApi, useDrivers, useCreateDriver, useDeleteDriver } from "@/features/drivers";
+import { useDrivers, useCreateDriver, useDeleteDriver } from "@/features/drivers";
 import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { useToast } from "@/hooks/use-toast";
 import { Driver } from "@/types";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -57,7 +56,6 @@ const driverFormSchema = z.object({
 type DriverFormData = z.infer<typeof driverFormSchema>;
 
 const Drivers = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,11 +65,7 @@ const Drivers = () => {
   const [pageSize, setPageSize] = useState(20);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const {
-    data: driversData,
-    isLoading: isFetching,
-    refetch,
-  } = useDrivers({
+  const { data: driversData, isLoading: isFetching } = useDrivers({
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
     search: debouncedSearchQuery,
@@ -122,11 +116,6 @@ const Drivers = () => {
 
   const handleViewDriver = (driver: Driver) => {
     navigate(`${ROUTES.DRIVERS}/${driver.id}`);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this driver?")) return;
-    deleteMutation.mutate(id);
   };
 
   const getStatusBadge = (status: string) => {

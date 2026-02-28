@@ -31,7 +31,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCoupons, useUpdateCoupon, useDeleteCoupon } from "@/features/coupons/hooks/useCoupons";
 import { Coupon } from "@/features/coupons/api/coupon.service";
-import { toast } from "@/components/ui/sonner";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { ROUTES } from "@/constants/routes";
 import { TablePagination } from "@/components/ui/table-pagination";

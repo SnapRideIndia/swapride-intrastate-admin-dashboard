@@ -4,9 +4,7 @@ import {
   Search,
   Tag,
   MoreVertical,
-  Edit,
   Trash2,
-  Calendar as CalendarIcon,
   CheckCircle2,
   Bell,
   Info,
@@ -23,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import {
   DropdownMenu,
@@ -32,7 +30,6 @@ import {
   DropdownMenuTrigger,
 } from "@\/components\/ui\/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { notificationService } from "@/features/notifications/api/notification.service";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
 import {

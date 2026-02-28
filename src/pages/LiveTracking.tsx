@@ -104,8 +104,6 @@ const LiveTracking = () => {
   }, [selectedBus, liveLocations]);
 
   // Naming consistency for FleetMap
-  const selectedBusId = selectedBus;
-  const onBusClick = (bus: LiveLocation) => setSelectedBus(bus.tripId);
 
   const getStatusColor = (status: string) => {
     switch (status) {

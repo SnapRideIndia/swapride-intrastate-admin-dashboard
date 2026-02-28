@@ -41,7 +41,7 @@ const BusLayoutBuilder = () => {
   const { toast } = useToast();
 
   // Queries
-  const { data: existingLayout, isLoading: isFetching } = useLayout(id || "");
+  const { data: existingLayout, isLoading: isFetching } = useLayout(id || "", isEditing);
 
   // Mutations
   const createMutation = useCreateLayout();
@@ -703,14 +703,18 @@ const BusLayoutBuilder = () => {
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[95vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>Layout Preview</DialogTitle>
             <DialogDescription>
               {name || "Untitled Layout"} - {totalSeats} seats
             </DialogDescription>
           </DialogHeader>
-          <LayoutPreviewGrid layout={previewLayout} />
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="bg-muted/10 rounded-xl p-6 border-2 border-dashed border-border/40">
+              <LayoutPreviewGrid layout={previewLayout} />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

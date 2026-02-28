@@ -9,16 +9,6 @@ import { useQuery } from "@tanstack/react-query";
 import { analyticsService } from "../api/analytics.service";
 import { AnalyticsFilters } from "@/types";
 
-const data = [
-  { name: "Mon", passengers: 240, revenue: 24000 },
-  { name: "Tue", passengers: 300, revenue: 30000 },
-  { name: "Wed", passengers: 280, revenue: 28000 },
-  { name: "Thu", passengers: 320, revenue: 32000 },
-  { name: "Fri", passengers: 380, revenue: 38000 },
-  { name: "Sat", passengers: 150, revenue: 15000 },
-  { name: "Sun", passengers: 120, revenue: 12000 },
-];
-
 export function RevenueChart() {
   const [period, setPeriod] = useState("weekly");
   const navigate = useNavigate();

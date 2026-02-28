@@ -1,4 +1,4 @@
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
@@ -20,18 +20,14 @@ import { useWalletDetails, useWalletTransactions } from "@/features/financials";
 import { PageHeader } from "@/components/ui/page-header";
 import { ROUTES } from "@/constants/routes";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { useDebounce } from "@/hooks/useDebounce";
 
 const WalletDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const searchQuery = searchParams.get("q") || "";
   const currentPage = parseInt(searchParams.get("page") || "1");
   const [pageSize, setPageSize] = useState(10);
-
-  const debouncedSearch = useDebounce(searchQuery, 500);
 
   const { data: walletDetails, isLoading: isLoadingDetails } = useWalletDetails(id!);
 
@@ -43,7 +39,7 @@ const WalletDetails = () => {
   const isLoading = isLoadingDetails || isLoadingTxns;
 
   const transactions = transactionsData?.data || [];
-  const totalTransactions = transactionsData?.total || 0;
+  const totalTransactions = transactionsData?.pagination?.total || 0;
 
   const handlePageChange = (page: number) => {
     setSearchParams((prev) => {

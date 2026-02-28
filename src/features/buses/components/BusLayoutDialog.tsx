@@ -30,8 +30,8 @@ export function BusLayoutDialog({ bus, triggerText = "Layout" }: BusLayoutDialog
           {triggerText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[95vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>Bus Layout - {bus.busNumber}</DialogTitle>
           <DialogDescription>
             {bus.model} • {layout?.totalSeats || bus.seatCapacity} seats • {layout?.totalRows || "N/A"} rows ×{" "}
@@ -39,9 +39,11 @@ export function BusLayoutDialog({ bus, triggerText = "Layout" }: BusLayoutDialog
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {layout ? (
-            <LayoutPreviewGrid layout={layout} />
+            <div className="bg-muted/10 rounded-xl p-6 border-2 border-dashed border-border/40">
+              <LayoutPreviewGrid layout={layout} />
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center p-8 text-muted-foreground bg-muted/20 rounded-lg">
               <Grid className="h-10 w-10 mb-2 opacity-50" />

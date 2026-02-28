@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { searchApi } from "@/features/search/api/search-api";
 import { toast } from "@/hooks/use-toast";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { format, addDays, isSameDay, parseISO } from "date-fns";
+import { format, addDays, isSameDay } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
@@ -83,7 +83,7 @@ function LocationInput({
       const results = await searchApi.getPlaceSuggestions(input);
       setSuggestions(results);
       setShowSuggestions(true);
-    } catch (error) {
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -391,7 +391,7 @@ export default function SearchEngineTester() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Search failed",
         description: "An error occurred while fetching routes. Please check your backend connection.",

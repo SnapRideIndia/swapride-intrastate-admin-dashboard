@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Search, Plus, MoreVertical, Edit, Trash2, Eye, Copy, Grid, Layout as LayoutIcon } from "lucide-react";
@@ -36,7 +36,6 @@ import { StatCard } from "@/features/analytics";
 import { BusLayout } from "@/types";
 import { useLayouts, useLayoutStats, useDuplicateLayout, useDeleteLayout } from "@/features/buses";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { LayoutPreviewGrid } from "@/features/buses/components/LayoutPreviewGrid";
@@ -46,7 +45,6 @@ import { TablePagination } from "@/components/ui/table-pagination";
 const BusLayouts = () => {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
-  const { toast } = useToast();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
@@ -88,11 +86,7 @@ const BusLayouts = () => {
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   // Queries
-  const {
-    data: layoutsData,
-    isLoading,
-    refetch,
-  } = useLayouts({
+  const { data: layoutsData, isLoading } = useLayouts({
     search: debouncedSearch || undefined,
     status: statusFilter === "all" ? undefined : statusFilter,
     type: typeFilter === "all" ? undefined : typeFilter,
@@ -335,33 +329,45 @@ const BusLayouts = () => {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewLayout} onOpenChange={() => setPreviewLayout(null)}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[95vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>{previewLayout?.name}</DialogTitle>
             <DialogDescription>{previewLayout?.description}</DialogDescription>
           </DialogHeader>
-          {previewLayout && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-muted-foreground">Layout Type</p>
-                  <p className="font-medium">{previewLayout.layoutType}</p>
+
+          <div className="flex-1 overflow-y-auto px-6 py-2">
+            {previewLayout && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="p-3 rounded-lg bg-muted/50 text-center">
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-semibold">
+                      Layout Type
+                    </p>
+                    <p className="font-bold text-base">{previewLayout.layoutType}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50 text-center">
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-semibold">
+                      Total Seats
+                    </p>
+                    <p className="font-bold text-base">{previewLayout.totalSeats}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50 text-center">
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-semibold">
+                      Dimensions
+                    </p>
+                    <p className="font-bold text-base">
+                      {previewLayout.totalRows} × {previewLayout.totalColumns}
+                    </p>
+                  </div>
                 </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-muted-foreground">Total Seats</p>
-                  <p className="font-medium">{previewLayout.totalSeats}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-muted-foreground">Dimensions</p>
-                  <p className="font-medium">
-                    {previewLayout.totalRows}×{previewLayout.totalColumns}
-                  </p>
+                <div className="bg-muted/10 rounded-xl p-6 border-2 border-dashed border-border/40">
+                  <LayoutPreviewGrid layout={previewLayout} />
                 </div>
               </div>
-              <LayoutPreviewGrid layout={previewLayout} />
-            </div>
-          )}
-          <DialogFooter>
+            )}
+          </div>
+
+          <DialogFooter className="p-6 pt-2">
             {canEdit && previewLayout && (
               <Button
                 onClick={() => {

@@ -69,7 +69,7 @@ export const useMarkAsRead = () => {
 
   return useMutation({
     mutationFn: notificationService.markAsRead,
-    onSuccess: (_, id) => {
+    onSuccess: (_, _id) => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEYS.all });
       // Optimistic update could go here, but invalidation is safer for now
     },

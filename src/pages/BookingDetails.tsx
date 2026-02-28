@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -13,21 +13,16 @@ import {
   Bus,
   CheckCircle2,
   XCircle,
-  AlertCircle,
-  MoreVertical,
-  ChevronRight,
-  ArrowRight,
   ExternalLink,
   Grid,
 } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useBooking, BookingStatusBadge, BoardingStatusBadge } from "@/features/bookings";
+import { useBooking, useUpdateBoardingStatus } from "@/features/bookings";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { Booking, BusLayout } from "@/types";
+import { BusLayout } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
@@ -39,7 +34,13 @@ export default function BookingDetails() {
   const { toast } = useToast();
 
   // Fetch Booking Data using Custom Hook
-  const { data: booking, isLoading: isBookingLoading, error: bookingError } = useBooking(id || "");
+  const {
+    data: booking,
+    isLoading: isBookingLoading,
+    error: bookingError,
+    refetch: refetchBooking,
+  } = useBooking(id || "");
+  const updateBoardingStatus = useUpdateBoardingStatus();
 
   // Derived BusID and LayoutID
   const busId = booking?.trip?.busId || "";
@@ -85,10 +86,7 @@ export default function BookingDetails() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3 flex-wrap">
-                Booking{" "}
-                <span className="font-mono text-xl text-slate-400">
-                  #{booking.id?.split("-")[0].toUpperCase() || "N/A"}
-                </span>
+                Booking <span className="font-mono text-xl text-slate-400">#{booking.id?.toUpperCase() || "N/A"}</span>
                 {booking.paymentId ? (
                   <Badge
                     variant="outline"
@@ -348,6 +346,25 @@ export default function BookingDetails() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                   Administrative Actions
                 </p>
+
+                {booking.bookingStatus === "CONFIRMED" && booking.boardingStatus !== "BOARDED" && (
+                  <Button
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 shadow-sm font-bold tracking-tight"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to mark this passenger as boarded?")) {
+                        updateBoardingStatus.mutate(
+                          { id: booking.id, status: "BOARDED" },
+                          { onSuccess: () => refetchBooking() },
+                        );
+                      }
+                    }}
+                    disabled={updateBoardingStatus.isPending}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    {updateBoardingStatus.isPending ? "Updating..." : "Mark as Boarded"}
+                  </Button>
+                )}
+
                 <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-12 shadow-sm font-bold tracking-tight">
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Download Invoice
                 </Button>

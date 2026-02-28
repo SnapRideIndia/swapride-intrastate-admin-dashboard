@@ -28,8 +28,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { userService } from "@/features/users";
-import { User as UserType } from "@/types";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   AlertDialog,

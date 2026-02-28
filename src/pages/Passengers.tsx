@@ -14,7 +14,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUsers, useUpdateUserStatus, useDeleteUser } from "@/features/users";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { useToast } from "@/hooks/use-toast";
 import { ROUTES } from "@/constants/routes";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -23,7 +22,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 const Passengers = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -46,8 +44,8 @@ const Passengers = () => {
   const updateUserStatusMutation = useUpdateUserStatus();
   const deleteUserMutation = useDeleteUser();
 
-  const users = usersData?.users || [];
-  const totalCount = usersData?.total || 0;
+  const users = usersData?.data || [];
+  const totalCount = usersData?.pagination?.total || 0;
 
   useEffect(() => {
     setCurrentPage(1);

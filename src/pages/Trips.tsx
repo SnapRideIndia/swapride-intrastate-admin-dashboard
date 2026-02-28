@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -31,12 +31,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/features/analytics";
-import { useTripPassengers } from "@/features/bookings";
+import { useTripPassengers, useUpdateBoardingStatus } from "@/features/bookings";
 import { Trip } from "@/types";
-import { toast } from "@/hooks/use-toast";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { useDebounce } from "@/hooks/useDebounce";
-import { ROUTES } from "@/constants/routes";
+import { toast } from "@/hooks/use-toast";
 
 const Trips = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -156,7 +155,22 @@ const Trips = () => {
 
   const handleCancelTrip = async (id: string) => {
     if (!confirm("Are you sure you want to cancel this trip?")) return;
-    updateStatusMutation.mutate({ id, status: "CANCELLED" });
+    updateStatusMutation.mutate(
+      { id, status: "CANCELLED" },
+      {
+        onSuccess: () => {
+          toast({ title: "Trip Cancelled", description: "The trip has been successfully cancelled." });
+        },
+        onError: (error: any) => {
+          const message = error.response?.data?.message || error.message || "Failed to cancel trip.";
+          toast({
+            title: "Action Failed",
+            description: message,
+            variant: "destructive",
+          });
+        },
+      },
+    );
   };
 
   const handleCompleteTrip = async (id: string) => {
@@ -166,6 +180,15 @@ const Trips = () => {
       {
         onSuccess: (data) => {
           setSelectedTrip(data);
+          toast({ title: "Trip Completed", description: "The trip has been marked as completed." });
+        },
+        onError: (error: any) => {
+          const message = error.response?.data?.message || error.message || "Failed to complete trip.";
+          toast({
+            title: "Action Failed",
+            description: message,
+            variant: "destructive",
+          });
         },
       },
     );
@@ -178,6 +201,15 @@ const Trips = () => {
       {
         onSuccess: (data) => {
           setSelectedTrip(data);
+          toast({ title: "Trip Started", description: "The trip is now in progress." });
+        },
+        onError: (error: any) => {
+          const message = error.response?.data?.message || error.message || "Failed to start trip.";
+          toast({
+            title: "Action Failed",
+            description: message,
+            variant: "destructive",
+          });
         },
       },
     );
@@ -413,7 +445,12 @@ const TripDetailsContent = ({
   onStart: () => void;
   onComplete: () => void;
 }) => {
-  const { data: passengers = [], isLoading: isLoadingPassengers } = useTripPassengers(trip.id);
+  const {
+    data: passengers = [],
+    isLoading: isLoadingPassengers,
+    refetch: refetchPassengers,
+  } = useTripPassengers(trip.id);
+  const updateBoardingStatus = useUpdateBoardingStatus();
 
   const getDelayStatusColor = (tripStatus: Trip["tripStatus"], delayMinutes: number) => {
     if (tripStatus === "On Time" || tripStatus === "Early") return "text-success bg-success/10";
@@ -524,7 +561,7 @@ const TripDetailsContent = ({
           <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Total Revenue</span>
-              <span className="text-xl font-bold text-primary">₹{trip.revenue.toLocaleString()}</span>
+              <span className="text-xl font-bold text-primary">₹{(trip.revenue || 0).toLocaleString()}</span>
             </div>
           </div>
 
@@ -607,16 +644,94 @@ const TripDetailsContent = ({
                       )}
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={cn(
-                          "badge",
-                          booking.boardingStatus === "Boarded" && "badge-success",
-                          booking.boardingStatus === "Not Boarded" && "badge-warning",
-                          booking.boardingStatus === "No Show" && "badge-error",
-                        )}
-                      >
-                        {booking.boardingStatus}
-                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
+                            <span
+                              className={cn(
+                                "badge cursor-pointer hover:opacity-80 transition-opacity",
+                                booking.boardingStatus === "Boarded" && "badge-success",
+                                booking.boardingStatus === "Not Boarded" && "badge-warning",
+                                booking.boardingStatus === "No Show" && "badge-error",
+                              )}
+                            >
+                              {booking.boardingStatus}
+                            </span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              updateBoardingStatus.mutate(
+                                { id: booking.id, status: "BOARDED" },
+                                {
+                                  onSuccess: () => {
+                                    refetchPassengers();
+                                    toast({ title: "Updated", description: "Passenger marked as boarded." });
+                                  },
+                                  onError: (error: any) => {
+                                    const message =
+                                      error.response?.data?.message ||
+                                      error.message ||
+                                      "Failed to update boarding status.";
+                                    toast({ title: "Error", description: message, variant: "destructive" });
+                                  },
+                                },
+                              )
+                            }
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2 text-success" />
+                            Mark Boarded
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              updateBoardingStatus.mutate(
+                                { id: booking.id, status: "NOT_BOARDED" },
+                                {
+                                  onSuccess: () => {
+                                    refetchPassengers();
+                                    toast({ title: "Updated", description: "Passenger marked as not boarded." });
+                                  },
+                                  onError: (error: any) => {
+                                    const message =
+                                      error.response?.data?.message ||
+                                      error.message ||
+                                      "Failed to update boarding status.";
+                                    toast({ title: "Error", description: message, variant: "destructive" });
+                                  },
+                                },
+                              )
+                            }
+                          >
+                            <Clock className="h-4 w-4 mr-2 text-warning" />
+                            Mark Not Boarded
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() =>
+                              updateBoardingStatus.mutate(
+                                { id: booking.id, status: "NO_SHOW" },
+                                {
+                                  onSuccess: () => {
+                                    refetchPassengers();
+                                    toast({ title: "Updated", description: "Passenger marked as no show." });
+                                  },
+                                  onError: (error: any) => {
+                                    const message =
+                                      error.response?.data?.message ||
+                                      error.message ||
+                                      "Failed to update boarding status.";
+                                    toast({ title: "Error", description: message, variant: "destructive" });
+                                  },
+                                },
+                              )
+                            }
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Mark No Show
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

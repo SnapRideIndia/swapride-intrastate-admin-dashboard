@@ -21,7 +21,7 @@ export const storageService = {
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : null;
-    } catch (error) {
+    } catch {
       return null;
     }
   },
@@ -29,13 +29,13 @@ export const storageService = {
   set: <T>(key: string, value: T): void => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {}
+    } catch {}
   },
 
   remove: (key: string): void => {
     try {
       localStorage.removeItem(key);
-    } catch (error) {}
+    } catch {}
   },
 
   clear: (): void => {

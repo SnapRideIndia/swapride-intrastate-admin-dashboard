@@ -8,11 +8,6 @@ import {
   DistributionData,
   KpiMetrics,
 } from "@/types";
-import { busService } from "@/features/buses";
-import { driverApi } from "@/features/drivers";
-import { userService } from "@/features/users";
-import { tripsApi } from "@/features/trips/api/trips-api";
-import { bookingService } from "@/features/bookings";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
@@ -21,7 +16,7 @@ export const analyticsService = {
     try {
       const response = await apiClient.get<DashboardStats>(API_ENDPOINTS.ANALYTICS.DASHBOARD_STATS);
       return response.data;
-    } catch (error) {
+    } catch {
       return {
         totalBuses: 0,
         activeBuses: 0,
@@ -41,7 +36,7 @@ export const analyticsService = {
     try {
       const response = await apiClient.get<any[]>(API_ENDPOINTS.ANALYTICS.BUS_UTILIZATION);
       return response.data;
-    } catch (error) {
+    } catch {
       return [];
     }
   },

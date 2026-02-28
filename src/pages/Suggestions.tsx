@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { MapPin, Route, Search, Filter, XCircle, Clock, User, Calendar, ChevronRight } from "lucide-react";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSuggestions, useUpdateSuggestion } from "@/features/suggestions/hooks/useSuggestions";
+import { useSuggestions } from "@/features/suggestions/hooks/useSuggestions";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { AccessDenied } from "@/components/AccessDenied";
@@ -21,7 +21,7 @@ const Suggestions = () => {
   const searchQuery = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "ALL";
   const currentPage = parseInt(searchParams.get("page") || "1");
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 

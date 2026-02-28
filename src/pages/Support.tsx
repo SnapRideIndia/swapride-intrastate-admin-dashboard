@@ -19,15 +19,14 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/features/analytics";
-import { useSupportTickets, useUpdateTicketStatus, useReplyTicket } from "@/features/support/hooks/useSupport";
+import { useSupportTickets, useUpdateTicketStatus } from "@/features/support/hooks/useSupport";
 import { Ticket } from "@/features/support/api/support.service";
-import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 const Support = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  /* eslint-disable @typescript-eslint/no-unused-vars */
+
   const [activeTab, setActiveTab] = useState("all");
-  /* eslint-enable @typescript-eslint/no-unused-vars */
+
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
@@ -45,7 +44,6 @@ const Support = () => {
   const totalCount = ticketsData?.total || 0;
 
   const updateStatusMutation = useUpdateTicketStatus();
-  const replyMutation = useReplyTicket();
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
@@ -94,11 +92,6 @@ const Support = () => {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === selectedTicket.id ? { ...t, messages: [...t.messages, newMessage], lastUpdated: "Just now" } : t,
-      ),
-    );
     setSelectedTicket((prev) =>
       prev ? { ...prev, messages: [...prev.messages, newMessage], lastUpdated: "Just now" } : null,
     );

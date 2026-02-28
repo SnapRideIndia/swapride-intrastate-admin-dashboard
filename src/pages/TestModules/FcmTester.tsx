@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Notification as AppNotification } from "@/types";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -7,23 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Bell,
-  Send,
-  Copy,
-  Check,
-  ShieldCheck,
-  AlertTriangle,
-  Info,
-  Zap,
-  Globe,
-  Smartphone,
-  MessageSquare,
-} from "lucide-react";
+import { Send, Copy, Check, ShieldCheck, AlertTriangle, Info, Zap, Globe, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { notificationService } from "@/features/notifications/api/notification.service";
 
-const TEMPLATES = [
+const TEMPLATES: (Omit<AppNotification, "id" | "createdAt" | "read"> & {
+  id: string;
+  name: string;
+  icon: any;
+  color: string;
+  bg: string;
+})[] = [
   {
     id: "system-alert",
     name: "System Alert",
@@ -65,7 +60,7 @@ export default function FcmTester() {
   const [isCopied, setIsCopied] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<AppNotification, "id" | "createdAt" | "read" | "targetGroup">>({
     title: TEMPLATES[0].title,
     content: TEMPLATES[0].content,
     type: TEMPLATES[0].type,
@@ -114,9 +109,9 @@ export default function FcmTester() {
       await notificationService.create({
         ...formData,
         targetGroup: "ADMINS",
-      });
+      } as any);
       toast.success("Test broadcast dispatched to Admins!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to dispatch test notification");
     } finally {
       setLoading(false);
@@ -266,7 +261,9 @@ export default function FcmTester() {
                       </Label>
                       <select
                         value={formData.priority}
-                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, priority: e.target.value as "LOW" | "MEDIUM" | "HIGH" })
+                        }
                         className="w-full h-11 px-4 rounded-lg border border-gray-100 bg-gray-50/30 focus:bg-white transition-all text-sm font-bold appearance-none bg-no-repeat bg-[right_1rem_center] focus:ring-1 focus:ring-primary/20 outline-none"
                         style={{
                           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,

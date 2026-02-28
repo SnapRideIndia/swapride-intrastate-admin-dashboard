@@ -45,7 +45,7 @@ const UniversalTracker = () => {
         setErrorStatus(true);
         toast({ title: "No Record Found", description: "Please enter a valid tracking ID.", variant: "destructive" });
       }
-    } catch (error) {
+    } catch {
       setResult(null);
       setErrorStatus(true);
       toast({ title: "Error", description: "Please enter a valid tracking ID.", variant: "destructive" });

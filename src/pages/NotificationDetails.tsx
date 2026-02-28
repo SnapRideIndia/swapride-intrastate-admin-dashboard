@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Bell,
   Clock,
-  User,
   Info,
   CheckCircle2,
   MessageSquare,

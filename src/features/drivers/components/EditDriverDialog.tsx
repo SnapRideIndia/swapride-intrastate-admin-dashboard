@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Driver } from "@/types";
 import {
   Dialog,
@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useUpdateDriver } from "../hooks/useDrivers";
-import { toast } from "@/hooks/use-toast";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 
 const editDriverSchema = z.object({

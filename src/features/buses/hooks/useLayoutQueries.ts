@@ -31,11 +31,11 @@ export const useActiveLayouts = () => {
   });
 };
 
-export const useLayout = (id: string) => {
+export const useLayout = (id: string, enabled?: boolean) => {
   return useQuery({
     queryKey: layoutKeys.detail(id),
     queryFn: () => busLayoutService.getById(id),
-    enabled: !!id,
+    enabled: enabled !== undefined ? enabled : !!id && id !== "new",
   });
 };
 

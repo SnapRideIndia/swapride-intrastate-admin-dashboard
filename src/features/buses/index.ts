@@ -6,3 +6,4 @@ export { BusLayoutDialog } from "./components/BusLayoutDialog";
 export { LayoutPreviewGrid } from "./components/LayoutPreviewGrid";
 export { AddBusDialog } from "./components/AddBusDialog";
 export { EditBusDialog } from "./components/EditBusDialog";
+export { BusQRCode } from "./components/BusQRCode";

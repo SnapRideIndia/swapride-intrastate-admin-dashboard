@@ -10,8 +10,6 @@ import {
   AlertTriangle,
   Tag,
   CheckCircle2,
-  XCircle,
-  Megaphone,
   Loader2,
 } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
@@ -27,12 +25,10 @@ import { toast } from "sonner";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { useCreateNotification } from "@/features/notifications/hooks/useNotifications";
 
-type NotificationType = string;
 type TargetGroup = "ALL" | "USERS" | "DRIVERS" | "ADMINS";
 
 export default function CreateNotification() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
 
   // Form State
   const [title, setTitle] = useState("");

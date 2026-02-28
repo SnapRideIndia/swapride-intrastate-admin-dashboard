@@ -25,7 +25,7 @@ export default function BackendOffline() {
 
     try {
       // Try to ping the backend - any response means it's online
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/auth/me`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/auth/me`, {
         method: "GET",
         signal: AbortSignal.timeout(5000),
       });
@@ -35,7 +35,7 @@ export default function BackendOffline() {
       const returnPath = sessionStorage.getItem("pre-network-error-path") || "/";
       sessionStorage.removeItem("pre-network-error-path");
       navigate(returnPath, { replace: true });
-    } catch (error) {
+    } catch {
       // Network error - backend still offline
       setIsRetrying(false);
       setAutoRetryCountdown(10);

@@ -18,7 +18,6 @@ import {
   LayoutGrid,
   Wallet,
   DollarSign,
-  Truck,
   Ticket,
   UserPlus,
   Bell,

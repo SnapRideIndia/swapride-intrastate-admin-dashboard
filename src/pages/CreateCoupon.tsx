@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Save, Calendar as CalendarIcon, Ticket, Check, ChevronsUpDown, Search, X, Info } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { PageHeader } from "@/components/ui/page-header";
 import { useCoupon, useCreateCoupon, useUpdateCoupon } from "@/features/coupons/hooks/useCoupons";
 import { routeService } from "@/features/routes/api/route.service";
-import { toast } from "@/components/ui/sonner";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -45,10 +44,12 @@ const CreateCoupon = () => {
   }, [coupon]);
 
   // Fetch Routes for Targeting
-  const { data: routes = [], isLoading: isRoutesLoading } = useQuery({
+  const { data: routesData, isLoading: isRoutesLoading } = useQuery({
     queryKey: ["routes"],
-    queryFn: routeService.getAll,
+    queryFn: () => routeService.getAll(),
   });
+
+  const routes = routesData?.data || [];
 
   // Mutations
   const createMutation = useCreateCoupon();
@@ -363,26 +364,30 @@ const CreateCoupon = () => {
                         <CommandList>
                           <CommandEmpty>No route found.</CommandEmpty>
                           <CommandGroup>
-                            {routes.map((route) => (
-                              <CommandItem
-                                key={route.id}
-                                value={route.routeName}
-                                onSelect={() => toggleRoute(route.id)}
-                                className="flex items-center gap-2 cursor-pointer"
-                              >
-                                <div
-                                  className={cn(
-                                    "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                    selectedRoutes.includes(route.id)
-                                      ? "bg-primary text-primary-foreground"
-                                      : "opacity-50 [&_svg]:invisible",
-                                  )}
+                            {routes.length > 0 ? (
+                              routes.map((route) => (
+                                <CommandItem
+                                  key={route.id}
+                                  value={route.routeName}
+                                  onSelect={() => toggleRoute(route.id)}
+                                  className="flex items-center gap-2 cursor-pointer"
                                 >
-                                  <Check className="h-3 w-3" />
-                                </div>
-                                <span className="flex-1 truncate">{route.routeName}</span>
-                              </CommandItem>
-                            ))}
+                                  <div
+                                    className={cn(
+                                      "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                      selectedRoutes.includes(route.id)
+                                        ? "bg-primary text-primary-foreground"
+                                        : "opacity-50 [&_svg]:invisible",
+                                    )}
+                                  >
+                                    <Check className="h-3 w-3" />
+                                  </div>
+                                  <span className="flex-1 truncate">{route.routeName}</span>
+                                </CommandItem>
+                              ))
+                            ) : (
+                              <div className="py-6 text-center text-sm text-muted-foreground">No routes available</div>
+                            )}
                           </CommandGroup>
                         </CommandList>
                       </Command>

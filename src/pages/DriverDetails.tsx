@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,10 @@ import { ROUTES } from "@/constants/routes";
 import {
   User,
   Phone,
-  Ban,
   CreditCard,
   Activity,
   FileText,
   Star,
-  Bus as BusIcon,
   Calendar,
   ExternalLink,
   MessageSquare,
@@ -23,7 +21,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import {
   useDriver,
   useDeleteDriver,
@@ -31,7 +28,7 @@ import {
   useDriverRatings,
   EditDriverDialog,
 } from "@/features/drivers";
-import { Driver, Trip, DriverRatingTag } from "@/types";
+import { Trip, DriverRatingTag } from "@/types";
 import { PageHeader } from "@/components/ui/page-header";
 import { TablePagination } from "@/components/ui/table-pagination";
 import {
@@ -58,7 +55,6 @@ const safeFormatDate = (date: string | Date | null | undefined, formatStr: strin
 const DriverDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { data: driver, isLoading: isDriverLoading, refetch } = useDriver(id || "");
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -84,7 +80,7 @@ const DriverDetails = () => {
   const [ratingsPage, setRatingsPage] = useState(1);
   const ratingsPageSize = 5;
 
-  const { data: tripsData = { data: [], total: 0 }, isLoading: isTripsLoading } = useQuery({
+  const { data: tripsData, isLoading: isTripsLoading } = useQuery({
     queryKey: ["driver-trips", id, tripsPage, tripsPageSize],
     queryFn: () =>
       tripsApi.getAll({
@@ -95,13 +91,13 @@ const DriverDetails = () => {
     enabled: !!id,
   });
 
-  const { data: ratingsData = { data: [], total: 0 } } = useDriverRatings(id || "", {
+  const { data: ratingsData } = useDriverRatings(id || "", {
     limit: ratingsPageSize,
     offset: (ratingsPage - 1) * ratingsPageSize,
   });
 
-  const paginatedTrips = tripsData.data;
-  const totalTripsCount = tripsData.total;
+  const paginatedTrips = tripsData?.data || [];
+  const totalTripsCount = tripsData?.pagination?.total || 0;
 
   const deleteMutation = useDeleteDriver();
 
@@ -351,7 +347,7 @@ const DriverDetails = () => {
                 <Star className="h-4 w-4 text-warning" />
                 Ratings & Reviews
                 <span className="ml-auto text-sm font-normal text-muted-foreground">
-                  {ratingsData.total} review{ratingsData.total !== 1 ? "s" : ""}
+                  {ratingsData?.pagination?.total || 0} review{ratingsData?.pagination?.total !== 1 ? "s" : ""}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -416,11 +412,11 @@ const DriverDetails = () => {
                   })}
                 </div>
               )}
-              {ratingsData.total > ratingsPageSize && (
+              {ratingsData?.pagination?.total && ratingsData.pagination.total > ratingsPageSize && (
                 <div className="mt-4">
                   <TablePagination
                     currentPage={ratingsPage}
-                    totalCount={ratingsData.total}
+                    totalCount={ratingsData?.pagination?.total || 0}
                     pageSize={ratingsPageSize}
                     onPageChange={setRatingsPage}
                   />

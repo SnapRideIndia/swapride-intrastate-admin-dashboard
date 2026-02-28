@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Search, MapPin, MoreVertical, Edit, Trash2, Map, Navigation, Eye } from "lucide-react";
@@ -24,7 +24,7 @@ const Points = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
   const currentPage = parseInt(searchParams.get("page") || "1");
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 

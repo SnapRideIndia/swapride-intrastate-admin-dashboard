@@ -20,7 +20,7 @@ class SocketService {
 
     this.socket.on("disconnect", () => {});
 
-    this.socket.on("connect_error", (error) => {});
+    this.socket.on("connect_error", () => {});
   }
 
   disconnect() {

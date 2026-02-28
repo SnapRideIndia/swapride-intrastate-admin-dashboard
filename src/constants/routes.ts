@@ -7,6 +7,7 @@ export const ROUTES = {
   // Core
   DASHBOARD: "/",
   BUSES: "/buses",
+  BUS_DETAILS: "/buses/:id",
   BUS_LAYOUTS: "/bus-layouts",
   BUS_LAYOUT_BUILDER: "/bus-layouts/:id",
   ROUTES: "/routes",

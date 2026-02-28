@@ -1,10 +1,7 @@
 import { BusLayout, LayoutSeat, SeatType, LayoutType } from "@/types";
 import { PaginatedResponse } from "@/types/pagination";
-import { storageService } from "@/utils/storage";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
-
-const LAYOUTS_KEY = "shuttle_bus_layouts";
 
 const createLayoutGrid = (rows: number, cols: number, _layoutType: LayoutType): LayoutSeat[] => {
   const seats: LayoutSeat[] = [];
@@ -85,77 +82,6 @@ export const LAYOUT_TEMPLATES = {
     status: "active" as const,
     numberingDirection: "RTL" as const,
   },
-};
-
-const createMockLayouts = (): BusLayout[] => {
-  const now = new Date().toISOString();
-
-  return [
-    {
-      id: "layout_001",
-      name: "Standard 2x2 AC",
-      totalRows: 10,
-      totalColumns: 5,
-      description: "Standard 40-seater AC layout with 2x2 configuration.",
-      layoutType: "2x2",
-      totalSeats: 41, // 10 rows * 4 seats + 1 seat in back = 41
-      status: "active",
-      numberingDirection: "LTR",
-      createdAt: "2024-01-15T10:00:00Z",
-      updatedAt: now,
-      createdBy: "admin_001",
-      busesUsing: 3,
-      seats: createLayoutGrid(10, 5, "2x2"),
-    },
-    {
-      id: "layout_002",
-      name: "Standard 2x2 AC Eco",
-      totalRows: 10,
-      totalColumns: 5,
-      description: "Standard 40-seat AC layout with 2x2 configuration.",
-      layoutType: "2x2",
-      totalSeats: 41,
-      status: "active",
-      numberingDirection: "LTR",
-      createdAt: "2024-01-01T10:00:00Z",
-      updatedAt: now,
-      createdBy: "admin_001",
-      busesUsing: 12,
-      seats: createLayoutGrid(10, 5, "2x2"),
-    },
-    {
-      id: "layout_003",
-      name: "Standard 2x3 Non-AC",
-      totalRows: 10,
-      totalColumns: 6,
-      description: "Standard 50-seater Non-AC layout with 2x3 configuration.",
-      layoutType: "2x3",
-      totalSeats: 51, // 10 rows * 5 seats + 1 seat in back = 51
-      status: "active",
-      numberingDirection: "LTR",
-      createdAt: "2024-01-05T10:00:00Z",
-      updatedAt: now,
-      createdBy: "admin_001",
-      busesUsing: 5,
-      seats: createLayoutGrid(10, 6, "2x3"),
-    },
-    {
-      id: "layout_006",
-      name: "Budget 3x2 Economy",
-      totalRows: 12,
-      totalColumns: 6,
-      description: "Budget 60-seat economy layout with 3x2 configuration.",
-      layoutType: "3x2",
-      totalSeats: 61, // 12 rows * 5 seats + 1 seat in back = 61
-      status: "inactive",
-      numberingDirection: "RTL",
-      createdAt: "2023-12-15T10:00:00Z",
-      updatedAt: now,
-      createdBy: "admin_001",
-      busesUsing: 0,
-      seats: createLayoutGrid(12, 6, "3x2"),
-    },
-  ];
 };
 
 export const busLayoutService = {

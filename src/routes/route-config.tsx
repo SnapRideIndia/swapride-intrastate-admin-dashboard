@@ -23,7 +23,7 @@ import Referrals from "@/pages/Referrals";
 import Notifications from "@/pages/Notifications";
 import CreateNotification from "@/pages/CreateNotification";
 import NotificationDetails from "@/pages/NotificationDetails";
-import SearchEngineTester from "@/pages/TestModules/SearchEngineTester";
+import BookingSimulator from "@/pages/TestModules/Bookings";
 import FcmTester from "@/pages/TestModules/FcmTester";
 import RazorpayTester from "@/pages/TestModules/RazorpayTester";
 import Suggestions from "@/pages/Suggestions";
@@ -74,9 +74,5 @@ export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.ADMINS, element: <Admins /> },
   { path: ROUTES.ADMIN_DETAILS, element: <AdminDetails /> },
   { path: ROUTES.ROLES, element: <Roles /> },
-  { path: ROUTES.SEARCH_ENGINE_TESTER, element: <SearchEngineTester /> },
-  { path: ROUTES.FCM_TEST, element: <FcmTester /> },
-  { path: ROUTES.RAZORPAY_TEST, element: <RazorpayTester /> },
-  { path: ROUTES.BOOKINGS, element: <Bookings /> },
   { path: ROUTES.BOOKING_DETAILS, element: <BookingDetails /> },
 ];

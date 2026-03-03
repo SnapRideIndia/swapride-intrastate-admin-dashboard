@@ -52,7 +52,7 @@ export const ROUTES = {
   ROLES: "/roles",
 
   // Test Modules
-  SEARCH_ENGINE_TESTER: "/test/search-engine",
+  BOOKING_SIMULATOR: "/test/bookings",
   FCM_TEST: "/test/fcm",
   RAZORPAY_TEST: "/test/razorpay",
 } as const;

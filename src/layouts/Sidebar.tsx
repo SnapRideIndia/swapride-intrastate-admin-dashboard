@@ -88,7 +88,7 @@ const testModulesCategory = {
   label: "Test Modules",
   icon: Microscope,
   items: [
-    { name: "Search Engine", href: ROUTES.SEARCH_ENGINE_TESTER, icon: Search, permission: null },
+    { name: "Bookings", href: ROUTES.BOOKING_SIMULATOR, icon: Search, permission: null },
     { name: "FCM Test", href: ROUTES.FCM_TEST, icon: Bell, permission: null },
     { name: "Razorpay Test", href: ROUTES.RAZORPAY_TEST, icon: CreditCard, permission: null },
   ],

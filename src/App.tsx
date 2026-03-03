@@ -22,6 +22,12 @@ import UniversalTracker from "./pages/UniversalTracker";
 import Payments from "./pages/Payments";
 import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import TestModuleLayout from "./pages/TestModules/shared/TestModuleLayout";
+import BookingSimulator from "@/pages/TestModules/Bookings";
+import RazorpayTester from "@/pages/TestModules/RazorpayTester";
+import FcmTester from "@/pages/TestModules/FcmTester";
+import Bookings from "@/pages/Bookings";
+import BookingDetails from "@/pages/BookingDetails";
 
 const App = () => {
   useEffect(() => {
@@ -93,6 +99,35 @@ const App = () => {
                         element={<ProtectedRoute>{route.element}</ProtectedRoute>}
                       />
                     ))}
+
+                    <Route
+                      element={
+                        <ProtectedRoute>
+                          <TestModuleLayout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route path={ROUTES.BOOKING_SIMULATOR} element={<BookingSimulator />} />
+                      <Route path={ROUTES.RAZORPAY_TEST} element={<RazorpayTester />} />
+                      <Route path={ROUTES.FCM_TEST} element={<FcmTester />} />
+                    </Route>
+
+                    <Route
+                      path={ROUTES.BOOKINGS}
+                      element={
+                        <ProtectedRoute>
+                          <Bookings />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTES.BOOKING_DETAILS}
+                      element={
+                        <ProtectedRoute>
+                          <BookingDetails />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     {/* Nested Payments Routes */}
                     <Route

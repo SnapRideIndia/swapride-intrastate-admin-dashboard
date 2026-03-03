@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,7 @@ import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { tripsApi } from "@/features/trips";
 import { useDrivers } from "@/features/drivers";
 import { useBuses } from "@/features/buses";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const tripFormSchema = z.object({
   driverId: z.string().min(1, "Driver is required"),
@@ -39,8 +40,22 @@ interface AssignTripDialogProps {
   onTripAssigned?: (trip: TripFormData) => void;
 }
 
+/** Extract the most specific error message from an API error */
+function extractErrorMessage(error: any): string {
+  // Array of messages from backend (e.g. validation errors)
+  const messages = error?.response?.data?.message;
+  if (Array.isArray(messages) && messages.length > 0) return messages.join(", ");
+  if (typeof messages === "string" && messages) return messages;
+  // Single string fallback
+  if (error?.response?.data?.error) return error.response.data.error;
+  // Client-side thrown error (no response = not an axios HTTP error)
+  if (error?.message && !error.response) return error.message;
+  return "An unexpected error occurred. Please try again.";
+}
+
 export function AssignTripDialog({ onTripAssigned }: AssignTripDialogProps) {
   const [open, setOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -67,20 +82,15 @@ export function AssignTripDialog({ onTripAssigned }: AssignTripDialogProps) {
 
   const createTripMutation = useMutation({
     mutationFn: async (data: TripFormData) => {
+      setFormError(null);
       // Prechecks: Validate all required data exists
       const route = routes.find((r) => r.id === data.routeId);
       const driver = drivers.find((d) => d.id === data.driverId);
       const bus = buses.find((b) => b.id === data.busId);
 
-      if (!route) {
-        throw new Error("Selected route not found");
-      }
-      if (!driver) {
-        throw new Error("Selected driver not found");
-      }
-      if (!bus) {
-        throw new Error("Selected bus not found");
-      }
+      if (!route) throw new Error("Selected route not found");
+      if (!driver) throw new Error("Selected driver not found");
+      if (!bus) throw new Error("Selected bus not found");
 
       // Validate times
       const tripDate = data.date; // YYYY-MM-DD format
@@ -109,15 +119,12 @@ export function AssignTripDialog({ onTripAssigned }: AssignTripDialogProps) {
         title: "Trip Created Successfully",
         description: "The trip has been assigned and scheduled.",
       });
+      setFormError(null);
       form.reset();
       setOpen(false);
     },
     onError: (error: any) => {
-      toast({
-        title: "Failed to Create Trip",
-        description: error.message || error.response?.data?.message || "An error occurred while creating the trip.",
-        variant: "destructive",
-      });
+      setFormError(extractErrorMessage(error));
     },
   });
 
@@ -143,6 +150,16 @@ export function AssignTripDialog({ onTripAssigned }: AssignTripDialogProps) {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Inline error alert – shown for API errors (e.g. scheduling conflict) */}
+              {formError && (
+                <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Could not create trip</p>
+                    <p className="mt-0.5 text-destructive/80">{formError}</p>
+                  </div>
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="driverId"

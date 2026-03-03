@@ -211,4 +211,31 @@ export const API_ENDPOINTS = {
     ANALYTICS: "/admin/financials/analytics",
     TRACK: (id: string) => `/admin/financials/track/${id}`,
   },
+
+  // Test Modules
+  TEST: {
+    AUTH: {
+      LOGIN: "/users/auth/login",
+      REFRESH: "/users/auth/refresh",
+    },
+    USER: {
+      ME: "/users/me",
+      UPDATE_PROFILE: "/users/profile",
+    },
+    WALLET: {
+      TOPUP_INITIATE: "/wallet/topup/initiate",
+    },
+    BOOKINGS: {
+      SEARCH: "/search/trips",
+      PLACE_AUTOCOMPLETE: "/search/place-autocomplete",
+      INITIATE: "/bookings/initiate",
+      INITIATE_ROUND_TRIP: "/bookings/initiate-round-trip",
+      CONFIRM: (id: string) => `/bookings/${id}/confirm`,
+      APPLY_COUPON: (id: string) => `/bookings/${id}/apply-coupon`,
+      CHANGE_SEAT: (id: string) => `/bookings/${id}/seat`,
+      GET_SEATS: (id: string) => `/trips/${id}/seats`,
+      MY_BOOKINGS: "/bookings/my-bookings",
+      GET_BY_ID: (id: string) => `/bookings/${id}`,
+    },
+  },
 };

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
+import { AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +17,7 @@ import { Trip } from "@/types";
 import { tripsApi } from "@/features/trips";
 import { useDrivers } from "@/features/drivers";
 import { useBuses } from "@/features/buses";
+import { useState } from "react";
 
 const tripFormSchema = z.object({
   driverId: z.string().min(1, "Driver is required"),
@@ -36,9 +37,20 @@ interface EditTripDialogProps {
   onTripUpdated?: () => void;
 }
 
+/** Extract the most specific error message from an API error */
+function extractErrorMessage(error: any): string {
+  const messages = error?.response?.data?.message;
+  if (Array.isArray(messages) && messages.length > 0) return messages.join(", ");
+  if (typeof messages === "string" && messages) return messages;
+  if (error?.response?.data?.error) return error.response.data.error;
+  if (error?.message && !error.response) return error.message;
+  return "An unexpected error occurred. Please try again.";
+}
+
 export function EditTripDialog({ trip, open, onOpenChange, onTripUpdated }: EditTripDialogProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Fetch data from APIs
   const { data: routesData, isLoading: isRoutesLoading } = useRoutes();
@@ -98,6 +110,7 @@ export function EditTripDialog({ trip, open, onOpenChange, onTripUpdated }: Edit
 
   const editTripMutation = useMutation({
     mutationFn: async (data: TripFormData) => {
+      setFormError(null);
       if (!trip) throw new Error("No trip selected");
 
       // Prechecks: Validate all required data exists
@@ -142,15 +155,12 @@ export function EditTripDialog({ trip, open, onOpenChange, onTripUpdated }: Edit
         title: "Trip Updated Successfully",
         description: "The trip details have been updated.",
       });
+      setFormError(null);
       onOpenChange(false);
       onTripUpdated?.();
     },
     onError: (error: any) => {
-      toast({
-        title: "Failed to Update Trip",
-        description: error.response?.data?.message || error.message || "An error occurred while updating the trip.",
-        variant: "destructive",
-      });
+      setFormError(extractErrorMessage(error));
     },
   });
 
@@ -169,6 +179,15 @@ export function EditTripDialog({ trip, open, onOpenChange, onTripUpdated }: Edit
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {formError && (
+                <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Could not update trip</p>
+                    <p className="mt-0.5 text-destructive/80">{formError}</p>
+                  </div>
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="driverId"

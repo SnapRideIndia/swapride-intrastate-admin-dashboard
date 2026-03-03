@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,16 +10,24 @@ import { toast } from "sonner";
 import axios from "axios";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/api/api-client";
+import { API_ENDPOINTS } from "@/api/endpoints";
+import { TEST_USER_TOKEN_KEY, Log } from "./types";
+
+// Shared Components
+import { LoginModal } from "./shared/LoginModal";
+import { useLogs } from "./shared/LogContext";
 
 // Use the dynamic baseURL from apiClient if possible
 const BACKEND_URL = (apiClient.defaults.baseURL as string) || "http://localhost:3000";
 
 export default function RazorpayTester() {
   const [amount, setAmount] = useState("100");
-  const [token, setToken] = useState("");
+  const [testToken, setTestToken] = useState<string | null>(localStorage.getItem(TEST_USER_TOKEN_KEY));
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"IDLE" | "PENDING" | "SUCCESS" | "FAILED">("IDLE");
-  const [logs, setLogs] = useState<{ time: string; msg: string; type: "info" | "success" | "error" }[]>([]);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const { addLog } = useLogs();
 
   useEffect(() => {
     // Dynamically load Razorpay script
@@ -36,9 +43,14 @@ export default function RazorpayTester() {
     };
   }, []);
 
-  const addLog = (msg: string, type: "info" | "success" | "error" = "info") => {
-    const time = new Date().toLocaleTimeString();
-    setLogs((prev) => [{ time, msg, type }, ...prev]);
+  const handleStartRazorpay = () => {
+    if (!testToken) {
+      addLog("Starting Razorpay test. Auth required.", "info");
+      setIsLoginModalOpen(true);
+    } else {
+      addLog("Starting Razorpay test with existing session.", "success");
+      setShowSimulator(true);
+    }
   };
 
   const handleTestPayment = async () => {
@@ -47,22 +59,22 @@ export default function RazorpayTester() {
       return;
     }
 
-    if (!token) {
-      toast.error("User Token is required to call Wallet API");
-      addLog("Error: Missing User Token", "error");
+    if (!testToken) {
+      addLog("Payment attempted without authentication. Opening login modal.", "error");
+      setIsLoginModalOpen(true);
       return;
     }
 
     setLoading(true);
     setPaymentStatus("PENDING");
-    addLog(`Initiating wallet top-up of ₹${amount}...`, "info");
+    addLog(`Initiating wallet top-up of ₹${amount}...`, "request");
 
     try {
-      const sanitizedToken = token.trim().replace(/[^\x00-\x7F]/g, ""); // Remove non-ASCII/special chars
-      addLog(`Calling ${BACKEND_URL}/wallet/topup/initiate...`, "info");
+      const sanitizedToken = testToken.trim().replace(/[^\x00-\x7F]/g, ""); // Remove non-ASCII/special chars
+      addLog(`Calling POST /wallet/topup/initiate...`, "request");
 
       const response = await axios.post(
-        `${BACKEND_URL}/wallet/topup/initiate`,
+        `${BACKEND_URL}${API_ENDPOINTS.TEST.WALLET.TOPUP_INITIATE}`,
         { amount: Number(amount) },
         {
           headers: {
@@ -75,7 +87,8 @@ export default function RazorpayTester() {
       const { gatewayData } = response.data;
       const { gatewayOrderId, razorpayKeyId } = gatewayData;
 
-      addLog(`Order created: ${gatewayOrderId}`, "success");
+      addLog(`Order created: ${gatewayOrderId}`, "response");
+      addLog("Opening Razorpay checkout modal...", "info");
 
       const options = {
         key: razorpayKeyId,
@@ -91,7 +104,7 @@ export default function RazorpayTester() {
         },
         modal: {
           ondismiss: function () {
-            addLog("Payment modal closed", "error");
+            addLog("Payment modal closed by user", "error");
             setPaymentStatus("FAILED");
             setLoading(false);
           },
@@ -114,12 +127,21 @@ export default function RazorpayTester() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto">
-        <PageHeader title="Razorpay UI Tester" subtitle="we test razor pay with user wallet topup" />
+    <>
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLog={addLog}
+        description="Sign in with your tester account to initiate payments"
+        onSuccess={(tokens) => {
+          setTestToken(tokens.accessToken);
+          addLog("Authenticated. You can now proceed with the test payment.", "success");
+        }}
+      />
 
+      <div className="flex-1 h-full flex flex-col min-w-0">
         {paymentStatus === "SUCCESS" && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-lg flex items-center gap-3 animate-in zoom-in duration-300 shadow-sm">
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center gap-3 animate-in zoom-in duration-300 shadow-sm border-dashed">
             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             <div>
               <p className="font-bold">Payment Successful!</p>
@@ -128,139 +150,125 @@ export default function RazorpayTester() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Controls */}
-          <Card className="md:col-span-1 border-slate-200 shadow-sm bg-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-blue-600" />
-                Payment Trigger
-              </CardTitle>
-              <CardDescription>Configure and start a test transaction</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Test Amount (INR)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
-                  <Input
-                    id="amount"
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="pl-7 focus-visible:ring-blue-500"
-                    placeholder="100"
-                  />
+        <div className="flex-1 flex gap-8 min-h-0 overflow-hidden items-center justify-center">
+          {/* Main Area */}
+          <div className="flex-1 h-full flex flex-col min-w-0">
+            {!showSimulator ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-white border border-slate-200 rounded-[3rem] shadow-sm border-dashed">
+                <div className="h-24 w-24 bg-blue-50 rounded-[2rem] flex items-center justify-center mb-8 ring-8 ring-blue-500/5">
+                  <CreditCard className="h-12 w-12 text-blue-600" />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="token">User Bearer Token</Label>
-                <Input
-                  id="token"
-                  type="password"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  className="focus-visible:ring-blue-500"
-                  placeholder="Paste user JWT here..."
-                />
-              </div>
-
-              <Button
-                onClick={handleTestPayment}
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 transition-all shadow-sm"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Pay Now
-                  </>
-                )}
-              </Button>
-
-              <div className="pt-4 border-t">
-                <div className="text-sm font-medium text-slate-500 mb-2">Checkout Status</div>
-                {paymentStatus === "IDLE" && <Badge variant="secondary">Waiting for input</Badge>}
-                {paymentStatus === "PENDING" && <Badge className="bg-amber-100 text-amber-700">In Progress</Badge>}
-                {paymentStatus === "SUCCESS" && <Badge className="bg-emerald-100 text-emerald-700">Completed</Badge>}
-                {paymentStatus === "FAILED" && <Badge className="bg-rose-100 text-rose-700">Cancelled/Failed</Badge>}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Logs */}
-          <Card className="md:col-span-2 border-slate-200 shadow-sm bg-slate-950 text-slate-200 overflow-hidden font-mono flex flex-col h-[400px]">
-            <CardHeader className="border-b border-slate-800 bg-slate-900/50">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Info className="h-4 w-4 text-blue-400" />
-                  Integration Logs
-                </CardTitle>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-4">Razorpay UI Tester</h3>
+                <p className="text-slate-500 font-medium mb-10 leading-relaxed max-w-md">
+                  Verify the payment gateway integration by simulating real-world wallet top-up scenarios with live
+                  backend connectivity.
+                </p>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLogs([])}
-                  className="text-[10px] text-slate-400 hover:text-white"
+                  onClick={handleStartRazorpay}
+                  className="px-10 h-16 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-2xl shadow-sm shadow-blue-500/10 transition-all active:scale-[0.95] flex items-center gap-3"
                 >
-                  Clear Logs
+                  Test Razor pay
+                  <Send className="h-5 w-5" />
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-y-auto">
-              {logs.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-slate-600 text-xs italic">
-                  No logs generated yet. Trigger a payment to see technical flow.
-                </div>
-              ) : (
-                <div className="p-4 space-y-2">
-                  {logs.map((log, i) => (
-                    <div
-                      key={i}
-                      className="text-[11px] leading-relaxed animate-in fade-in slide-in-from-left-2 transition-all"
-                    >
-                      <span className="text-slate-500">[{log.time}]</span>{" "}
-                      <span
-                        className={cn(
-                          log.type === "success"
-                            ? "text-emerald-400"
-                            : log.type === "error"
-                              ? "text-rose-400"
-                              : "text-blue-300",
-                        )}
-                      >
-                        {log.msg}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            ) : (
+              <div className="flex gap-8 h-full items-center justify-center">
+                {/* Controls */}
+                <div className="w-[380px] shrink-0 space-y-6">
+                  <Card className="border-slate-200 shadow-sm bg-white rounded-2xl">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <CreditCard className="h-5 w-5 text-blue-600" />
+                        Payment Config
+                      </CardTitle>
+                      <CardDescription>Initiate a top-up transaction</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-2">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="amount"
+                          className="text-[10px] uppercase font-black text-slate-500 tracking-widest pl-1"
+                        >
+                          Amount (INR)
+                        </Label>
+                        <div className="relative group">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                          <Input
+                            id="amount"
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="pl-8 h-12 bg-slate-50 border-none rounded-xl focus-visible:ring-2 focus-visible:ring-blue-500/20 font-bold"
+                            placeholder="100"
+                          />
+                        </div>
+                      </div>
 
-        {/* Info Card */}
-        <Card className="border-slate-200 shadow-sm bg-blue-50/50 text-blue-900">
-          <CardContent className="p-4 flex items-start gap-4">
-            <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-semibold mb-1">Testing Note</p>
-              <div className="opacity-80 text-sm">
-                This page uses the credentials configured in your backend .env file. Ensure you have{" "}
-                <Badge variant="outline" className="text-[10px] border-blue-200 bg-blue-100/50">
-                  rzp_test_...
-                </Badge>{" "}
-                keys for risk-free testing. Checkouts will trigger the standard Razorpay modal.
+                      <Button
+                        onClick={handleTestPayment}
+                        disabled={loading}
+                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl shadow-sm shadow-blue-100 transition-all active:scale-[0.98] gap-2 mt-2"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4" />
+                            Pay Now
+                          </>
+                        )}
+                      </Button>
+
+                      <div className="pt-4 border-t flex items-center justify-between">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</div>
+                        {paymentStatus === "IDLE" && (
+                          <Badge variant="secondary" className="rounded-full px-3 py-1 text-[10px]">
+                            Idle
+                          </Badge>
+                        )}
+                        {paymentStatus === "PENDING" && (
+                          <Badge className="bg-amber-100 text-amber-700 rounded-full px-3 py-1 text-[10px] border-none">
+                            Active
+                          </Badge>
+                        )}
+                        {paymentStatus === "SUCCESS" && (
+                          <Badge className="bg-emerald-100 text-emerald-700 rounded-full px-3 py-1 text-[10px] border-none">
+                            Success
+                          </Badge>
+                        )}
+                        {paymentStatus === "FAILED" && (
+                          <Badge className="bg-rose-100 text-rose-700 rounded-full px-3 py-1 text-[10px] border-none">
+                            Failed
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-slate-200 shadow-sm bg-blue-50/50 text-blue-900 rounded-2xl overflow-hidden">
+                    <CardContent className="p-5 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Info className="h-4 w-4 text-blue-600" />
+                        <span className="text-xs font-black uppercase tracking-widest">Testing Context</span>
+                      </div>
+                      <div className="text-[11px] font-bold leading-relaxed opacity-80">
+                        Transaction uses backend credentials. Ensure{" "}
+                        <Badge variant="outline" className="text-[9px] border-blue-200 py-0 px-1.5 h-auto">
+                          rzp_test_...
+                        </Badge>{" "}
+                        keys are active.
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

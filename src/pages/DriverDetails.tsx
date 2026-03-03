@@ -352,7 +352,7 @@ const DriverDetails = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              {ratingsData.data.length === 0 ? (
+              {!ratingsData?.data || ratingsData.data.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground text-sm">No reviews yet.</div>
               ) : (
                 <div className="space-y-4">

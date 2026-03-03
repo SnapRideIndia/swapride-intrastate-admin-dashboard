@@ -236,6 +236,7 @@ export const API_ENDPOINTS = {
       GET_SEATS: (id: string) => `/trips/${id}/seats`,
       MY_BOOKINGS: "/bookings/my-bookings",
       GET_BY_ID: (id: string) => `/bookings/${id}`,
+      GET_DETAILS: (id: string) => `/bookings/${id}/details`,
     },
   },
 };

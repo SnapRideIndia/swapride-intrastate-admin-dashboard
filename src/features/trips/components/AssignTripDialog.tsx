@@ -94,8 +94,8 @@ export function AssignTripDialog({ onTripAssigned }: AssignTripDialogProps) {
 
       // Validate times
       const tripDate = data.date; // YYYY-MM-DD format
-      const scheduledDepartureAt = `${tripDate}T${data.startTime}:00Z`;
-      const scheduledArrivalAt = `${tripDate}T${data.endTime}:00Z`;
+      const scheduledDepartureAt = `${tripDate}T${data.startTime}:00`;
+      const scheduledArrivalAt = `${tripDate}T${data.endTime}:00`;
 
       const departureTime = new Date(scheduledDepartureAt);
       const arrivalTime = new Date(scheduledArrivalAt);

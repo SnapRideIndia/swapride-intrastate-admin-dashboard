@@ -103,3 +103,41 @@ export interface RoundTripBookingResponse {
   return: BookingResponse;
   message: string;
 }
+export interface LegDetail {
+  bookingId: string;
+  tripId: string;
+  bookingStatus: string;
+  subTotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  coupon: any;
+  expiresAt: string;
+  assignedSeats: Array<{ seatId: string; seatNumber: string }>;
+  pickup: {
+    name: string;
+    address: string;
+    arrivalTime: string;
+    distanceText: string | null;
+    walkDurationText: string | null;
+  };
+  dropoff: {
+    name: string;
+    address: string;
+    arrivalTime: string;
+  };
+}
+
+export interface SingleBookingDetails extends LegDetail {
+  isRoundTrip: false;
+  totalPayable: number;
+}
+
+export interface RoundBookingDetails {
+  isRoundTrip: true;
+  totalPayable: number;
+  expiresAt: string;
+  outbound: LegDetail;
+  return: LegDetail;
+}
+
+export type BookingDetails = SingleBookingDetails | RoundBookingDetails;

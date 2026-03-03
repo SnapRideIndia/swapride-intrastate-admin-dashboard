@@ -137,8 +137,8 @@ export function EditTripDialog({ trip, open, onOpenChange, onTripUpdated }: Edit
         throw new Error("End time must be after start time");
       }
 
-      const scheduledDepartureAt = departureTime.toISOString();
-      const scheduledArrivalAt = arrivalTime.toISOString();
+      const scheduledDepartureAt = `${tripDate}T${data.startTime}:00`;
+      const scheduledArrivalAt = `${tripDate}T${data.endTime}:00`;
 
       return tripsApi.edit(trip.id, {
         tripDate,

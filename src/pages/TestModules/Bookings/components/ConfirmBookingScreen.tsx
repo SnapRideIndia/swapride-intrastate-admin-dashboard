@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { ApplyCouponModal } from "./ApplyCouponModal";
-import { BookingResponse, RoundTripBookingResponse, SearchResult, SearchTiming } from "../types/search";
+import { BookingResponse, RoundTripBookingResponse, SearchResult, SearchTiming, BookingDetails } from "../types/search";
 import { format, differenceInSeconds } from "date-fns";
 
 interface ConfirmBookingScreenProps {
@@ -15,8 +15,8 @@ interface ConfirmBookingScreenProps {
   onBack: () => void;
   onConfirm: () => void;
   onChangeSeat: (leg: "outbound" | "return") => void;
+  bookingDetails?: BookingDetails | null;
 }
-
 export function ConfirmBookingScreen({
   outbound,
   returnTrip,
@@ -25,13 +25,18 @@ export function ConfirmBookingScreen({
   onBack,
   onConfirm,
   onChangeSeat,
+  bookingDetails,
 }: ConfirmBookingScreenProps) {
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
-    const expiry = roundTripResponse ? roundTripResponse.expiresAt : bookingResponse?.expiresAt;
+    const expiry = bookingDetails
+      ? bookingDetails.expiresAt
+      : roundTripResponse
+        ? roundTripResponse.expiresAt
+        : bookingResponse?.expiresAt;
     if (!expiry) return;
 
     const timer = setInterval(() => {
@@ -49,11 +54,27 @@ export function ConfirmBookingScreen({
     return () => clearInterval(timer);
   }, [bookingResponse, roundTripResponse]);
 
-  const outboundData = roundTripResponse ? roundTripResponse.outbound : bookingResponse;
-  const totalPayable = roundTripResponse ? roundTripResponse.totalPayable : bookingResponse?.totalAmount || 0;
-  const discountTotal = roundTripResponse
-    ? roundTripResponse.outbound.discountAmount + roundTripResponse.return.discountAmount
-    : bookingResponse?.discountAmount || 0;
+  const outboundData = bookingDetails
+    ? bookingDetails.isRoundTrip
+      ? (bookingDetails as any).outbound
+      : bookingDetails
+    : roundTripResponse
+      ? roundTripResponse.outbound
+      : bookingResponse;
+
+  const totalPayable = bookingDetails
+    ? bookingDetails.totalPayable
+    : roundTripResponse
+      ? roundTripResponse.totalPayable
+      : bookingResponse?.totalAmount || 0;
+
+  const discountTotal = bookingDetails
+    ? bookingDetails.isRoundTrip
+      ? (bookingDetails as any).outbound.discountAmount + (bookingDetails as any).return.discountAmount
+      : (bookingDetails as any).discountAmount
+    : roundTripResponse
+      ? roundTripResponse.outbound.discountAmount + roundTripResponse.return.discountAmount
+      : bookingResponse?.discountAmount || 0;
 
   return (
     <div className="flex-1 flex flex-col bg-[#F0F4F8] overflow-hidden h-full">
@@ -79,16 +100,21 @@ export function ConfirmBookingScreen({
             result={outbound}
             booking={outboundData}
             onChangeSeat={() => onChangeSeat("outbound")}
+            details={bookingDetails?.isRoundTrip === false ? bookingDetails : (bookingDetails as any)?.outbound}
           />
 
           {/* Return Trip Card (Conditional) */}
-          {returnTrip && roundTripResponse && (
+          {((returnTrip && roundTripResponse) || bookingDetails?.isRoundTrip) && (
             <TripDetailCard
-              title={format(new Date(returnTrip.timing.pickupArrivalTime), "EEEE, do MMM")}
+              title={format(
+                new Date(returnTrip?.timing.pickupArrivalTime || (bookingDetails as any).return.pickup.arrivalTime),
+                "EEEE, do MMM",
+              )}
               type="return"
-              result={returnTrip}
-              booking={roundTripResponse.return}
+              result={returnTrip || { result: {} as any, timing: {} as any }}
+              booking={(bookingDetails as any)?.return || roundTripResponse?.return}
               onChangeSeat={() => onChangeSeat("return")}
+              details={(bookingDetails as any)?.return}
             />
           )}
 
@@ -236,12 +262,14 @@ function TripDetailCard({
   result,
   booking,
   onChangeSeat,
+  details,
 }: {
   title: string;
   type: "outbound" | "return";
   result: { result: SearchResult; timing: SearchTiming };
   booking: BookingResponse | null | undefined;
   onChangeSeat: () => void;
+  details?: any;
 }) {
   return (
     <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-50">
@@ -274,7 +302,8 @@ function TripDetailCard({
                 <p className="text-[11px] font-medium text-slate-500 mt-0.5">{result.result.pickup.address}</p>
                 <div className="flex items-center gap-1.5 mt-1.5 opacity-70">
                   <span className="text-[10px] font-black text-slate-900">
-                    🏃 {result.result.pickup.distanceText} walk
+                    🏃 {details?.pickup?.distanceText || result.result.pickup?.distanceText} walk (
+                    {details?.pickup?.walkDurationText || "calculating..."})
                   </span>
                 </div>
               </div>
@@ -290,7 +319,7 @@ function TripDetailCard({
                 <p className="text-[11px] font-medium text-slate-500 mt-0.5">{result.result.dropoff.address}</p>
                 <div className="flex items-center gap-1.5 mt-1.5 opacity-70">
                   <span className="text-[10px] font-black text-slate-900">
-                    🏃 {result.result.dropoff.distanceText} walk
+                    🏃 {details?.dropoff?.distanceText || result.result.dropoff?.distanceText || "0 km"} walk
                   </span>
                 </div>
               </div>

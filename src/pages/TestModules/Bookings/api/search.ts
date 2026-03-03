@@ -103,4 +103,17 @@ export const searchApi = {
     });
     return response.data;
   },
+  /**
+   * Get consolidated booking details for confirmation screen
+   */
+  getBookingDetails: async (
+    id: string,
+    userLat?: number,
+    userLng?: number,
+  ): Promise<import("../types/search").BookingDetails> => {
+    const response = await testApiClient.get(API_ENDPOINTS.TEST.BOOKINGS.GET_DETAILS(id), {
+      params: { userLat, userLng },
+    });
+    return response.data;
+  },
 };

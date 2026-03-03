@@ -44,6 +44,7 @@ export default function BookingSimulator() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
   const [roundTripResponse, setRoundTripResponse] = useState<RoundTripBookingResponse | null>(null);
+  const [bookingDetails, setBookingDetails] = useState<import("./types/search").BookingDetails | null>(null);
   const [changingLeg, setChangingLeg] = useState<"outbound" | "return">("outbound");
   const [historyBookingId, setHistoryBookingId] = useState<string | null>(null);
 
@@ -134,6 +135,21 @@ export default function BookingSimulator() {
     }
   };
 
+  const fetchBookingDetails = async (bookingId: string) => {
+    setIsSearching(true);
+    logger.admin(`Fetching consolidated journey data for booking: ${bookingId.split("-")[0]}...`);
+    try {
+      const details = await searchApi.getBookingDetails(bookingId, source.lat, source.lng);
+      setBookingDetails(details);
+      logger.admin("Confirmation data synchronized with server.");
+      return details;
+    } catch (error: any) {
+      toast({ title: "Failed to load details", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleInitiateOneWay = async () => {
     if (!outboundSelection) return;
     setIsSearching(true);
@@ -147,7 +163,7 @@ export default function BookingSimulator() {
       });
       setBookingResponse(response);
       logger.success(`Booking successfully initiated! ID: ${response.bookingId.split("-")[0]}.`);
-      logger.admin(`Preferred seat auto-assigned: ${response.assignedSeats[0].seatNumber}.`);
+      await fetchBookingDetails(response.bookingId);
       setActiveScreen("CONFIRMATION");
     } catch (error: any) {
       toast({ title: "Booking failed", description: error.message, variant: "destructive" });
@@ -177,9 +193,7 @@ export default function BookingSimulator() {
       });
       setRoundTripResponse(response);
       logger.success("Round-trip sequence initiated successfully.");
-      logger.admin(
-        `Trips linked: ${response.outboundBookingId.split("-")[0]} & ${response.returnBookingId.split("-")[0]}.`,
-      );
+      await fetchBookingDetails(response.outboundBookingId);
       setActiveScreen("CONFIRMATION");
     } catch (error: any) {
       toast({ title: "Booking failed", description: error.message, variant: "destructive" });
@@ -201,26 +215,9 @@ export default function BookingSimulator() {
     setIsSearching(true);
     logger.admin(`Processing seat relocation request for ${seatNumber}...`);
     try {
-      const response = await searchApi.changeSeat(bookingId, seatNumber);
-
-      // Update local state to reflect new seat
-      if (roundTripResponse) {
-        const update = {
-          ...roundTripResponse,
-          [changingLeg]: {
-            ...roundTripResponse[changingLeg],
-            assignedSeats: [response.assignedSeat],
-          },
-        };
-        setRoundTripResponse(update as any);
-      } else if (bookingResponse) {
-        setBookingResponse({
-          ...bookingResponse,
-          assignedSeats: [response.assignedSeat],
-        });
-      }
-
+      await searchApi.changeSeat(bookingId, seatNumber);
       logger.success(`Seat update confirmed: ${seatNumber} is now reserved.`);
+      await fetchBookingDetails(bookingId);
       setActiveScreen("CONFIRMATION");
     } catch (error: any) {
       toast({ title: "Operation failed", description: error.message, variant: "destructive" });
@@ -408,8 +405,14 @@ export default function BookingSimulator() {
               returnTrip={returnSelection || undefined}
               bookingResponse={bookingResponse}
               roundTripResponse={roundTripResponse}
+              bookingDetails={bookingDetails}
               onBack={() => {
-                if (returnSelection) {
+                if (roundTripResponse) {
+                  const currentSource = source;
+                  const currentDest = destination;
+                  setSource(currentDest);
+                  setDestination(currentSource);
+                  setIsReturnLeg(true);
                   setActiveScreen("RESULTS");
                 } else {
                   setActiveScreen("OPTIONS");

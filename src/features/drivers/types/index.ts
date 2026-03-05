@@ -1,4 +1,3 @@
-
 export interface BusDetails {
   registrationNumber: string;
   make: string;

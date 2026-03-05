@@ -51,8 +51,8 @@ export const ROUTES = {
   ADMIN_DETAILS: "/admins/:id",
   ROLES: "/roles",
 
-  // Test Modules
-  BOOKING_SIMULATOR: "/test/bookings",
+  // User Simulation
+  USER_SIMULATOR: "/test/user",
   FCM_TEST: "/test/fcm",
   RAZORPAY_TEST: "/test/razorpay",
 } as const;

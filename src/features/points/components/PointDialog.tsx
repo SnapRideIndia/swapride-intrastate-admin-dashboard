@@ -229,19 +229,32 @@ export function PointDialog({ initialData, onSuccess, open: controlledOpen, onOp
       if (isEditing) {
         result = await updatePointMutation.mutateAsync({ id: initialData.id, pointData: payload });
       } else {
-        // Create point metadata first
         result = await createPointMutation.mutateAsync(payload);
+
+        const pointId = result?.id || result?.data?.id;
+        if (!pointId) {
+          throw new Error("Failed to retrieve Point ID from creation response");
+        }
 
         // Upload pending images
         const pendingImages = data.images.filter((img) => !img.isUploaded && img.file);
-        for (const img of pendingImages) {
-          const formData = new FormData();
-          formData.append("image", img.file);
-          formData.append("isPrimary", img.isPrimary.toString());
-          formData.append("displayOrder", img.displayOrder.toString());
-          formData.append("caption", img.caption || "");
 
-          await routeService.addPointImage(result.id, formData);
+        for (const img of pendingImages) {
+          try {
+            const formData = new FormData();
+            formData.append("image", img.file);
+            formData.append("isPrimary", img.isPrimary.toString());
+            formData.append("displayOrder", img.displayOrder.toString());
+            formData.append("caption", img.caption || "");
+
+            await routeService.addPointImage(pointId, formData);
+          } catch (uploadError: any) {
+            toast({
+              title: "Upload Partial Failure",
+              description: `Point created, but one or more images failed to upload: ${uploadError.message}`,
+              variant: "destructive",
+            });
+          }
         }
       }
 

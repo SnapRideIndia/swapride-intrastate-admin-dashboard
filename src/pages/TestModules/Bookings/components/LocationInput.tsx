@@ -3,13 +3,13 @@ import { Search, Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { searchApi } from "@/features/search/api/search-api";
-import { Location } from "../../types";
+import { searchApi } from "../api/search";
+import { AppLocation } from "../../types";
 
 interface LocationInputProps {
   label: string;
   value: string;
-  onChange: (val: string, loc?: Location) => void;
+  onChange: (val: string, loc?: AppLocation) => void;
   placeholder: string;
   icon: string;
 }

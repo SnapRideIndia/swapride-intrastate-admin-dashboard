@@ -1,4 +1,4 @@
-export interface Location {
+export interface AppLocation {
   text: string;
   lat: number;
   lng: number;
@@ -7,7 +7,10 @@ export interface Location {
 
 export type SimulatorScreen =
   | "START"
-  | "TOKEN"
+  | "HOME"
+  | "WALLET"
+  | "HISTORY"
+  | "PROFILE"
   | "SEARCH"
   | "LOCATION_PICKER"
   | "RESULTS"

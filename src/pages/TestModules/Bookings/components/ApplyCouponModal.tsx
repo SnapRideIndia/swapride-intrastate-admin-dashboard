@@ -27,9 +27,9 @@ export function ApplyCouponModal({ isOpen, onClose, onApply }: ApplyCouponModalP
   if (!isOpen) return null;
 
   return (
-    <div className="absolute inset-x-0 inset-y-0 z-[100] bg-black/40 flex flex-col justify-end overflow-hidden no-scrollbar">
+    <div className="absolute inset-x-0 inset-y-0 z-[100] bg-black/40 flex flex-col justify-end overflow-hidden scrollbar-hide">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="bg-white rounded-t-3xl flex flex-col h-[30%] shadow-2xl relative animate-in slide-in-from-bottom duration-300">
+      <div className="bg-white rounded-t-3xl flex flex-col h-[30%] shadow-sm relative animate-in slide-in-from-bottom duration-300">
         {/* Modal Header */}
         <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100">
           <h3 className="text-lg font-black text-slate-900">Apply Coupon</h3>

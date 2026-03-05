@@ -24,6 +24,7 @@ import {
   Search,
   Microscope,
   CreditCard,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/providers/SidebarContext";
@@ -88,7 +89,7 @@ const testModulesCategory = {
   label: "Test Modules",
   icon: Microscope,
   items: [
-    { name: "Bookings", href: ROUTES.BOOKING_SIMULATOR, icon: Search, permission: null },
+    { name: "User", href: ROUTES.USER_SIMULATOR, icon: User, permission: null },
     { name: "FCM Test", href: ROUTES.FCM_TEST, icon: Bell, permission: null },
     { name: "Razorpay Test", href: ROUTES.RAZORPAY_TEST, icon: CreditCard, permission: null },
   ],

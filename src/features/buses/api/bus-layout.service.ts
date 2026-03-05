@@ -120,6 +120,8 @@ export const busLayoutService = {
       description: layoutData.description,
       totalRows: layoutData.totalRows,
       totalColumns: layoutData.totalColumns,
+      status: layoutData.status,
+      layoutType: layoutData.layoutType,
       seats,
     };
 

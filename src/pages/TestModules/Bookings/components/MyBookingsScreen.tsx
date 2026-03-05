@@ -43,7 +43,7 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({ onBack, onViewTicke
       </div>
 
       {/* Bookings List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <div className="w-10 h-10 border-4 border-slate-200 border-t-[#FFC107] rounded-full animate-spin" />

@@ -4,6 +4,7 @@
  */
 
 export const API_ENDPOINTS = {
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",
   // Auth
   AUTH: {
     LOGIN: "/admin/login",
@@ -221,9 +222,17 @@ export const API_ENDPOINTS = {
     USER: {
       ME: "/users/me",
       UPDATE_PROFILE: "/users/profile",
+      DELETE_PROFILE: "/users/profile",
+      TRAVEL_PREFERENCES: "/users/me/travel-preferences",
+      UPDATE_HOME: "/users/me/travel-preferences/home",
+      UPDATE_OFFICE: "/users/me/travel-preferences/office",
+      UPDATE_TIMINGS: "/users/me/travel-preferences/office-timings",
     },
     WALLET: {
+      BALANCE: "/wallet/balance",
+      TRANSACTIONS: "/wallet/transactions",
       TOPUP_INITIATE: "/wallet/topup/initiate",
+      FINANCIALS_TRANSACTIONS: "/financials/transactions",
     },
     BOOKINGS: {
       SEARCH: "/search/trips",
@@ -237,6 +246,8 @@ export const API_ENDPOINTS = {
       MY_BOOKINGS: "/bookings/my-bookings",
       GET_BY_ID: (id: string) => `/bookings/${id}`,
       GET_DETAILS: (id: string) => `/bookings/${id}/details`,
+      SAVED_LOCATIONS: "/users/saved-locations",
+      RECENT_SEARCHES: "/search/recent-searches",
     },
   },
 };

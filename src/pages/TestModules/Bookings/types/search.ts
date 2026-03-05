@@ -57,17 +57,40 @@ export interface SearchResult {
   };
   timings: SearchTiming[];
   allStops: SearchStop[];
+  originalPrice: number;
+  discountedPrice: number;
+  appliedCoupon?: {
+    id: string;
+    code: string;
+    discountAmount: number;
+  };
+  nearestPoint: {
+    name: string;
+    distanceText: string;
+    travelTimeText: string;
+    proximityMessage: string;
+  };
 }
 
 export interface SearchTripsParams {
-  pickupLat: number;
-  pickupLng: number;
-  dropoffLat: number;
-  dropoffLng: number;
+  pickup?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  dropoff?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  userLocation: {
+    latitude: number;
+    longitude: number;
+  };
   tripDate: string;
-  userLat: number;
-  userLng: number;
-  preferredTime?: string;
+  officeTimings?: string;
+  pickupPointId?: string;
+  dropoffPointId?: string;
 }
 
 export interface InitiateBookingDto {

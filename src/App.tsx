@@ -107,7 +107,7 @@ const App = () => {
                         </ProtectedRoute>
                       }
                     >
-                      <Route path={ROUTES.BOOKING_SIMULATOR} element={<BookingSimulator />} />
+                      <Route path={ROUTES.USER_SIMULATOR} element={<BookingSimulator />} />
                       <Route path={ROUTES.RAZORPAY_TEST} element={<RazorpayTester />} />
                       <Route path={ROUTES.FCM_TEST} element={<FcmTester />} />
                     </Route>

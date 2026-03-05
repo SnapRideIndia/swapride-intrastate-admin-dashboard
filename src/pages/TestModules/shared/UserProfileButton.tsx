@@ -5,18 +5,40 @@
  * Click to open a popover with Profile details and Logout option.
  */
 import { useState, useEffect, useRef } from "react";
-import { User, LogOut, ChevronRight, Mail, Phone, X } from "lucide-react";
+import {
+  User,
+  LogOut,
+  ChevronRight,
+  Mail,
+  Phone,
+  X,
+  Droplets,
+  Calendar as CalendarIcon,
+  UserSquare2,
+  Loader2,
+  Camera,
+  MapPin,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEST_USER_TOKEN_KEY, TEST_USER_REFRESH_TOKEN_KEY } from "../types";
 import { testApiClient } from "./test-api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 import { useLogs } from "./LogContext";
+import { ProfileScreen } from "../Profile/components/ProfileScreen";
+import { UserProfile as FullProfile, UpdateProfileRequest } from "../Profile/types";
+import { profileApi } from "../Profile/api/profile";
+import { toast } from "@/hooks/use-toast";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { TravelPreferencesScreen, TravelPreferences } from "../TravelPreferences/components/TravelPreferencesScreen";
 
 interface UserProfile {
   id: string;
   fullName: string;
   email: string;
   mobileNumber: string;
+  gender: string | null;
+  dateOfBirth: string | null;
+  bloodGroup: string | null;
   walletBalance?: number;
   isVerified?: boolean;
   profileUrl?: string;
@@ -29,8 +51,10 @@ interface UserProfileButtonProps {
 export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
   const [token, setToken] = useState<string | null>(localStorage.getItem(TEST_USER_TOKEN_KEY));
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTravelPrefsModalOpen, setIsTravelPrefsModalOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [travelPrefs, setTravelPrefs] = useState<TravelPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { addLog } = useLogs();
@@ -75,11 +99,9 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
   }, []);
 
   const fetchProfile = async (silent = false) => {
-    if (!silent) setShowProfile(true);
     if (profile && !silent) return;
     if (isLoading) return;
 
-    if (!silent) addLog("Fetching test user profile details...", "request");
     setIsLoading(true);
     try {
       const response = await testApiClient.get(API_ENDPOINTS.TEST.USER.ME);
@@ -89,176 +111,127 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
         fullName: data.fullName ?? "Test User",
         email: data.email ?? "-",
         mobileNumber: data.mobileNumber ?? "-",
+        gender: data.gender ?? null,
+        dateOfBirth: data.dateOfBirth ?? null,
+        bloodGroup: data.bloodGroup ?? null,
         walletBalance: data.walletBalance,
         isVerified: data.isVerified,
         profileUrl: data.profileUrl,
       });
     } catch {
-      if (!silent) setProfile({ id: "-", fullName: "Test User", email: "-", mobileNumber: "-" });
+      if (!silent) {
+        setProfile({
+          id: "-",
+          fullName: "Test User",
+          email: "-",
+          mobileNumber: "-",
+          gender: null,
+          dateOfBirth: null,
+          bloodGroup: null,
+        });
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUpdateProfile = async (data: UpdateProfileRequest) => {
+    addLog("Updating profile details...", "request");
+    try {
+      const updated = await profileApi.updateProfile(data);
+      setProfile((prev) => (prev ? { ...prev, ...updated, walletBalance: prev.walletBalance } : null)); // Preserve walletBalance if not returned by update
+      addLog("Profile updated successfully", "response");
+      toast({
+        title: "Profile Updated",
+        description: "Your changes have been saved successfully.",
+      });
+      setIsModalOpen(false);
+    } catch (error: any) {
+      addLog(`Update failed: ${error.message}`, "error");
+      toast({
+        title: "Update Failed",
+        description: "Could not update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    addLog("Attempting to delete account...", "request");
+    try {
+      await profileApi.deleteAccount();
+      addLog("Account deleted successfully", "response");
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been deactivated successfully.",
+      });
+      handleLogout();
+    } catch (error: any) {
+      addLog(`Account deletion failed: ${error.message}`, "error");
+      toast({
+        title: "Deletion Failed",
+        description: "Could not delete account. Please contact support.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOpenTravelPrefs = async () => {
+    setMenuOpen(false);
+    try {
+      const data = await profileApi.getTravelPreferences();
+      setTravelPrefs(data);
+    } catch {
+      toast({ title: "Failed to load travel preferences", variant: "destructive" });
+      return;
+    }
+    setIsTravelPrefsModalOpen(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem(TEST_USER_TOKEN_KEY);
     localStorage.removeItem(TEST_USER_REFRESH_TOKEN_KEY);
     setToken(null);
-    setMenuOpen(false);
     setProfile(null);
-    setShowProfile(false);
+    setMenuOpen(false);
+    setIsModalOpen(false);
+    setIsTravelPrefsModalOpen(false);
     onLogout?.();
-  };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAvatarClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("profile", file);
-
-    setIsLoading(true);
-    try {
-      // Note: Don't set Content-Type header manually to allow boundary creation
-      const response = await testApiClient.patch(API_ENDPOINTS.TEST.USER.UPDATE_PROFILE, formData);
-      const updatedUser = response.data;
-
-      const newProfileUrl = updatedUser.profileUrl ? `${updatedUser.profileUrl}?t=${Date.now()}` : undefined;
-
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              profileUrl: newProfileUrl,
-              fullName: updatedUser.fullName,
-              email: updatedUser.email,
-              mobileNumber: updatedUser.mobileNumber,
-            }
-          : null,
-      );
-    } catch (err) {
-      console.error("Failed to upload profile picture", err);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   if (!token) return null;
 
   return (
     <div ref={menuRef} className="relative">
-      {/* ── Profile Details Panel ──────────────────────────────── */}
-      {showProfile && (
-        <div className="absolute bottom-16 right-0 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
-          {/* Header */}
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 px-5 py-5 relative">
-            <button
-              onClick={() => setShowProfile(false)}
-              className="absolute top-3 right-3 h-6 w-6 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors z-10"
-            >
-              <X className="h-3 w-3 text-white" />
-            </button>
-
-            {isLoading && !profile ? (
-              <div className="animate-pulse">
-                <div className="h-14 w-14 rounded-2xl mb-3 bg-white/20" />
-                <div className="h-5 w-32 bg-white/20 rounded mb-1" />
-                <div className="h-3 w-24 bg-white/10 rounded" />
-              </div>
-            ) : profile ? (
-              <>
-                {/* Avatar - Click to update */}
-                <div
-                  onClick={handleAvatarClick}
-                  className="h-14 w-14 rounded-2xl mb-3 ring-4 ring-white/20 overflow-hidden bg-white/20 flex items-center justify-center cursor-pointer hover:ring-white/40 transition-all group relative"
-                >
-                  {profile.profileUrl ? (
-                    <img
-                      src={profile.profileUrl}
-                      alt={profile.fullName}
-                      className="h-full w-full object-cover group-hover:opacity-75"
-                    />
-                  ) : (
-                    <User className="h-7 w-7 text-white" />
-                  )}
-                  {isLoading && (
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <div className="h-4 w-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                    </div>
-                  )}
-                </div>
-                {/* Hidden File Input */}
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                <p className="text-white font-black text-[17px] leading-tight">{profile.fullName}</p>
-                <p className="text-blue-200 text-[11px] font-bold mt-0.5 uppercase tracking-wider">Test User Account</p>
-              </>
-            ) : null}
-          </div>
-
-          {/* Details */}
-          <div className="p-4 space-y-3">
-            {isLoading && !profile ? (
-              <>
-                <div className="h-12 bg-slate-50 rounded-xl animate-pulse" />
-                <div className="h-12 bg-slate-50 rounded-xl animate-pulse" />
-                <div className="h-12 bg-slate-50 rounded-xl animate-pulse" />
-              </>
-            ) : profile ? (
-              <>
-                <DetailRow icon={<Mail className="h-3.5 w-3.5 text-blue-600" />} label="Email" value={profile.email} />
-                <DetailRow
-                  icon={<Phone className="h-3.5 w-3.5 text-blue-600" />}
-                  label="Mobile"
-                  value={profile.mobileNumber}
-                />
-                {profile.walletBalance !== undefined && (
-                  <DetailRow
-                    icon={<span className="text-[11px] font-black text-blue-600">₹</span>}
-                    label="Wallet"
-                    value={`₹${profile.walletBalance}`}
-                  />
-                )}
-              </>
-            ) : null}
-          </div>
-
-          <div className="px-4 pb-4">
-            <button
-              onClick={handleLogout}
-              className="w-full h-10 bg-red-50 hover:bg-red-100 text-red-600 font-black text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Mini Menu ─────────────────────────────────────────── */}
-      {menuOpen && !showProfile && (
-        <div className="absolute bottom-16 right-0 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-150">
+      {menuOpen && (
+        <div className="absolute bottom-16 right-0 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-150 z-50">
           <button
             onClick={() => {
-              fetchProfile();
+              setIsModalOpen(true);
               setMenuOpen(false);
+              fetchProfile(true);
             }}
-            className="w-full px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors border-b border-slate-50"
           >
             <span className="flex items-center gap-2.5">
-              <User className="h-4 w-4 text-blue-600" />
+              <UserSquare2 className="h-4 w-4 text-amber-600" />
               Profile
             </span>
             <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
           </button>
-          <div className="h-px bg-slate-100" />
+
+          <button
+            onClick={handleOpenTravelPrefs}
+            className="w-full px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors border-b border-slate-50"
+          >
+            <span className="flex items-center gap-2.5">
+              <MapPin className="h-4 w-4 text-blue-500" />
+              Travel Preferences
+            </span>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          </button>
+
           <button
             onClick={handleLogout}
             className="w-full px-4 py-3 text-left text-sm font-bold text-red-500 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
@@ -271,10 +244,7 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
 
       {/* ── Floating Button ────────────────────────────────────── */}
       <button
-        onClick={() => {
-          setMenuOpen((v) => !v);
-          setShowProfile(false);
-        }}
+        onClick={() => setMenuOpen(!menuOpen)}
         className={cn(
           "h-[50px] w-[50px] rounded-full shadow-xl overflow-hidden flex items-center justify-center transition-all duration-300",
           "bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95",
@@ -289,6 +259,67 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
           <User className="h-5 w-5 text-white" />
         )}
       </button>
+
+      {/* ── Profile Modal ─────────────────────────────────────── */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-[400px] p-0 overflow-hidden border-none bg-transparent shadow-none rounded-[2rem]">
+          <div className="h-[600px] flex flex-col bg-white overflow-hidden shadow-2xl border border-slate-100 rounded-[2rem]">
+            {profile ? (
+              <ProfileScreen
+                profile={profile as any}
+                onUpdate={handleUpdateProfile}
+                onDelete={handleDeleteAccount}
+                onBack={() => setIsModalOpen(false)}
+              />
+            ) : (
+              <div className="flex items-center justify-center flex-1">
+                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+              </div>
+            )}
+
+            {profile && (
+              <div className="px-8 pb-6 pt-2 bg-white flex justify-between items-center border-t border-slate-50">
+                {profile.walletBalance !== undefined && (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1">
+                      Wallet Balance
+                    </span>
+                    <span className="text-xl font-black text-slate-900 leading-none tracking-tight">
+                      ₹{profile.walletBalance}
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-col items-end">
+                  <div className="px-3 py-1 bg-amber-50 rounded-full mb-1">
+                    <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest whitespace-nowrap">
+                      Verified User
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Travel Preferences Modal */}
+      <Dialog open={isTravelPrefsModalOpen} onOpenChange={setIsTravelPrefsModalOpen}>
+        <DialogContent className="max-w-[400px] p-0 overflow-hidden border-none bg-transparent shadow-none rounded-[2rem]">
+          <div className="h-[520px] flex flex-col bg-white overflow-hidden shadow-2xl border border-slate-100 rounded-[2rem]">
+            {travelPrefs ? (
+              <TravelPreferencesScreen
+                preferences={travelPrefs}
+                onBack={() => setIsTravelPrefsModalOpen(false)}
+                onUpdated={(updated) => setTravelPrefs(updated)}
+              />
+            ) : (
+              <div className="flex items-center justify-center flex-1">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

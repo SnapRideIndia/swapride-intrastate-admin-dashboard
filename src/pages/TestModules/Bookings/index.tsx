@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight, User as UserIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
-import { Location, SimulatorScreen, TEST_USER_TOKEN_KEY } from "../types";
+import { AppLocation, SimulatorScreen, TEST_USER_TOKEN_KEY, TEST_USER_REFRESH_TOKEN_KEY } from "../types";
 import { SearchResult, SearchTiming, BookingResponse, RoundTripBookingResponse } from "./types/search";
 import { searchApi } from "./api/search";
 
@@ -13,8 +13,13 @@ import { LoginModal } from "../shared/LoginModal";
 import { useLogs } from "../shared/LogContext";
 import { SimulatorLogger, setGlobalSimulatorLogger } from "../shared/SimulatorLogger";
 import { useEffect, useMemo } from "react";
+import { profileApi } from "../Profile/api/profile";
+import { UserProfile } from "../Profile/types";
+import { savedLocationsApi, SavedLocation, RecentSearch } from "./api/saved-locations";
 
 // Feature Components
+import { UserHomeScreen } from "./components/UserHomeScreen";
+import { ProfileScreen } from "../Profile/components/ProfileScreen";
 import { SearchScreen } from "./components/SearchScreen";
 import { LocationPickerScreen } from "./components/LocationPickerScreen";
 import { SearchResultsScreen } from "./components/SearchResultsScreen";
@@ -24,15 +29,18 @@ import { SeatSelectionScreen } from "./components/SeatSelectionScreen";
 import BookingSuccessScreen from "./components/BookingSuccessScreen";
 import MyBookingsScreen from "./components/MyBookingsScreen";
 import TicketDetailScreen from "./components/TicketDetailScreen";
+import WalletScreen from "./features/wallet/WalletScreen";
 
-export default function BookingSimulator() {
+export default function UserSimulator() {
   const [testToken, setTestToken] = useState<string | null>(localStorage.getItem(TEST_USER_TOKEN_KEY));
   const [activeScreen, setActiveScreen] = useState<SimulatorScreen>("START");
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // Simulation State
-  const [source, setSource] = useState<Location>({ text: "", lat: 0, lng: 0 });
-  const [destination, setDestination] = useState<Location>({ text: "", lat: 0, lng: 0 });
+  const [source, setSource] = useState<AppLocation>({ text: "", lat: 0, lng: 0 });
+  const [destination, setDestination] = useState<AppLocation>({ text: "", lat: 0, lng: 0 });
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isSearching, setIsSearching] = useState(false);
   const [pickingType, setPickingType] = useState<"source" | "destination">("source");
@@ -51,7 +59,7 @@ export default function BookingSimulator() {
   const { addLog } = useLogs();
   const logger = useMemo(() => new SimulatorLogger(addLog), [addLog]);
 
-  // Register logger globally for interceptors
+  // Register logger globally and handle Razorpay SDK
   useEffect(() => {
     setGlobalSimulatorLogger(logger);
     (window as any).onViewBookings = () => setActiveScreen("MY_BOOKINGS" as any);
@@ -71,62 +79,139 @@ export default function BookingSimulator() {
     };
   }, [logger]);
 
-  const handleStartBooking = () => {
-    if (!testToken) {
-      logger.admin("Initiating booking sequence. Authentication is required to proceed.");
-      setIsLoginModalOpen(true);
-    } else {
-      logger.admin("Resuming booking flow with active session.");
-      setActiveScreen("SEARCH");
+  const fetchProfile = async (shouldNavigate = false) => {
+    try {
+      addLog("Fetching user profile details...", "request");
+      const profile = await profileApi.getProfile();
+      console.log("DEBUG: User Profile Response:", profile);
+      setUserProfile(profile);
+
+      addLog("Profile data synchronized.", "success");
+      if (shouldNavigate) setActiveScreen("HOME");
+    } catch (error: any) {
+      addLog(`Failed to fetch profile: ${error.message}`, "error");
+      toast({ title: "Failed to load profile", variant: "destructive" });
     }
   };
 
-  const openLocationPicker = (type: "source" | "destination") => {
+  const handleStartSimulation = async () => {
+    if (!testToken) {
+      logger.admin("Initiating user simulation. Authentication required.");
+      setIsLoginModalOpen(true);
+    } else {
+      logger.admin("Resuming simulation for active user session.");
+      await fetchProfile(true);
+    }
+  };
+
+  const handleLoginSuccess = async (tokens: { accessToken: string }) => {
+    setTestToken(tokens.accessToken);
+    addLog("Authenticated. Synchronizing user state...", "success");
+    await fetchProfile();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(TEST_USER_TOKEN_KEY);
+    localStorage.removeItem(TEST_USER_REFRESH_TOKEN_KEY);
+    setTestToken(null);
+    setUserProfile(null);
+    setActiveScreen("START");
+    addLog("Session terminated. User logged out.", "info");
+    toast({ title: "Logged out successfully" });
+  };
+
+  const openLocationPicker = async (type: "source" | "destination") => {
     setPickingType(type);
     setActiveScreen("LOCATION_PICKER");
     logger.admin(`Opening map to select ${type} location.`);
+
+    // Fetch filtered saved locations and recent searches when picker opens
+    if (userProfile?.isOnboarded) {
+      try {
+        const [locations, searches] = await Promise.all([
+          savedLocationsApi.getSavedLocations(type),
+          savedLocationsApi.getRecentSearches(type),
+        ]);
+        setSavedLocations(locations);
+        setRecentSearches(searches);
+      } catch (err) {
+        console.error("Failed to load filtered locations", err);
+      }
+    }
   };
 
-  const handleLocationSelect = (loc: Location) => {
+  const handleLocationSelect = (loc: AppLocation) => {
     if (pickingType === "source") setSource(loc);
     else setDestination(loc);
     setActiveScreen("SEARCH");
     logger.admin(`Location confirmed: ${loc.text} set as ${pickingType}.`);
   };
 
-  const handleSearchTrigger = async (dateOverride?: Date) => {
+  const handleSearchTrigger = async (
+    startTime?: string,
+    endTime?: string,
+    dateOverride?: Date,
+    sourceOverride?: { lat: number | null; lng: number | null; text: string },
+    destOverride?: { lat: number | null; lng: number | null; text: string },
+  ) => {
+    const finalSource = sourceOverride || source;
+    const finalDestination = destOverride || destination;
+    const finalDate = dateOverride || selectedDate;
+    const finalStartTime = startTime || "09:00 AM";
+    const finalEndTime = endTime || "06:00 PM";
+
     if (!testToken) {
       logger.error("Authentication check failed. Please sign in to continue.");
       setIsLoginModalOpen(true);
       return;
     }
 
-    if (!source.lat || !destination.lat) {
+    if (!finalSource.lat || !finalDestination.lat) {
       toast({ title: "Please select locations", variant: "destructive" });
       return;
     }
 
-    // If date is somehow invalid, silently fall back to today
-    const rawDate = dateOverride ?? selectedDate;
+    // If onboarding, always search for today. Otherwise use selected date.
+    const rawDate = userProfile?.isOnboarded === false ? new Date() : (dateOverride ?? selectedDate);
     const dateToSearch = rawDate instanceof Date && !isNaN(rawDate.getTime()) ? rawDate : new Date();
 
     setIsSearching(true);
-    logger.admin(`Searching for available trips on ${format(dateToSearch, "PPP")}.`);
+    if (userProfile?.isOnboarded === false) {
+      logger.admin("First-time journey initiated. Synchronizing commute preferences through search...");
+    } else {
+      logger.admin(`Searching for available trips on ${format(dateToSearch, "PPP")}.`);
+    }
 
     try {
       const results = await searchApi.searchTrips({
-        pickupLat: source.lat,
-        pickupLng: source.lng,
-        dropoffLat: destination.lat,
-        dropoffLng: destination.lng,
+        pickup: {
+          latitude: finalSource.lat!,
+          longitude: finalSource.lng!,
+          address: finalSource.text,
+        },
+        dropoff: {
+          latitude: finalDestination.lat!,
+          longitude: finalDestination.lng!,
+          address: finalDestination.text,
+        },
+        userLocation: {
+          latitude: finalSource.lat!,
+          longitude: finalSource.lng!,
+        },
         tripDate: format(dateToSearch, "yyyy-MM-dd"),
-        userLat: source.lat,
-        userLng: source.lng,
+        officeTimings: userProfile?.isOnboarded === false ? `${finalStartTime} - ${finalEndTime}` : undefined,
       });
 
       setSearchResults(results);
+      console.log("API: Search Trips Response:", results);
       logger.admin(`Analysis complete. Found ${results.length} valid route options for your journey.`);
       setActiveScreen("RESULTS");
+
+      // If this was an onboarding search, the backend likely marked us as onboarded.
+      // Refresh profile to update UI.
+      if (userProfile?.isOnboarded === false) {
+        await fetchProfile();
+      }
     } catch (error: any) {
       // API Error already logged by interceptor
       toast({ title: "Search failed", description: error.message, variant: "destructive" });
@@ -317,11 +402,8 @@ export default function BookingSimulator() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         logger={logger}
-        description="Sign in to start the automated booking simulation"
-        onSuccess={(tokens) => {
-          setTestToken(tokens.accessToken);
-          addLog("Authenticated successfully. Resuming simulation.", "success");
-        }}
+        description="Sign in to start the automated user simulation"
+        onSuccess={handleLoginSuccess}
       />
 
       <div className="flex-1 h-full flex justify-center items-start">
@@ -329,25 +411,75 @@ export default function BookingSimulator() {
           {activeScreen === "START" ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-primary/5 to-white">
               <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-6 ring-8 ring-primary/5 animate-pulse">
-                <Search className="h-10 w-10 text-primary" />
+                <UserIcon className="h-10 w-10 text-primary" />
               </div>
-              <h3 className="text-2xl font-black text-foreground tracking-tighter mb-3">Booking Simulator</h3>
+              <h3 className="text-2xl font-black text-foreground tracking-tighter mb-3">User Simulation</h3>
               <p className="text-sm text-muted-foreground font-medium mb-8 leading-relaxed">
-                Experience the complete inter-state travel booking journey from search to confirmation.
+                Step into the shoes of a passenger. Experience search, booking, and account management from start to
+                finish.
               </p>
               <Button
-                onClick={handleStartBooking}
-                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base rounded-2xl shadow-sm shadow-primary/10 transition-all active:scale-[0.98] group"
+                onClick={handleStartSimulation}
+                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base rounded-2xl shadow-sm transition-all active:scale-[0.98] group"
               >
-                Start Booking
+                Start Simulation
                 <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
+            </div>
+          ) : activeScreen === "HOME" ? (
+            <UserHomeScreen
+              profile={userProfile!}
+              onStartBooking={() => {
+                addLog("Shuttle service selected. Starting journey planner.", "info");
+                setActiveScreen("SEARCH");
+              }}
+              onProfileClick={() => setActiveScreen("PROFILE")}
+              activeTab="HOME"
+              onTabChange={(tab) => {
+                if (tab === "HISTORY") setActiveScreen("MY_BOOKINGS" as any);
+                else setActiveScreen(tab);
+              }}
+            />
+          ) : activeScreen === "WALLET" ? (
+            <WalletScreen
+              onBack={() => setActiveScreen("HOME")}
+              logger={logger}
+              onRefreshProfile={() => fetchProfile(false)}
+            />
+          ) : activeScreen === "PROFILE" ? (
+            <div className="flex-1 flex flex-col h-full bg-white">
+              <div className="flex-1 overflow-y-auto scrollbar-hide">
+                <ProfileScreen
+                  profile={userProfile!}
+                  onBack={() => setActiveScreen("HOME")}
+                  onUpdate={async (data) => {
+                    await profileApi.updateProfile(data);
+                    await fetchProfile();
+                    setActiveScreen("HOME");
+                  }}
+                  onDelete={async () => {
+                    await profileApi.deleteAccount();
+                    handleLogout();
+                  }}
+                />
+              </div>
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                <Button
+                  variant="destructive"
+                  className="w-full h-12 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm"
+                  onClick={handleLogout}
+                >
+                  Sign Out
+                </Button>
+              </div>
             </div>
           ) : activeScreen === "LOCATION_PICKER" ? (
             <LocationPickerScreen
               pickingType={pickingType}
               onBack={() => setActiveScreen("SEARCH")}
               onSelect={handleLocationSelect}
+              savedLocations={savedLocations}
+              recentSearches={recentSearches}
             />
           ) : activeScreen === "RESULTS" ? (
             <SearchResultsScreen
@@ -371,7 +503,7 @@ export default function BookingSimulator() {
               isLoading={isSearching}
               onDateChange={(date) => {
                 setSelectedDate(date);
-                handleSearchTrigger(date);
+                handleSearchTrigger(undefined, undefined, date);
               }}
               isReturnLeg={isReturnLeg}
               onSwap={() => {
@@ -380,7 +512,9 @@ export default function BookingSimulator() {
                 setDestination(tmp);
                 addLog("Locations swapped. Tap Search to find new trips.", "info");
               }}
-              onSearch={() => handleSearchTrigger(selectedDate instanceof Date ? selectedDate : new Date())}
+              onSearch={() =>
+                handleSearchTrigger(undefined, undefined, selectedDate instanceof Date ? selectedDate : new Date())
+              }
             />
           ) : activeScreen === "OPTIONS" ? (
             <BookingOptionsScreen
@@ -396,7 +530,7 @@ export default function BookingSimulator() {
                 setSource(currentDest);
                 setDestination(currentSource);
                 setIsReturnLeg(true);
-                handleSearchTrigger();
+                handleSearchTrigger(undefined, undefined, undefined, currentDest, currentSource);
               }}
             />
           ) : activeScreen === "CONFIRMATION" ? (
@@ -437,9 +571,9 @@ export default function BookingSimulator() {
                   : roundTripResponse?.return.assignedSeats[0]?.seatNumber
               }
             />
-          ) : activeScreen === ("MY_BOOKINGS" as any) ? (
+          ) : activeScreen === ("MY_BOOKINGS" as any) || activeScreen === "HISTORY" ? (
             <MyBookingsScreen
-              onBack={() => setActiveScreen("SEARCH")}
+              onBack={() => setActiveScreen("HOME")}
               logger={logger}
               onViewTicket={(id) => {
                 setHistoryBookingId(id);
@@ -472,9 +606,12 @@ export default function BookingSimulator() {
               setDestination={setDestination}
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
-              onBack={() => setActiveScreen("START")}
+              onBack={() => setActiveScreen("HOME")}
               onSearch={handleSearchTrigger}
               onOpenPicker={openLocationPicker}
+              isOnboarded={userProfile?.isOnboarded}
+              savedLocations={savedLocations}
+              recentSearches={recentSearches}
             />
           )}
         </div>

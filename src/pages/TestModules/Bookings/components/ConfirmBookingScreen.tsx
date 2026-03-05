@@ -91,7 +91,7 @@ export function ConfirmBookingScreen({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="p-4 space-y-4">
           {/* Outbound Trip Card */}
           <TripDetailCard

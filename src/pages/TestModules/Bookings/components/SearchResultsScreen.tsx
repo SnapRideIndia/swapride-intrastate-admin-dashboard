@@ -17,12 +17,12 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { format, addDays, isSameDay } from "date-fns";
 import { useState } from "react";
-import { Location } from "../../types";
+import { AppLocation } from "../../types";
 import { SearchResult, SearchTiming, SearchStop } from "../types/search";
 
 interface SearchResultsScreenProps {
-  source: Location;
-  destination: Location;
+  source: AppLocation;
+  destination: AppLocation;
   selectedDate: Date;
   onBack: () => void;
   onProceed: (result: SearchResult, timing: SearchTiming) => void;
@@ -158,7 +158,7 @@ export function SearchResultsScreen({
           </div>
 
           <Button
-            className="w-full h-11 bg-[#FFC107] hover:bg-[#FFB300] text-slate-900 font-black text-sm rounded-xl shadow-lg"
+            className="w-full h-11 bg-[#FFC107] hover:bg-[#FFB300] text-slate-900 font-black text-sm rounded-xl shadow-sm"
             onClick={() => {
               setIsSearchPopupOpen(false);
               onSearch?.();
@@ -171,7 +171,7 @@ export function SearchResultsScreen({
 
       {/* Full Route Overlay */}
       {activeFullRoute && (
-        <div className="absolute inset-x-0 inset-y-0 z-[60] bg-white flex flex-col no-scrollbar overflow-hidden">
+        <div className="absolute inset-x-0 inset-y-0 z-[60] bg-white flex flex-col scrollbar-hide overflow-hidden">
           <div className="bg-white px-5 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
             <h3 className="text-[17px] font-black text-slate-900 tracking-tight">Full Route</h3>
             <Button
@@ -184,7 +184,7 @@ export function SearchResultsScreen({
             </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar p-5">
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-5">
             <div className="relative">
               <div className="absolute left-[7.5px] top-6 bottom-6 w-0 border-l border-slate-200" />
 
@@ -230,8 +230,8 @@ export function SearchResultsScreen({
 
       {/* Time Selection Popup */}
       {activeTimings && (
-        <div className="absolute inset-x-0 inset-y-0 z-[70] bg-black/40 flex flex-col justify-end no-scrollbar overflow-hidden">
-          <div className="bg-white rounded-t-3xl p-5 flex flex-col max-h-[80%] shadow-2xl relative">
+        <div className="absolute inset-x-0 inset-y-0 z-[70] bg-black/40 flex flex-col justify-end scrollbar-hide overflow-hidden">
+          <div className="bg-white rounded-t-3xl p-5 flex flex-col max-h-[80%] shadow-sm relative">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-black text-slate-900">Select a time</h3>
               <Button
@@ -244,7 +244,7 @@ export function SearchResultsScreen({
               </Button>
             </div>
 
-            <div className="space-y-3 overflow-y-auto no-scrollbar pb-6">
+            <div className="space-y-3 overflow-y-auto scrollbar-hide pb-6">
               {activeTimings.timings.map((t, i) => (
                 <button
                   key={t.tripId}
@@ -364,8 +364,7 @@ function ResultCard({
 }) {
   const [expandedSection, setExpandedSection] = useState<"pickup" | "dropoff" | null>(null);
   const firstTiming = result.timings[0];
-  const isTopPick =
-    firstTiming && result.pickup.distanceText.includes("m") && !result.pickup.distanceText.includes("km");
+  const isTopPick = result.nearestPoint && result.pickup.name === result.nearestPoint.name;
 
   const toggleSection = (section: "pickup" | "dropoff") => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -410,7 +409,7 @@ function ResultCard({
             <span className="text-[11px] font-black uppercase tracking-widest">Top pick for you</span>
           </div>
           <p className="text-[10px] text-emerald-50/90 font-bold tracking-tight">
-            Yay! Your pickup is just {result.pickup.distanceText} walk away
+            {result.nearestPoint.proximityMessage}
           </p>
         </div>
       )}

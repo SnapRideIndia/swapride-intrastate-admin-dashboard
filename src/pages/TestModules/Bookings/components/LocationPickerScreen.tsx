@@ -1,7 +1,8 @@
 import { ChevronLeft, X, Search, Navigation, Home as HomeIcon, Briefcase, History, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Location } from "../../types";
+import { AppLocation } from "../../types";
+import { savedLocationsApi, SavedLocation, RecentSearch } from "../api/saved-locations";
 import { useState, useEffect } from "react";
 import { searchApi } from "../api/search";
 import { useLogs } from "../../shared/LogContext";
@@ -9,10 +10,18 @@ import { useLogs } from "../../shared/LogContext";
 interface LocationPickerScreenProps {
   pickingType: "source" | "destination";
   onBack: () => void;
-  onSelect: (loc: Location) => void;
+  onSelect: (loc: AppLocation) => void;
+  savedLocations?: SavedLocation[];
+  recentSearches?: RecentSearch[];
 }
 
-export function LocationPickerScreen({ pickingType, onBack, onSelect }: LocationPickerScreenProps) {
+export function LocationPickerScreen({
+  pickingType,
+  onBack,
+  onSelect,
+  savedLocations = [],
+  recentSearches = [],
+}: LocationPickerScreenProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -115,46 +124,79 @@ export function LocationPickerScreen({ pickingType, onBack, onSelect }: Location
             </button>
 
             <div className="space-y-3">
-              <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Saved Addresses</h4>
+              <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                {pickingType === "source" ? "Home" : "Office"}
+              </h4>
               <div className="space-y-1">
-                {[
-                  { icon: HomeIcon, label: "Home", sub: "No.2 thimasamunthram tamilnadu - 631507" },
-                  { icon: Briefcase, label: "Work", sub: "No.2 thimasamunthram tamilnadu - 631507" },
-                ].map((addr, idx) => (
-                  <button
-                    key={idx}
-                    className="flex items-center gap-3 w-full p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all text-left group active:scale-[0.98]"
-                    onClick={() => onSelect({ text: addr.label, lat: 12.9716, lng: 77.5946 })}
-                  >
-                    <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors border border-slate-100">
-                      <addr.icon className="h-3.5 w-3.5 text-slate-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-800">{addr.label}</p>
-                      <p className="text-[10px] text-slate-500 truncate">{addr.sub}</p>
-                    </div>
-                  </button>
-                ))}
+                {(() => {
+                  const filtered = savedLocations.filter((addr) => {
+                    const n = addr.label.toLowerCase();
+                    return pickingType === "source" ? n === "home" : n === "office" || n === "work";
+                  });
+                  return filtered.length > 0 ? (
+                    filtered.map((addr, idx) => (
+                      <button
+                        key={idx}
+                        className="flex items-center gap-3 w-full p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all text-left group active:scale-[0.98]"
+                        onClick={() => onSelect({ text: addr.address, lat: addr.latitude, lng: addr.longitude })}
+                      >
+                        <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors border border-slate-100">
+                          {pickingType === "source" ? (
+                            <HomeIcon className="h-3.5 w-3.5 text-blue-500" />
+                          ) : (
+                            <Briefcase className="h-3.5 w-3.5 text-amber-500" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 capitalize">{addr.label}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{addr.address}</p>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-[10px] text-slate-400 italic px-1">
+                      No {pickingType === "source" ? "home" : "office"} address saved
+                    </p>
+                  );
+                })()}
               </div>
             </div>
 
             <div className="h-px bg-slate-50 mx-1" />
 
             <div className="space-y-3">
-              <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Recent Searches</h4>
+              <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                Recent {pickingType === "source" ? "Pickup" : "Dropoff"} Locations
+              </h4>
               <div className="space-y-1">
-                <button
-                  className="flex items-center gap-3 w-full p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all text-left group active:scale-[0.98]"
-                  onClick={() => onSelect({ text: "Lodha vesta", lat: 12.9716, lng: 77.5946 })}
-                >
-                  <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors border border-slate-100">
-                    <History className="h-3.5 w-3.5 text-slate-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-800">Lodha vesta</p>
-                    <p className="text-[10px] text-slate-500 truncate">No.2 thimasamunthram tamilnadu - 631507</p>
-                  </div>
-                </button>
+                {(() => {
+                  const filtered = recentSearches;
+                  return filtered.length > 0 ? (
+                    filtered.map((search, idx) => {
+                      return (
+                        <button
+                          key={idx}
+                          className="flex items-center gap-3 w-full p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all text-left group active:scale-[0.98]"
+                          onClick={() =>
+                            onSelect({ text: search.address, lat: search.latitude, lng: search.longitude })
+                          }
+                        >
+                          <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors border border-slate-100">
+                            <History className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary transition-colors" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate">{search.address}</p>
+                            <p className="text-[10px] text-slate-500 truncate">
+                              {new Date(search.timestamp).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <p className="text-[10px] text-slate-400 italic px-1">No recent searches</p>
+                  );
+                })()}
               </div>
             </div>
           </>

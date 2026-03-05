@@ -19,9 +19,8 @@ export const searchApi = {
   /**
    * Search for trips
    */
-  searchTrips: async (params: SearchTripsParams, token?: string): Promise<SearchResult[]> => {
-    const response = await testApiClient.get(API_ENDPOINTS.TEST.BOOKINGS.SEARCH, {
-      params,
+  searchTrips: async (data: SearchTripsParams, token?: string): Promise<SearchResult[]> => {
+    const response = await testApiClient.post(API_ENDPOINTS.TEST.BOOKINGS.SEARCH, data, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     return response.data;

@@ -12,10 +12,17 @@ import { searchApi } from "./api/search";
 import { LoginModal } from "../shared/LoginModal";
 import { useLogs } from "../shared/LogContext";
 import { SimulatorLogger, setGlobalSimulatorLogger } from "../shared/SimulatorLogger";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { profileApi } from "../Profile/api/profile";
 import { UserProfile } from "../Profile/types";
 import { savedLocationsApi, SavedLocation, RecentSearch } from "./api/saved-locations";
+import { authApi } from "./api/auth";
+
+// Auth Components
+import { PhoneEntryScreen } from "./components/Auth/PhoneEntryScreen";
+import { OtpVerifyScreen } from "./components/Auth/OtpVerifyScreen";
+import { RegistrationScreen } from "./components/Auth/RegistrationScreen";
+import { PasswordLoginScreen } from "./components/Auth/PasswordLoginScreen";
 
 // Feature Components
 import { UserHomeScreen } from "./components/UserHomeScreen";
@@ -55,6 +62,11 @@ export default function UserSimulator() {
   const [bookingDetails, setBookingDetails] = useState<import("./types/search").BookingDetails | null>(null);
   const [changingLeg, setChangingLeg] = useState<"outbound" | "return">("outbound");
   const [historyBookingId, setHistoryBookingId] = useState<string | null>(null);
+
+  // Auth Flow State
+  const [authMobile, setAuthMobile] = useState("");
+  const [authVerificationId, setAuthVerificationId] = useState("");
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   const { addLog } = useLogs();
   const logger = useMemo(() => new SimulatorLogger(addLog), [addLog]);
@@ -97,20 +109,24 @@ export default function UserSimulator() {
   const handleStartSimulation = async () => {
     if (!testToken) {
       logger.admin("Initiating user simulation. Authentication required.");
-      setIsLoginModalOpen(true);
+      setActiveScreen("AUTH_PHONE");
     } else {
       logger.admin("Resuming simulation for active user session.");
       await fetchProfile(true);
     }
   };
 
-  const handleLoginSuccess = async (tokens: { accessToken: string }) => {
+  const handleLoginSuccess = async (tokens: { accessToken: string; refreshToken?: string }) => {
     setTestToken(tokens.accessToken);
+    localStorage.setItem(TEST_USER_TOKEN_KEY, tokens.accessToken);
+    if (tokens.refreshToken) {
+      localStorage.setItem(TEST_USER_REFRESH_TOKEN_KEY, tokens.refreshToken);
+    }
     addLog("Authenticated. Synchronizing user state...", "success");
-    await fetchProfile();
+    await fetchProfile(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem(TEST_USER_TOKEN_KEY);
     localStorage.removeItem(TEST_USER_REFRESH_TOKEN_KEY);
     setTestToken(null);
@@ -118,6 +134,69 @@ export default function UserSimulator() {
     setActiveScreen("START");
     addLog("Session terminated. User logged out.", "info");
     toast({ title: "Logged out successfully" });
+  }, [addLog]);
+
+  // Auth Flow Handlers
+  const handleSendOtp = async (mobile: string) => {
+    setIsAuthLoading(true);
+    try {
+      await authApi.sendOtp(mobile);
+      setAuthMobile(mobile);
+      setActiveScreen("AUTH_OTP");
+      addLog(`OTP sent to ${mobile}. Waiting for verification...`, "success");
+    } catch (err: any) {
+      toast({ title: "Failed to send OTP", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (otp: string) => {
+    setIsAuthLoading(true);
+    try {
+      const res = await authApi.verifyOtp(authMobile, otp);
+      if (res.accessToken) {
+        // Existing user login
+        await handleLoginSuccess({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      } else if (res.verificationId) {
+        // New user registration
+        setAuthVerificationId(res.verificationId);
+        setActiveScreen("AUTH_REGISTER");
+      }
+    } catch (err: any) {
+      toast({ title: "Invalid OTP", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleRegister = async (fullName: string, email: string, pass: string) => {
+    setIsAuthLoading(true);
+    try {
+      const res = (await authApi.register({
+        verificationId: authVerificationId,
+        fullName,
+        email,
+        password: pass,
+      })) as any;
+      await handleLoginSuccess({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+    } catch (err: any) {
+      toast({ title: "Registration failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handlePasswordLogin = async (email: string, pass: string) => {
+    setIsAuthLoading(true);
+    try {
+      const res = (await authApi.login({ identifier: email, password: pass })) as any;
+      await handleLoginSuccess({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+    } catch (err: any) {
+      toast({ title: "Login failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAuthLoading(false);
+    }
   };
 
   const openLocationPicker = async (type: "source" | "destination") => {
@@ -597,6 +676,28 @@ export default function UserSimulator() {
                   setActiveScreen("MY_BOOKINGS" as any);
                 }
               }}
+            />
+          ) : activeScreen === "AUTH_PHONE" ? (
+            <PhoneEntryScreen onSendOtp={handleSendOtp} isLoading={isAuthLoading} />
+          ) : activeScreen === "AUTH_OTP" ? (
+            <OtpVerifyScreen
+              mobileNumber={authMobile}
+              onVerify={handleVerifyOtp}
+              onResend={() => handleSendOtp(authMobile)}
+              onCancel={() => setActiveScreen("AUTH_PHONE")}
+              isLoading={isAuthLoading}
+            />
+          ) : activeScreen === "AUTH_REGISTER" ? (
+            <RegistrationScreen
+              onRegister={handleRegister}
+              onCancel={() => setActiveScreen("AUTH_PHONE")}
+              isLoading={isAuthLoading}
+            />
+          ) : activeScreen === "AUTH_LOGIN" ? (
+            <PasswordLoginScreen
+              onLogin={handlePasswordLogin}
+              onBackToPhone={() => setActiveScreen("AUTH_PHONE")}
+              isLoading={isAuthLoading}
             />
           ) : (
             <SearchScreen

@@ -16,7 +16,11 @@ export type SimulatorScreen =
   | "RESULTS"
   | "OPTIONS"
   | "CONFIRMATION"
-  | "SEAT_SELECTION";
+  | "SEAT_SELECTION"
+  | "AUTH_PHONE"
+  | "AUTH_OTP"
+  | "AUTH_REGISTER"
+  | "AUTH_LOGIN";
 
 export interface Log {
   time: string;

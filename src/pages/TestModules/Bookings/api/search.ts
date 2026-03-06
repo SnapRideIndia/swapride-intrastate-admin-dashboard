@@ -115,4 +115,24 @@ export const searchApi = {
     });
     return response.data;
   },
+  /**
+   * Apply a coupon to a HELD booking
+   */
+  applyCoupon: async (bookingId: string, couponCode: string, returnBookingId?: string) => {
+    const response = await testApiClient.post(API_ENDPOINTS.TEST.BOOKINGS.APPLY_COUPON(bookingId), {
+      couponCode,
+      returnBookingId,
+    });
+    return response.data;
+  },
+
+  /**
+   * Remove a coupon from a HELD booking
+   */
+  removeCoupon: async (bookingId: string, returnBookingId?: string) => {
+    const response = await testApiClient.delete(API_ENDPOINTS.TEST.BOOKINGS.REMOVE_COUPON(bookingId), {
+      params: { returnBookingId },
+    });
+    return response.data;
+  },
 };

@@ -2,6 +2,8 @@ import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 import { PaginatedResponse } from "@/types/pagination";
 
+export type TripType = "SINGLE_TRIP" | "ROUND_TRIP" | "BOTH";
+
 export interface Coupon {
   id: string;
   code: string;
@@ -20,6 +22,7 @@ export interface Coupon {
   isAutoApply: boolean;
   minRideCount?: number;
   maxRideCount?: number;
+  tripType: TripType;
   targetRoutes?: Array<{ routeId: string }>;
 }
 

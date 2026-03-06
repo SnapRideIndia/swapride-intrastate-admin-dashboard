@@ -16,6 +16,8 @@ interface ConfirmBookingScreenProps {
   onConfirm: () => void;
   onChangeSeat: (leg: "outbound" | "return") => void;
   bookingDetails?: BookingDetails | null;
+  onApplyCoupon: (code: string) => Promise<{ success: boolean; message?: string }>;
+  onRemoveCoupon: () => Promise<void>;
 }
 export function ConfirmBookingScreen({
   outbound,
@@ -26,9 +28,13 @@ export function ConfirmBookingScreen({
   onConfirm,
   onChangeSeat,
   bookingDetails,
+  onApplyCoupon,
+  onRemoveCoupon,
 }: ConfirmBookingScreenProps) {
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [isProcessingCoupon, setIsProcessingCoupon] = useState(false);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
@@ -151,39 +157,64 @@ export function ConfirmBookingScreen({
               </div>
             </div>
 
-            {appliedCoupon ? (
+            {outboundData?.coupon ? (
               <div className="space-y-4">
-                {/* Variant 1: Checkmark State */}
-                <div className="flex items-center justify-center gap-2 py-2">
-                  <CheckCircle2 className="h-5 w-5 text-[#22C55E]" />
-                  <span className="text-[#22C55E] text-[13px] font-black uppercase tracking-wider">Coupon Applied</span>
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600 text-[13px] font-black uppercase tracking-wider">
+                      Coupon Applied
+                    </span>
+                  </div>
+                  {outboundData.coupon.isAutoApply && (
+                    <div className="bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                      Auto-Applied
+                    </div>
+                  )}
                 </div>
 
-                {/* Variant 2: Savings Banner */}
-                <div className="bg-[#E4F2E7] rounded-xl p-3 flex items-center justify-between border border-[#D1EAD7]">
+                <div className="bg-green-50 rounded-2xl p-4 flex items-center justify-between border border-green-100 shadow-sm transition-all hover:border-green-200">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-[#22C55E] rounded-lg flex items-center justify-center shadow-sm">
-                      <Ticket className="h-4 w-4 text-white fill-white" />
+                    <div className="h-10 w-10 bg-green-600 rounded-xl flex items-center justify-center shadow-md">
+                      <Ticket className="h-5 w-5 text-white fill-white" />
                     </div>
                     <div>
-                      <p className="text-[11px] font-black text-[#15803D] leading-none uppercase">You Saved ₹20.20</p>
-                      <p className="text-[10px] font-bold text-[#15803D]/60 mt-0.5">with {appliedCoupon}</p>
+                      <p className="text-[13px] font-black text-green-800 leading-none uppercase tracking-tight">
+                        You Saved ₹{outboundData.coupon.discountAmount}
+                      </p>
+                      <p className="text-[11px] font-bold text-green-700/60 mt-1">with {outboundData.coupon.code}</p>
                     </div>
                   </div>
                   <button
-                    onClick={() => setAppliedCoupon(null)}
-                    className="h-6 w-6 rounded-full border border-[#15803D]/20 flex items-center justify-center text-[#15803D]"
+                    onClick={async () => {
+                      setIsProcessingCoupon(true);
+                      await onRemoveCoupon();
+                      setIsProcessingCoupon(false);
+                    }}
+                    disabled={isProcessingCoupon}
+                    className="h-10 w-10 rounded-xl bg-white border border-green-100 flex items-center justify-center text-green-700 shadow-sm hover:bg-green-50 active:scale-90 transition-all disabled:opacity-50"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    {isProcessingCoupon ? (
+                      <div className="h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <X className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </div>
             ) : (
               <button
                 onClick={() => setIsCouponModalOpen(true)}
-                className="text-blue-600 text-sm font-black hover:underline pt-1"
+                className="group flex items-center gap-3 w-full p-4 rounded-2xl border border-dashed border-blue-200 bg-blue-50/30 hover:bg-blue-50 hover:border-blue-300 transition-all text-left"
               >
-                Apply Promo code?
+                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-blue-600 group-hover:scale-110 transition-transform">
+                  <Ticket className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-black text-blue-600">Apply Promo code</p>
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Tap to view offers</p>
+                </div>
+                <ChevronLeft className="h-5 w-5 text-blue-300 rotate-180" />
               </button>
             )}
 
@@ -246,10 +277,24 @@ export function ConfirmBookingScreen({
 
       <ApplyCouponModal
         isOpen={isCouponModalOpen}
-        onClose={() => setIsCouponModalOpen(false)}
-        onApply={(code) => {
+        onClose={() => {
           setIsCouponModalOpen(false);
-          setAppliedCoupon(code || "DLV25");
+          setCouponError(null);
+        }}
+        isLoading={isApplyingCoupon}
+        error={couponError}
+        onApply={async (code) => {
+          if (!code.trim()) return;
+          setCouponError(null);
+          setIsApplyingCoupon(true);
+          const result = await onApplyCoupon(code);
+          setIsApplyingCoupon(false);
+
+          if (result.success) {
+            setIsCouponModalOpen(false);
+          } else {
+            setCouponError(result.message || "Failed to apply coupon");
+          }
         }}
       />
     </div>

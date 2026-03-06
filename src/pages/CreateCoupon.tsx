@@ -30,6 +30,7 @@ const CreateCoupon = () => {
   const [discountType, setDiscountType] = useState<string>("PERCENTAGE");
   const [isPublic, setIsPublic] = useState(false);
   const [isAutoApply, setIsAutoApply] = useState(false);
+  const [tripType, setTripType] = useState<string>("BOTH");
 
   // Fetch Coupon Details if editing
   const { data: coupon, isLoading: isCouponLoading } = useCoupon(id || "");
@@ -40,6 +41,7 @@ const CreateCoupon = () => {
       setDiscountType(coupon.discountType);
       setIsPublic(coupon.isPublic);
       setIsAutoApply(coupon.isAutoApply);
+      setTripType(coupon.tripType || "BOTH");
     }
   }, [coupon]);
 
@@ -74,6 +76,7 @@ const CreateCoupon = () => {
       isAutoApply,
       minRideCount: formData.get("minRideCount") ? Number(formData.get("minRideCount")) : null,
       maxRideCount: formData.get("maxRideCount") ? Number(formData.get("maxRideCount")) : null,
+      tripType,
       targetRouteIds: selectedRoutes,
     };
 
@@ -451,6 +454,31 @@ const CreateCoupon = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="tripType"
+                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                  >
+                    Valid For
+                  </Label>
+                  <Select value={tripType} onValueChange={setTripType}>
+                    <SelectTrigger id="tripType" className="bg-background">
+                      <SelectValue placeholder="Select trip type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BOTH">Both (No Restriction)</SelectItem>
+                      <SelectItem value="SINGLE_TRIP">One-Way Trips Only</SelectItem>
+                      <SelectItem value="ROUND_TRIP">Round-Trips Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {tripType === "ROUND_TRIP" && (
+                    <p className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 leading-relaxed">
+                      ⚠️ Round-trip tip: Set Max Rides to an <strong>even number</strong> (e.g. 4 = 2 round trips). An
+                      odd limit can strand a user who has 1 ride left but needs 2 for a round trip.
+                    </p>
+                  )}
+                </div>
+
                 <div className="p-3 rounded-xl bg-blue-50/50 border border-blue-100/50 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -505,6 +533,141 @@ const CreateCoupon = () => {
             </div>
           </div>
         </form>
+
+        {/* Help Reference Card */}
+        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/60 to-white p-6 space-y-6 pb-12">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
+              <Info className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Coupon Field Reference</h2>
+              <p className="text-xs text-gray-500">Quick guide on how each setting works</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Discount Types */}
+            <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-600">Discount Types</p>
+              <div className="space-y-2.5">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Percentage (%)</p>
+                  <p className="text-xs text-gray-500">
+                    Deducts a % off the cart total. Use{" "}
+                    <span className="font-mono bg-gray-100 px-1 rounded">Max Discount</span> to cap the savings.
+                  </p>
+                  <p className="text-[11px] text-green-700 mt-1 bg-green-50 px-2 py-0.5 rounded">
+                    e.g. 20% off, max ₹100 → on ₹600 cart: saves ₹100
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Flat Amount (₹)</p>
+                  <p className="text-xs text-gray-500">
+                    Deducts a fixed ₹ amount from the cart, regardless of cart size.
+                  </p>
+                  <p className="text-[11px] text-green-700 mt-1 bg-green-50 px-2 py-0.5 rounded">
+                    e.g. ₹91 off → on ₹180 cart: user pays ₹89
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Fixed Price (₹)</p>
+                  <p className="text-xs text-gray-500">Overrides the entire cart total to be exactly this value.</p>
+                  <p className="text-[11px] text-amber-700 mt-1 bg-amber-50 px-2 py-0.5 rounded">
+                    ⚠️ On a ₹360 round-trip, Fixed Price ₹89 = both legs for ₹89 total. Use <strong>₹178</strong> for
+                    round-trips.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Validity & Limits */}
+            <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-600">Validity & Limits</p>
+              <div className="space-y-2.5">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Campaign Start / End</p>
+                  <p className="text-xs text-gray-500">
+                    Coupon silently becomes inactive before start and after end date. No manual toggling needed.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Min Order (₹)</p>
+                  <p className="text-xs text-gray-500">
+                    Cart must be at least this value for the coupon to apply. Set{" "}
+                    <span className="font-mono bg-gray-100 px-1 rounded">0</span> for no minimum.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Uses Per User</p>
+                  <p className="text-xs text-gray-500">
+                    How many times a single user can redeem this coupon. Default is{" "}
+                    <span className="font-mono bg-gray-100 px-1 rounded">1</span>.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Total Cap</p>
+                  <p className="text-xs text-gray-500">
+                    Global maximum across all users. Leave blank for unlimited redemptions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Journey Targeting */}
+            <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-600">Journey Targeting</p>
+              <div className="space-y-2.5">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Applicable Routes</p>
+                  <p className="text-xs text-gray-500">
+                    Leave empty to allow on all routes, or pick specific routes to limit the promo geographically.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Min / Max Rides</p>
+                  <p className="text-xs text-gray-500">
+                    Controls eligibility based on a user's prior confirmed rides on the route.
+                  </p>
+                  <p className="text-[11px] text-blue-700 mt-1 bg-blue-50 px-2 py-0.5 rounded">
+                    e.g. Min 0, Max 2 = applies only to the user's 1st, 2nd, 3rd rides.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Valid For (Trip Type)</p>
+                  <p className="text-xs text-gray-500">Restricts the coupon to a booking type.</p>
+                  <ul className="text-[11px] text-gray-500 space-y-0.5 mt-1 list-disc list-inside">
+                    <li>
+                      <strong>Both</strong> — no restriction
+                    </li>
+                    <li>
+                      <strong>One-Way Only</strong> — blocks round-trip checkout
+                    </li>
+                    <li>
+                      <strong>Round-Trip Only</strong> — blocks single-leg checkout
+                    </li>
+                  </ul>
+                  <p className="text-[11px] text-amber-700 mt-1 bg-amber-50 px-2 py-0.5 rounded">
+                    ⚠️ Round-trip coupons: always use even Max Ride counts (2, 4, 6…)
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Auto-Apply</p>
+                  <p className="text-xs text-gray-500">
+                    System automatically finds and applies this coupon at checkout — user doesn't need to enter a code.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Make Public</p>
+                  <p className="text-xs text-gray-500">
+                    Shows the coupon in the user's "Offers" or "Promos" list in the app. Private coupons still work if
+                    the user enters the code manually.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

@@ -278,7 +278,6 @@ const Trips = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Trip ID</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Bus</TableHead>
               <TableHead>Driver</TableHead>
@@ -294,7 +293,7 @@ const Trips = () => {
           <TableBody>
             {trips.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   No trips found
                 </TableCell>
               </TableRow>
@@ -305,11 +304,6 @@ const Trips = () => {
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => viewTripDetails(trip)}
                 >
-                  <TableCell className="font-medium font-mono text-xs max-w-[120px]">
-                    <div className="overflow-hidden whitespace-nowrap group">
-                      <div className="group-hover:animate-marquee inline-block">{trip.id}</div>
-                    </div>
-                  </TableCell>
                   <TableCell>{trip.date}</TableCell>
                   <TableCell>{trip.busNumber}</TableCell>
                   <TableCell>{trip.driverName}</TableCell>

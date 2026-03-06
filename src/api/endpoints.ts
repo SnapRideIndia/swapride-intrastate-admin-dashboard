@@ -241,6 +241,7 @@ export const API_ENDPOINTS = {
       INITIATE_ROUND_TRIP: "/bookings/initiate-round-trip",
       CONFIRM: (id: string) => `/bookings/${id}/confirm`,
       APPLY_COUPON: (id: string) => `/bookings/${id}/apply-coupon`,
+      REMOVE_COUPON: (id: string) => `/bookings/${id}/coupon`,
       CHANGE_SEAT: (id: string) => `/bookings/${id}/seat`,
       GET_SEATS: (id: string) => `/trips/${id}/seats`,
       MY_BOOKINGS: "/bookings/my-bookings",

@@ -63,6 +63,7 @@ export interface SearchResult {
     id: string;
     code: string;
     discountAmount: number;
+    isAutoApply?: boolean;
   };
   nearestPoint: {
     name: string;
@@ -113,7 +114,12 @@ export interface BookingResponse {
   subTotal: number;
   discountAmount: number;
   assignedSeats: Array<{ seatId: string; seatNumber: string }>;
-  coupon: any;
+  coupon: {
+    id: string;
+    code: string;
+    discountAmount: number;
+    isAutoApply?: boolean;
+  } | null;
   message: string;
 }
 
@@ -133,7 +139,12 @@ export interface LegDetail {
   subTotal: number;
   discountAmount: number;
   totalAmount: number;
-  coupon: any;
+  coupon: {
+    id: string;
+    code: string;
+    discountAmount: number;
+    isAutoApply?: boolean;
+  } | null;
   expiresAt: string;
   assignedSeats: Array<{ seatId: string; seatNumber: string }>;
   pickup: {

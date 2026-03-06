@@ -46,9 +46,9 @@ export default function Bookings() {
 
   const search = searchParams.get("q") || "";
   const debouncedSearch = useDebounce(search, 500);
-  const statusFilter = searchParams.get("status") || "all";
-  const boardingFilter = searchParams.get("boarding") || "all";
-  const dateFilter = searchParams.get("date") || "all";
+  const statusFilter = searchParams.get("status") || "";
+  const boardingFilter = searchParams.get("boarding") || "";
+  const dateFilter = searchParams.get("date") || "";
 
   // Fetch Bookings using Custom Hook
   const {
@@ -56,9 +56,9 @@ export default function Bookings() {
     isLoading: isBookingsLoading,
     refetch,
   } = useBookings({
-    status: statusFilter === "all" ? undefined : statusFilter,
-    boardingStatus: boardingFilter === "all" ? undefined : boardingFilter,
-    date: dateFilter === "all" ? undefined : dateFilter,
+    status: statusFilter === "" || statusFilter === "all" ? undefined : statusFilter,
+    boardingStatus: boardingFilter === "" || boardingFilter === "all" ? undefined : boardingFilter,
+    date: dateFilter === "" || dateFilter === "all" ? undefined : dateFilter,
     offset: (currentPage - 1) * pageSize,
     q: debouncedSearch || undefined,
     limit: pageSize,
@@ -85,7 +85,7 @@ export default function Bookings() {
   const updateFilters = (updates: Record<string, string | null>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === "all" || value === "") {
+      if (value === null || value === "" || value === "all") {
         newParams.delete(key);
       } else {
         newParams.set(key, value);
@@ -180,24 +180,24 @@ export default function Bookings() {
         {/* Filter Bar */}
         <Card className="dashboard-card p-4 flex flex-col md:flex-row gap-4 items-center shadow-sm border-border/60 rounded-xl">
           <Tabs
-            value={statusFilter}
+            value={statusFilter === "all" ? "" : statusFilter}
             onValueChange={(val) => updateFilters({ status: val })}
             className="w-full md:w-auto"
           >
             <TabsList className="grid grid-cols-4 w-[300px] h-10 bg-muted/20 border border-border/40">
-              <TabsTrigger value="all" className="text-[10px] font-bold tracking-tighter">
+              <TabsTrigger value="" className="text-[10px] font-bold tracking-tighter">
                 ALL
               </TabsTrigger>
               <TabsTrigger
-                value="confirmed"
+                value="CONFIRMED"
                 className="text-[10px] font-bold tracking-tighter uppercase text-emerald-600"
               >
                 Paid
               </TabsTrigger>
-              <TabsTrigger value="held" className="text-[10px] font-bold tracking-tighter uppercase text-amber-600">
+              <TabsTrigger value="HELD" className="text-[10px] font-bold tracking-tighter uppercase text-amber-600">
                 Hold
               </TabsTrigger>
-              <TabsTrigger value="cancelled" className="text-[10px] font-bold tracking-tighter uppercase text-rose-600">
+              <TabsTrigger value="CANCELLED" className="text-[10px] font-bold tracking-tighter uppercase text-rose-600">
                 Void
               </TabsTrigger>
             </TabsList>
@@ -205,9 +205,9 @@ export default function Bookings() {
 
           <div className="flex shrink-0 bg-muted/20 p-1 rounded-lg border border-border/40 gap-1 h-10 items-center min-w-fit">
             <Button
-              variant={dateFilter === "all" ? "secondary" : "ghost"}
+              variant={dateFilter === "" ? "secondary" : "ghost"}
               className="h-8 text-[10px] font-bold px-3"
-              onClick={() => updateFilters({ date: "all" })}
+              onClick={() => updateFilters({ date: "" })}
             >
               ALL TIME
             </Button>
@@ -244,19 +244,19 @@ export default function Bookings() {
           </div>
 
           <div className="flex gap-2">
-            <Select value={boardingFilter} onValueChange={(val) => updateFilters({ boarding: val })}>
+            <Select value={boardingFilter || "all"} onValueChange={(val) => updateFilters({ boarding: val })}>
               <SelectTrigger className="w-[160px] h-10 border-border/60 rounded-lg shadow-none">
                 <SelectValue placeholder="Boarding Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Boarding</SelectItem>
-                <SelectItem value="boarded">Boarded</SelectItem>
-                <SelectItem value="not_boarded">Not Boarded</SelectItem>
-                <SelectItem value="no_show">No Show</SelectItem>
+                <SelectItem value="BOARDED">Boarded</SelectItem>
+                <SelectItem value="NOT_BOARDED">Not Boarded</SelectItem>
+                <SelectItem value="NO_SHOW">No Show</SelectItem>
               </SelectContent>
             </Select>
 
-            {(search || statusFilter !== "all" || boardingFilter !== "all") && (
+            {(search || statusFilter !== "" || boardingFilter !== "") && (
               <Button
                 variant="ghost"
                 className="h-10 px-3 text-xs text-muted-foreground hover:text-foreground"

@@ -636,6 +636,31 @@ export default function UserSimulator() {
                 setChangingLeg(leg);
                 setActiveScreen("SEAT_SELECTION");
               }}
+              onApplyCoupon={async (code) => {
+                const bookingId = roundTripResponse ? roundTripResponse.outboundBookingId : bookingResponse?.bookingId;
+                if (!bookingId) return { success: false, message: "No active booking found" };
+                try {
+                  await searchApi.applyCoupon(bookingId, code, roundTripResponse?.returnBookingId);
+                  logger.success(`Coupon ${code} applied successfully.`);
+                  await fetchBookingDetails(bookingId);
+                  return { success: true };
+                } catch (err: any) {
+                  const message = err.response?.data?.message || err.message || "Failed to apply coupon";
+                  // toast({ title: "Failed to apply coupon", description: message, variant: "destructive" });
+                  return { success: false, message };
+                }
+              }}
+              onRemoveCoupon={async () => {
+                const bookingId = roundTripResponse ? roundTripResponse.outboundBookingId : bookingResponse?.bookingId;
+                if (!bookingId) return;
+                try {
+                  await searchApi.removeCoupon(bookingId, roundTripResponse?.returnBookingId);
+                  logger.admin("Coupon removed.");
+                  await fetchBookingDetails(bookingId);
+                } catch (err: any) {
+                  toast({ title: "Failed to remove coupon", description: err.message, variant: "destructive" });
+                }
+              }}
             />
           ) : activeScreen === "SEAT_SELECTION" ? (
             <SeatSelectionScreen

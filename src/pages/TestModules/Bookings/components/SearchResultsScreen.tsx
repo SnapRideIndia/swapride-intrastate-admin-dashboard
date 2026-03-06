@@ -564,9 +564,16 @@ function ResultCard({
                 >
                   Proceed
                 </Button>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                  Fares starting from ₹{result.baseFare}
-                </span>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    Fares starting from
+                  </p>
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="text-2xl font-black text-blue-600 tracking-tighter">
+                      ₹{Math.round(result.baseFare)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

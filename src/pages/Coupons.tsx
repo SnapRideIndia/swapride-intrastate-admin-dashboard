@@ -256,7 +256,7 @@ export default function Coupons() {
                           <div className="text-sm text-gray-500 line-clamp-1 max-w-[180px]" title={coupon.description}>
                             {coupon.description}
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             {coupon.isPublic ? (
                               <Badge
                                 variant="secondary"
@@ -270,6 +270,22 @@ export default function Coupons() {
                                 className="bg-gray-50 text-gray-500 hover:bg-gray-100 border-none text-[10px] px-1.5 py-0 h-4"
                               >
                                 Private
+                              </Badge>
+                            )}
+                            {coupon.tripType === "SINGLE_TRIP" && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-violet-50 text-violet-600 border-none text-[10px] px-1.5 py-0 h-4"
+                              >
+                                One-Way
+                              </Badge>
+                            )}
+                            {coupon.tripType === "ROUND_TRIP" && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-teal-50 text-teal-600 border-none text-[10px] px-1.5 py-0 h-4"
+                              >
+                                Round-Trip
                               </Badge>
                             )}
                             {coupon.targetRoutes && coupon.targetRoutes.length > 0 && (

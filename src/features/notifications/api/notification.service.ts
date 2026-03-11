@@ -60,4 +60,15 @@ export const notificationService = {
   registerDevice: async (data: { fcmToken: string; deviceType: string }): Promise<void> => {
     await apiClient.post(API_ENDPOINTS.NOTIFICATIONS.REGISTER_DEVICE, data);
   },
+
+  uploadMedia: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post<{ url: string }>(API_ENDPOINTS.NOTIFICATIONS.MEDIA_UPLOAD, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
 };

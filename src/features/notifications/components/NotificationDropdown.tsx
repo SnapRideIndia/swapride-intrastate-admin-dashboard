@@ -1,7 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { useState, useEffect } from "react";
-import { Bell, User, CreditCard, Bus, AlertCircle, CheckCircle, Tag } from "lucide-react";
+import { 
+  Bell, 
+  User, 
+  CreditCard, 
+  AlertCircle, 
+  CheckCircle, 
+  Megaphone, 
+  MapPin, 
+  MessageSquare,
+  Bus,
+  Tag
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,12 +36,17 @@ const getIcon = (type: Notification["type"]) => {
       return CreditCard;
     case "trip_assignment":
     case "TRIP_UPDATE":
-      return Bus;
+    case "PICKUP_NEARBY":
+    case "DROPOFF_NEARBY":
+      return MapPin;
     case "system_alert":
     case "SYSTEM_ALERT":
       return AlertCircle;
     case "PROMOTIONAL":
-      return Tag;
+    case "marketing":
+      return Megaphone;
+    case "TICKET_REPLY":
+      return MessageSquare;
     default:
       return Bell;
   }
@@ -39,20 +55,26 @@ const getIcon = (type: Notification["type"]) => {
 const getIconColor = (type: Notification["type"]) => {
   switch (type) {
     case "driver_request":
-      return "text-primary bg-primary/10";
+      return "text-indigo-600 bg-indigo-50";
     case "payment_issue":
+      return "text-red-600 bg-red-50";
     case "PAYMENT_SUCCESS":
-      return "text-destructive bg-destructive/10";
+      return "text-blue-600 bg-blue-50";
     case "trip_assignment":
     case "TRIP_UPDATE":
-      return "text-success bg-success/10";
+    case "PICKUP_NEARBY":
+    case "DROPOFF_NEARBY":
+      return "text-emerald-600 bg-emerald-50";
     case "system_alert":
     case "SYSTEM_ALERT":
-      return "text-warning bg-warning/10";
+      return "text-rose-600 bg-rose-50";
     case "PROMOTIONAL":
-      return "text-orange-500 bg-orange-100";
+    case "marketing":
+      return "text-orange-600 bg-orange-50";
+    case "TICKET_REPLY":
+      return "text-purple-600 bg-purple-50";
     default:
-      return "text-muted-foreground bg-muted";
+      return "text-slate-600 bg-slate-50";
   }
 };
 
@@ -75,7 +97,6 @@ export function NotificationDropdown() {
   useEffect(() => {
     fetchNotifications();
 
-    // Listen for custom event from useFcm when a new message arrives
     const handleNewNotification = () => {
       fetchNotifications();
     };
@@ -148,27 +169,50 @@ export function NotificationDropdown() {
                 <DropdownMenuItem
                   key={notification.id}
                   className={cn(
-                    "flex items-start gap-3 p-3 cursor-pointer transition-all duration-200 hover:bg-accent hover:translate-x-1",
-                    !notification.read && "bg-accent/30",
+                    "flex flex-col items-stretch gap-0 p-0 cursor-pointer transition-all duration-200 hover:bg-accent/50",
+                    !notification.read && "bg-accent/20",
                   )}
                   onClick={() => {
                     markAsRead(notification.id);
                     navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", notification.id));
                   }}
                 >
-                  <div className={cn("p-2 rounded-full flex-shrink-0", getIconColor(notification.type))}>
-                    <Icon className="h-4 w-4" />
+                  <div className="flex items-start gap-3 p-3">
+                    <div className={cn("p-2 rounded-xl flex-shrink-0 shadow-sm", getIconColor(notification.type))}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={cn("text-sm line-clamp-1", !notification.read ? "font-bold text-gray-900" : "font-medium text-gray-700")}>
+                          {notification.title}
+                        </p>
+                        {!notification.read && <div className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">{notification.content}</p>
+                      
+                      {/* Image Preview in Dropdown */}
+                      {notification.metadata?.images && notification.metadata.images.length > 0 && (
+                        <div className="mt-2 relative aspect-video rounded-lg overflow-hidden ring-1 ring-black/5 shadow-inner bg-gray-50">
+                          <img 
+                            src={notification.metadata.images[0]} 
+                            alt="preview" 
+                            className="w-full h-full object-cover"
+                          />
+                          {notification.metadata.images.length > 1 && (
+                            <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[8px] font-black text-white uppercase tracking-widest leading-none">
+                              +{notification.metadata.images.length - 1} More
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-muted-foreground/70 mt-2 font-medium uppercase tracking-tight">
+                        {notification.createdAt
+                          ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })
+                          : "Just now"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm", !notification.read && "font-medium")}>{notification.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{notification.content}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {notification.createdAt
-                        ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })
-                        : "Just now"}
-                    </p>
-                  </div>
-                  {!notification.read && <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
                 </DropdownMenuItem>
               );
             })

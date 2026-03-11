@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
+import { cn } from "@/lib/utils";
 import {
   Search,
   Tag,
@@ -13,6 +14,10 @@ import {
   Send,
   Check,
   Eye,
+  User,
+  CreditCard,
+  MapPin,
+  Megaphone,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
@@ -28,7 +33,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@\/components\/ui\/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -39,13 +44,11 @@ import {
   useDeleteNotification,
 } from "@/features/notifications/hooks/useNotifications";
 
-// Mock Data Type based on DB Design
 
 export default function Notifications() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // URL State
   const search = searchParams.get("q") || "";
   const typeFilter = searchParams.get("type") || "all";
   const priorityFilter = searchParams.get("priority") || "all";
@@ -65,7 +68,6 @@ export default function Notifications() {
       }
     });
 
-    // Reset page if filters change
     if (!updates.page) {
       newParams.delete("page");
     }
@@ -89,7 +91,6 @@ export default function Notifications() {
 
   const notifications = notificationsData?.data || [];
   const totalCount = notificationsData?.pagination?.total || 0;
-  // Stats fallback
   const stats = statsData || { sentCount: 0, openRate: 0, criticalAlerts: 0 };
 
   const loading = loadingNotifications;
@@ -107,15 +108,21 @@ export default function Notifications() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "TRIP_UPDATE":
-        return <Info className="h-4 w-4 text-blue-500" />;
+      case "trip_assignment":
+        return <MapPin className="h-4 w-4 text-emerald-500" />;
       case "PAYMENT_SUCCESS":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "payment_issue":
+        return <CreditCard className="h-4 w-4 text-blue-500" />;
       case "TICKET_REPLY":
         return <MessageSquare className="h-4 w-4 text-purple-500" />;
       case "SYSTEM_ALERT":
+      case "system_alert":
         return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case "PROMOTIONAL":
-        return <Tag className="h-4 w-4 text-orange-500" />;
+      case "marketing":
+        return <Megaphone className="h-4 w-4 text-orange-500" />;
+      case "driver_request":
+        return <User className="h-4 w-4 text-indigo-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }
@@ -285,12 +292,24 @@ export default function Notifications() {
                     onClick={() => navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", n.id))}
                   >
                     <TableCell className="max-w-md">
-                      <div className="flex flex-col gap-1">
-                        <span className={`font-bold text-gray-900 ${!n.read ? "flex items-center" : ""}`}>
-                          {n.title}
-                          {!n.read && <span className="h-2 w-2 rounded-full bg-blue-500 ml-2" />}
-                        </span>
-                        <span className="text-sm text-gray-500 line-clamp-1">{n.content}</span>
+                      <div className="flex gap-4">
+                        {n.metadata?.images && n.metadata.images.length > 0 && (
+                          <div className="relative h-16 w-16 rounded-xl overflow-hidden shrink-0 ring-1 ring-black/5 shadow-sm bg-gray-50 group-hover:ring-blue-200 transition-all">
+                            <img src={n.metadata.images[0]} alt="thumb" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            {n.metadata.images.length > 1 && (
+                              <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[10px] font-black text-white">+{n.metadata.images.length - 1}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <span className={cn("font-bold text-gray-900 truncate flex items-center gap-2", !n.read && "text-blue-600")}>
+                            {n.title}
+                            {!n.read && <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shrink-0" />}
+                          </span>
+                          <span className="text-sm text-gray-500 line-clamp-2 leading-relaxed">{n.content}</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>

@@ -94,3 +94,12 @@ export const useRegisterDevice = () => {
     mutationFn: (data: { fcmToken: string; deviceType: string }) => notificationService.registerDevice(data),
   });
 };
+
+export const useUploadNotificationMedia = () => {
+  return useMutation({
+    mutationFn: notificationService.uploadMedia,
+    onError: (err: any) => {
+      toast.error(`Media upload failed: ${err.message}`);
+    },
+  });
+};

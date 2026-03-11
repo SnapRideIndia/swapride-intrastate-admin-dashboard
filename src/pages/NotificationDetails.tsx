@@ -1,6 +1,16 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Bell, Clock, Info, CheckCircle2, MessageSquare, AlertTriangle, Tag, Calendar, Layers } from "lucide-react";
+import { 
+  Bell, 
+  Clock, 
+  Info, 
+  CheckCircle2, 
+  MessageSquare, 
+  AlertTriangle, 
+  Tag, 
+  Calendar, 
+  Layers, 
+} from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -26,30 +36,36 @@ export default function NotificationDetails() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "HIGH":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "bg-rose-100 text-rose-700 border-rose-200";
       case "MEDIUM":
         return "bg-orange-100 text-orange-700 border-orange-200";
       case "LOW":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-sky-100 text-sky-700 border-sky-200";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+        return "bg-slate-100 text-slate-700 border-slate-200";
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "TRIP_UPDATE":
-        return <Info className="h-4 w-4 text-primary" />;
+      case "trip_assignment":
+      case "PICKUP_NEARBY":
+      case "DROPOFF_NEARBY":
+        return <Info className="h-4 w-4 text-emerald-600" />;
       case "PAYMENT_SUCCESS":
-        return <CheckCircle2 className="h-4 w-4 text-success" />;
+      case "payment_issue":
+        return <CheckCircle2 className="h-4 w-4 text-blue-600" />;
       case "TICKET_REPLY":
-        return <MessageSquare className="h-4 w-4 text-purple-500" />;
+        return <MessageSquare className="h-4 w-4 text-purple-600" />;
       case "SYSTEM_ALERT":
-        return <AlertTriangle className="h-4 w-4 text-destructive" />;
+      case "system_alert":
+        return <AlertTriangle className="h-4 w-4 text-rose-600" />;
       case "PROMOTIONAL":
-        return <Tag className="h-4 w-4 text-orange-500" />;
+      case "marketing":
+        return <Tag className="h-4 w-4 text-orange-600" />;
       default:
-        return <Bell className="h-4 w-4 text-muted-foreground" />;
+        return <Bell className="h-4 w-4 text-slate-400" />;
     }
   };
 
@@ -112,20 +128,60 @@ export default function NotificationDetails() {
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="shadow-sm border-border/60 bg-muted/5">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <Layers className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Target Group</p>
-                  <p className="text-base font-semibold">
-                    {notification.targetGroup?.replace(/_/g, " ") || "All Users"}
-                  </p>
+            {notification.metadata?.bookingId && (
+              <Card className="shadow-sm border-border/60 bg-muted/5 group cursor-pointer hover:bg-blue-50/50 transition-colors">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Related Booking</p>
+                    <p className="text-base font-semibold font-mono">{notification.metadata.bookingId.split("-")[0]}...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {notification.metadata?.pointId && (
+              <Card className="shadow-sm border-border/60 bg-muted/5">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                    <Info className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Stop Location</p>
+                    <p className="text-base font-semibold">Contextual Alert</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Image Gallery */}
+          {notification.metadata?.images && notification.metadata.images.length > 0 && (
+            <Card className="shadow-sm border-border/60">
+              <CardHeader className="py-4 border-b border-border/60 bg-muted/5">
+                <CardTitle className="text-base font-medium">Media Assets ({notification.metadata.images.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {notification.metadata.images.map((img: string, idx: number) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden ring-1 ring-black/5 shadow-sm bg-gray-50 group">
+                      <img 
+                        src={img} 
+                        alt={`Asset ${idx + 1}`} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button variant="secondary" size="sm" className="h-8 text-xs" onClick={() => window.open(img, "_blank")}>
+                          View Full
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-          </div>
+          )}
         </div>
 
         {/* Sidebar */}

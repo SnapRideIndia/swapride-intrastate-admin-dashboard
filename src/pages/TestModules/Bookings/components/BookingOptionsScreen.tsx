@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChevronLeft, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Card } from "@/components/ui/card";
 interface BookingOptionsScreenProps {
   onBack: () => void;
   onProceedOneWay: () => void;
-  onShowReturnBuses: () => void;
+  onShowReturnBuses: (time: string) => void;
   price?: number;
 }
 
@@ -15,6 +16,14 @@ export function BookingOptionsScreen({
   onShowReturnBuses,
   price = 0,
 }: BookingOptionsScreenProps) {
+  const [preferredTime, setPreferredTime] = useState("05:30");
+  const [isPM, setIsPM] = useState(true);
+
+  const handleShowReturn = () => {
+    const time = `${preferredTime} ${isPM ? "PM" : "AM"}`;
+    onShowReturnBuses(time);
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-[#F0F4F8] overflow-hidden h-full">
       {/* Header */}
@@ -56,8 +65,42 @@ export function BookingOptionsScreen({
               <p className="text-[11px] font-bold text-slate-400 mt-1">Free cancellation if your plans change later</p>
             </div>
 
+            <div className="space-y-3">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Preferred Time</label>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={preferredTime}
+                    onChange={(e) => setPreferredTime(e.target.value)}
+                    className="bg-transparent border-none outline-none text-[15px] font-bold text-slate-700 w-full"
+                    placeholder="HH:MM"
+                  />
+                </div>
+                <div className="flex bg-slate-100 rounded-xl p-1 shrink-0">
+                  <button
+                    onClick={() => setIsPM(false)}
+                    className={`px-4 py-2 rounded-lg text-[11px] font-black tracking-tight transition-all ${
+                      !isPM ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                    }`}
+                  >
+                    AM
+                  </button>
+                  <button
+                    onClick={() => setIsPM(true)}
+                    className={`px-4 py-2 rounded-lg text-[11px] font-black tracking-tight transition-all ${
+                      isPM ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                    }`}
+                  >
+                    PM
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <Button
-              onClick={onShowReturnBuses}
+              onClick={handleShowReturn}
               className="w-full bg-[#FFC107] hover:bg-[#FFB300] text-slate-900 font-extrabold text-[15px] h-12 rounded-xl shadow-sm border-b-2 border-amber-500/20 active:border-b-0 transition-all"
             >
               Show return buses

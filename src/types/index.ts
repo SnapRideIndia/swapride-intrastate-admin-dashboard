@@ -265,12 +265,13 @@ export interface BookedSeat {
 
 export interface Notification {
   id: string;
-  type: "booking" | "payment" | "delay" | "maintenance" | "trip" | "system" | "alert" | string;
+  type: "booking" | "payment" | "delay" | "maintenance" | "trip" | "system" | "alert" | "proximity_alert" | string;
   title: string;
   content: string;
   targetGroup?: string;
   relatedId?: string;
   relatedType?: string;
+  metadata?: any;
   read: boolean;
   priority?: "LOW" | "MEDIUM" | "HIGH";
   createdAt: string;

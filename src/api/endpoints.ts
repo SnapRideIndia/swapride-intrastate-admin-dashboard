@@ -179,13 +179,14 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/notifications/${id}`,
     STATS: "/notifications/stats",
     REGISTER_DEVICE: "/notifications/devices/register",
+    MEDIA_UPLOAD: "/notifications/media/upload",
   },
   // Bookings
   BOOKINGS: {
     BASE: "/admin/bookings",
     GET_ALL: "/admin/bookings",
     GET_BY_ID: (id: string) => `/admin/bookings/${id}`,
-    CANCEL: (id: string) => `/bookings/${id}/cancel`, // Cancel might still be user-facing or maybe both
+    CANCEL: (id: string) => `/bookings/${id}/cancel`, 
     BOARD: (id: string) => `/admin/bookings/${id}/board`,
     MY_BOOKINGS: "/bookings/my-bookings",
     STATS: "/admin/bookings/stats",

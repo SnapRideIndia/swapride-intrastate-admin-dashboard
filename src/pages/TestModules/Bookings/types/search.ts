@@ -90,6 +90,7 @@ export interface SearchTripsParams {
   };
   tripDate: string;
   officeTimings?: string;
+  preferredTime?: string;
   pickupPointId?: string;
   dropoffPointId?: string;
 }

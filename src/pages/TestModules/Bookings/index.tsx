@@ -232,6 +232,7 @@ export default function UserSimulator() {
     dateOverride?: Date,
     sourceOverride?: { lat: number | null; lng: number | null; text: string },
     destOverride?: { lat: number | null; lng: number | null; text: string },
+    preferredTime?: string,
   ) => {
     const finalSource = sourceOverride || source;
     const finalDestination = destOverride || destination;
@@ -279,6 +280,7 @@ export default function UserSimulator() {
         },
         tripDate: format(dateToSearch, "yyyy-MM-dd"),
         officeTimings: userProfile?.isOnboarded === false ? `${finalStartTime} - ${finalEndTime}` : undefined,
+        preferredTime: preferredTime,
       });
 
       setSearchResults(results);
@@ -602,14 +604,14 @@ export default function UserSimulator() {
               onProceedOneWay={() => {
                 handleInitiateOneWay();
               }}
-              onShowReturnBuses={() => {
+              onShowReturnBuses={(time) => {
                 addLog("Return trip requested. Swapping routes...", "info");
                 const currentSource = source;
                 const currentDest = destination;
                 setSource(currentDest);
                 setDestination(currentSource);
                 setIsReturnLeg(true);
-                handleSearchTrigger(undefined, undefined, undefined, currentDest, currentSource);
+                handleSearchTrigger(undefined, undefined, undefined, currentDest, currentSource, time);
               }}
             />
           ) : activeScreen === "CONFIRMATION" ? (

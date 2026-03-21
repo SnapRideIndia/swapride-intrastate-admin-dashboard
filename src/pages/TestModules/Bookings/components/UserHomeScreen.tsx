@@ -1,14 +1,15 @@
-import React from "react";
-import { Bus, Wallet, History, Home, Bell, User as UserIcon, Ticket } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Bus, Wallet, History, Home, Bell, MoreVertical, Ticket, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserProfile } from "../../Profile/types";
-import { UserProfileButton } from "../../shared/UserProfileButton";
 
 interface UserHomeScreenProps {
   profile: UserProfile;
   onStartBooking: () => void;
   onTabChange: (tab: "HOME" | "WALLET" | "HISTORY") => void;
   onProfileClick: () => void;
+  onSavedLocationsClick: () => void;
   activeTab: "HOME" | "WALLET" | "HISTORY";
 }
 
@@ -17,8 +18,21 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
   onStartBooking,
   onTabChange,
   onProfileClick,
+  onSavedLocationsClick,
   activeTab,
 }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen || !menuButtonRef.current) return;
+    const el = menuButtonRef.current;
+    const rect = el.getBoundingClientRect();
+    setMenuRect({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    return () => setMenuRect(null);
+  }, [menuOpen]);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50 relative overflow-hidden">
       {/* Header / Top Bar */}
@@ -37,7 +51,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
               <h2 className="text-sm font-black text-white tracking-tight">{profile.fullName}</h2>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
             <Button
               variant="ghost"
               size="icon"
@@ -46,15 +60,65 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
               <Bell className="w-5 h-5 text-white" />
             </Button>
             <button
-              onClick={onProfileClick}
-              className="w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20 hover:border-white transition-all active:scale-95"
+              ref={menuButtonRef}
+              onClick={() => setMenuOpen((o) => !o)}
+              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center transition-all active:scale-95"
+              aria-expanded={menuOpen}
+              aria-haspopup="true"
             >
-              <img
-                src={profile.profileUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.fullName}`}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
+              <MoreVertical className="w-5 h-5 text-white" />
             </button>
+
+            {menuOpen &&
+              typeof document !== "undefined" &&
+              menuRect &&
+              createPortal(
+                <>
+                  <div
+                    className="fixed inset-0 z-[100]"
+                    aria-hidden
+                    onClick={() => setMenuOpen(false)}
+                  />
+                  <div
+                    role="menu"
+                    className="fixed w-64 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-[110] animate-in fade-in slide-in-from-top-2 duration-200"
+                    style={{ top: menuRect.top, right: menuRect.right }}
+                  >
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onProfileClick();
+                      }}
+                      className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100"
+                    >
+                      <img
+                        src={profile.profileUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.fullName}`}
+                        alt=""
+                        className="w-12 h-12 rounded-xl object-cover shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-slate-900 truncate">{profile.fullName}</p>
+                        <p className="text-xs text-slate-500 truncate">{profile.mobileNumber || profile.email || "—"}</p>
+                      </div>
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onSavedLocationsClick();
+                      }}
+                      className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <MapPin className="w-5 h-5 text-primary" />
+                      </div>
+                      <span className="text-sm font-bold text-slate-900">Saved Locations</span>
+                    </button>
+                  </div>
+                </>,
+                document.body
+              )}
           </div>
         </div>
 

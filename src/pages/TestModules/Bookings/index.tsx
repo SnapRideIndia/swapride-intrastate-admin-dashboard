@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ChevronRight, User as UserIcon } from "lucide-react";
+import { Search, ChevronRight, User as UserIcon, MapPin, Bookmark, X } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -37,6 +37,11 @@ import BookingSuccessScreen from "./components/BookingSuccessScreen";
 import MyBookingsScreen from "./components/MyBookingsScreen";
 import TicketDetailScreen from "./components/TicketDetailScreen";
 import WalletScreen from "./features/wallet/WalletScreen";
+import TransactionHistoryScreen from "./features/wallet/TransactionHistoryScreen";
+import TransactionDetailScreen from "./features/wallet/TransactionDetailScreen";
+import { SavedLocationsScreen } from "./components/SavedLocationsScreen";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export default function UserSimulator() {
   const [testToken, setTestToken] = useState<string | null>(localStorage.getItem(TEST_USER_TOKEN_KEY));
@@ -62,6 +67,27 @@ export default function UserSimulator() {
   const [bookingDetails, setBookingDetails] = useState<import("./types/search").BookingDetails | null>(null);
   const [changingLeg, setChangingLeg] = useState<"outbound" | "return">("outbound");
   const [historyBookingId, setHistoryBookingId] = useState<string | null>(null);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+
+  // Saved Locations flow
+  const [locationPickerPurpose, setLocationPickerPurpose] = useState<"search" | "add" | "edit" | "edit_modal">("search");
+  const [editingSavedLocation, setEditingSavedLocation] = useState<SavedLocation | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalDraft, setEditModalDraft] = useState<{
+    address: string;
+    latitude: number;
+    longitude: number;
+    label: string;
+  } | null>(null);
+  const [savedLocationsRefreshTrigger, setSavedLocationsRefreshTrigger] = useState(0);
+  const [savingEditModal, setSavingEditModal] = useState(false);
+  const [pendingSaveLocation, setPendingSaveLocation] = useState<{
+    address: string;
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [saveAsLabel, setSaveAsLabel] = useState("");
+  const [savingLocation, setSavingLocation] = useState(false);
 
   // Auth Flow State
   const [authMobile, setAuthMobile] = useState("");
@@ -122,6 +148,11 @@ export default function UserSimulator() {
     if (tokens.refreshToken) {
       localStorage.setItem(TEST_USER_REFRESH_TOKEN_KEY, tokens.refreshToken);
     }
+    window.dispatchEvent(
+      new CustomEvent("test-user-logged-in", {
+        detail: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
+      }),
+    );
     addLog("Authenticated. Synchronizing user state...", "success");
     await fetchProfile(true);
   };
@@ -135,6 +166,31 @@ export default function UserSimulator() {
     addLog("Session terminated. User logged out.", "info");
     toast({ title: "Logged out successfully" });
   }, [addLog]);
+
+  // Token expiry / logout: sync simulator state and go to START (login)
+  useEffect(() => {
+    const onSessionExpired = () => {
+      toast({ title: "Session expired", description: "Please sign in again.", variant: "destructive" });
+      handleLogout();
+    };
+    const onUserLoggedOut = () => {
+      handleLogout();
+    };
+    window.addEventListener("test-session-expired", onSessionExpired);
+    window.addEventListener("test-user-logged-out", onUserLoggedOut);
+    return () => {
+      window.removeEventListener("test-session-expired", onSessionExpired);
+      window.removeEventListener("test-user-logged-out", onUserLoggedOut);
+    };
+  }, [handleLogout]);
+
+  // Protected screens: if no token and not on START/auth screens, redirect to START
+  const authScreens = ["START", "AUTH_PHONE", "AUTH_OTP", "AUTH_REGISTER", "AUTH_LOGIN"];
+  useEffect(() => {
+    if (!testToken && !authScreens.includes(activeScreen)) {
+      setActiveScreen("START");
+    }
+  }, [testToken, activeScreen]);
 
   // Auth Flow Handlers
   const handleSendOtp = async (mobile: string) => {
@@ -220,22 +276,66 @@ export default function UserSimulator() {
   };
 
   const handleLocationSelect = (loc: AppLocation) => {
+    if (locationPickerPurpose === "add") {
+      setPendingSaveLocation({
+        address: loc.text || loc.address || "",
+        latitude: loc.lat,
+        longitude: loc.lng,
+      });
+      setSaveAsLabel("");
+      return;
+    }
+    if (locationPickerPurpose === "edit_modal") {
+      setEditModalDraft((d) =>
+        d ? { ...d, address: loc.text || loc.address || "", latitude: loc.lat, longitude: loc.lng } : d,
+      );
+      setLocationPickerPurpose("search");
+      setActiveScreen("SAVED_LOCATIONS");
+      setEditModalOpen(true);
+      return;
+    }
     if (pickingType === "source") setSource(loc);
     else setDestination(loc);
     setActiveScreen("SEARCH");
     logger.admin(`Location confirmed: ${loc.text} set as ${pickingType}.`);
   };
 
+  const handleSaveAsConfirm = async () => {
+    if (!pendingSaveLocation || !saveAsLabel.trim()) return;
+    setSavingLocation(true);
+    try {
+      await savedLocationsApi.create({
+        label: saveAsLabel.trim(),
+        address: pendingSaveLocation.address,
+        latitude: pendingSaveLocation.latitude,
+        longitude: pendingSaveLocation.longitude,
+      });
+      setPendingSaveLocation(null);
+      setSaveAsLabel("");
+      setLocationPickerPurpose("search");
+      setActiveScreen("SAVED_LOCATIONS");
+      toast({ title: "Location saved" });
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
   const handleSearchTrigger = async (
     startTime?: string,
     endTime?: string,
     dateOverride?: Date,
-    sourceOverride?: { lat: number | null; lng: number | null; text: string },
-    destOverride?: { lat: number | null; lng: number | null; text: string },
+    sourceOverride?: Partial<AppLocation> & { lat: number | null; lng: number | null; text: string },
+    destOverride?: Partial<AppLocation> & { lat: number | null; lng: number | null; text: string },
     preferredTime?: string,
   ) => {
-    const finalSource = sourceOverride || source;
-    const finalDestination = destOverride || destination;
+    const finalSource: AppLocation = sourceOverride
+      ? { ...source, ...sourceOverride, lat: sourceOverride.lat ?? source.lat, lng: sourceOverride.lng ?? source.lng, text: sourceOverride.text }
+      : source;
+    const finalDestination: AppLocation = destOverride
+      ? { ...destination, ...destOverride, lat: destOverride.lat ?? destination.lat, lng: destOverride.lng ?? destination.lng, text: destOverride.text }
+      : destination;
     const finalDate = dateOverride || selectedDate;
     const finalStartTime = startTime || "09:00 AM";
     const finalEndTime = endTime || "06:00 PM";
@@ -267,12 +367,14 @@ export default function UserSimulator() {
         pickup: {
           latitude: finalSource.lat!,
           longitude: finalSource.lng!,
-          address: finalSource.text,
+          address: finalSource.address ?? finalSource.text,
+          placeName: finalSource.placeName ?? (finalSource.text || undefined),
         },
         dropoff: {
           latitude: finalDestination.lat!,
           longitude: finalDestination.lng!,
-          address: finalDestination.text,
+          address: finalDestination.address ?? finalDestination.text,
+          placeName: finalDestination.placeName ?? (finalDestination.text || undefined),
         },
         userLocation: {
           latitude: finalSource.lat!,
@@ -305,7 +407,7 @@ export default function UserSimulator() {
     setIsSearching(true);
     logger.admin(`Fetching consolidated journey data for booking: ${bookingId.split("-")[0]}...`);
     try {
-      const details = await searchApi.getBookingDetails(bookingId, source.lat, source.lng);
+      const details = await searchApi.getBookingDetails(bookingId, source.lat, source.lng, destination.lat, destination.lng);
       setBookingDetails(details);
       logger.admin("Confirmation data synchronized with server.");
       return details;
@@ -515,6 +617,7 @@ export default function UserSimulator() {
                 setActiveScreen("SEARCH");
               }}
               onProfileClick={() => setActiveScreen("PROFILE")}
+              onSavedLocationsClick={() => setActiveScreen("SAVED_LOCATIONS")}
               activeTab="HOME"
               onTabChange={(tab) => {
                 if (tab === "HISTORY") setActiveScreen("MY_BOOKINGS" as any);
@@ -526,6 +629,40 @@ export default function UserSimulator() {
               onBack={() => setActiveScreen("HOME")}
               logger={logger}
               onRefreshProfile={() => fetchProfile(false)}
+              onViewAll={() => setActiveScreen("TRANSACTION_HISTORY" as any)}
+            />
+          ) : activeScreen === ("TRANSACTION_HISTORY" as any) ? (
+            <TransactionHistoryScreen
+              onBack={() => setActiveScreen("WALLET")}
+              onTransactionClick={(id) => {
+                setSelectedTransactionId(id);
+                setActiveScreen("TRANSACTION_DETAIL" as any);
+              }}
+            />
+          ) : activeScreen === ("TRANSACTION_DETAIL" as any) && selectedTransactionId ? (
+            <TransactionDetailScreen
+              transactionId={selectedTransactionId}
+              onBack={() => setActiveScreen("TRANSACTION_HISTORY" as any)}
+            />
+          ) : activeScreen === "SAVED_LOCATIONS" ? (
+            <SavedLocationsScreen
+              refreshTrigger={savedLocationsRefreshTrigger}
+              onBack={() => setActiveScreen("HOME")}
+              onAddLocation={() => {
+                setLocationPickerPurpose("add");
+                setPickingType("source");
+                setActiveScreen("LOCATION_PICKER");
+              }}
+              onEditLocation={(loc) => {
+                setEditingSavedLocation(loc);
+                setEditModalDraft({
+                  address: loc.address,
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                  label: loc.label,
+                });
+                setEditModalOpen(true);
+              }}
             />
           ) : activeScreen === "PROFILE" ? (
             <div className="flex-1 flex flex-col h-full bg-white">
@@ -557,10 +694,34 @@ export default function UserSimulator() {
           ) : activeScreen === "LOCATION_PICKER" ? (
             <LocationPickerScreen
               pickingType={pickingType}
-              onBack={() => setActiveScreen("SEARCH")}
+              onBack={() => {
+                if (locationPickerPurpose === "add" || locationPickerPurpose === "edit") {
+                  setLocationPickerPurpose("search");
+                  setEditingSavedLocation(null);
+                  setActiveScreen("SAVED_LOCATIONS");
+                } else if (locationPickerPurpose === "edit_modal") {
+                  setLocationPickerPurpose("search");
+                  setEditModalOpen(true);
+                  setActiveScreen("SAVED_LOCATIONS");
+                } else {
+                  setActiveScreen("SEARCH");
+                }
+              }}
               onSelect={handleLocationSelect}
-              savedLocations={savedLocations}
-              recentSearches={recentSearches}
+              savedLocations={locationPickerPurpose === "search" || locationPickerPurpose === "edit_modal" ? savedLocations : []}
+              recentSearches={locationPickerPurpose === "search" || locationPickerPurpose === "edit_modal" ? recentSearches : []}
+              editingLocation={locationPickerPurpose === "edit" ? editingSavedLocation : null}
+              onUpdateLocation={(id, loc) => {
+                savedLocationsApi
+                  .update(id, loc)
+                  .then(() => {
+                    setEditingSavedLocation(null);
+                    setLocationPickerPurpose("search");
+                    setActiveScreen("SAVED_LOCATIONS");
+                    toast({ title: "Location updated" });
+                  })
+                  .catch((err) => toast({ title: "Update failed", description: err.message, variant: "destructive" }));
+              }}
             />
           ) : activeScreen === "RESULTS" ? (
             <SearchResultsScreen
@@ -744,6 +905,131 @@ export default function UserSimulator() {
           )}
         </div>
       </div>
+
+      <Dialog
+        open={editModalOpen && !!editingSavedLocation && !!editModalDraft}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditModalOpen(false);
+            setEditingSavedLocation(null);
+            setEditModalDraft(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[400px] rounded-3xl">
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <DialogTitle className="text-lg">Edit Location</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full -mr-2"
+              onClick={() => {
+                setEditModalOpen(false);
+                setEditingSavedLocation(null);
+                setEditModalDraft(null);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                <MapPin className="h-3.5 w-3.5" />
+                Location
+              </label>
+              <button
+                type="button"
+                className="w-full text-left text-sm mt-1 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors truncate"
+                onClick={() => {
+                  setEditModalOpen(false);
+                  setLocationPickerPurpose("edit_modal");
+                  setPickingType("source");
+                  setActiveScreen("LOCATION_PICKER");
+                }}
+              >
+                {editModalDraft?.address || "Select location"}
+              </button>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                <Bookmark className="h-3.5 w-3.5" />
+                Save as
+              </label>
+              <Input
+                placeholder="e.g. Home, Office"
+                value={editModalDraft?.label ?? ""}
+                onChange={(e) =>
+                  setEditModalDraft((d) => (d ? { ...d, label: e.target.value } : null))
+                }
+                className="mt-1 rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              className="rounded-xl w-full"
+              disabled={savingEditModal || !editModalDraft?.label?.trim()}
+              onClick={async () => {
+                if (!editingSavedLocation || !editModalDraft) return;
+                setSavingEditModal(true);
+                try {
+                  await savedLocationsApi.update(editingSavedLocation.id, {
+                    address: editModalDraft.address,
+                    latitude: editModalDraft.latitude,
+                    longitude: editModalDraft.longitude,
+                    label: editModalDraft.label.trim(),
+                  });
+                  setEditModalOpen(false);
+                  setEditingSavedLocation(null);
+                  setEditModalDraft(null);
+                  setSavedLocationsRefreshTrigger((t) => t + 1);
+                  toast({ title: "Location updated" });
+                } catch (err: any) {
+                  toast({ title: "Update failed", description: err.message, variant: "destructive" });
+                } finally {
+                  setSavingEditModal(false);
+                }
+              }}
+            >
+              {savingEditModal ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pendingSaveLocation} onOpenChange={(open) => !open && setPendingSaveLocation(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Save as</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Location</label>
+              <p className="text-sm mt-1 text-foreground truncate" title={pendingSaveLocation?.address}>
+                {pendingSaveLocation?.address}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Save as</label>
+              <Input
+                placeholder="e.g. Home, Office"
+                value={saveAsLabel}
+                onChange={(e) => setSaveAsLabel(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingSaveLocation(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAsConfirm} disabled={!saveAsLabel.trim() || savingLocation}>
+              {savingLocation ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

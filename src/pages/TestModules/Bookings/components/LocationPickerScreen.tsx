@@ -1,11 +1,17 @@
-import { ChevronLeft, X, Search, Navigation, Home as HomeIcon, Briefcase, History, Loader2 } from "lucide-react";
+import { ChevronLeft, X, Search, Navigation, Home as HomeIcon, Briefcase, History, Loader2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppLocation } from "../../types";
 import { savedLocationsApi, SavedLocation, RecentSearch } from "../api/saved-locations";
 import { useState, useEffect } from "react";
 import { searchApi } from "../api/search";
-import { useLogs } from "../../shared/LogContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface LocationPickerScreenProps {
   pickingType: "source" | "destination";
@@ -13,6 +19,10 @@ interface LocationPickerScreenProps {
   onSelect: (loc: AppLocation) => void;
   savedLocations?: SavedLocation[];
   recentSearches?: RecentSearch[];
+  /** When set, picker is in "edit location" mode: select triggers update instead of onSelect for search */
+  editingLocation?: SavedLocation | null;
+  onUpdateLocation?: (id: string, loc: { address: string; latitude: number; longitude: number }) => void;
+  onSavedLocationCreated?: () => void;
 }
 
 export function LocationPickerScreen({
@@ -21,11 +31,17 @@ export function LocationPickerScreen({
   onSelect,
   savedLocations = [],
   recentSearches = [],
+  editingLocation = null,
+  onUpdateLocation,
+  onSavedLocationCreated,
 }: LocationPickerScreenProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { addLog } = useLogs();
+  const [saveAsOpen, setSaveAsOpen] = useState(false);
+  const [saveAsLabel, setSaveAsLabel] = useState("");
+  const [saveAsTarget, setSaveAsTarget] = useState<{ address: string; latitude: number; longitude: number } | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -50,12 +66,52 @@ export function LocationPickerScreen({
   }, [query]);
 
   const handleSelect = (s: any) => {
-    onSelect({
+    const loc: AppLocation = {
       text: s.mainText || s.text,
       lat: s.lat,
       lng: s.lng,
       address: s.text,
+      placeName: s.mainText || undefined,
+    };
+    if (editingLocation && onUpdateLocation) {
+      onUpdateLocation(editingLocation.id, {
+        address: loc.text || s.text,
+        latitude: s.lat,
+        longitude: s.lng,
+      });
+      onBack();
+      return;
+    }
+    onSelect(loc);
+  };
+
+  const openSaveAs = (search: RecentSearch, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSaveAsTarget({
+      address: search.address,
+      latitude: search.latitude,
+      longitude: search.longitude,
     });
+    setSaveAsLabel("");
+    setSaveAsOpen(true);
+  };
+
+  const handleSaveAs = async () => {
+    if (!saveAsTarget || !saveAsLabel.trim()) return;
+    setSaving(true);
+    try {
+      await savedLocationsApi.create({
+        label: saveAsLabel.trim(),
+        address: saveAsTarget.address,
+        latitude: saveAsTarget.latitude,
+        longitude: saveAsTarget.longitude,
+      });
+      setSaveAsOpen(false);
+      setSaveAsTarget(null);
+      onSavedLocationCreated?.();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -71,7 +127,7 @@ export function LocationPickerScreen({
           </Button>
         </div>
         <h3 className="text-base font-black text-slate-800 tracking-tight mb-3 px-1">
-          Search {pickingType === "source" ? "Pickup" : "Dropoff"} Address
+          {editingLocation ? "Edit location" : `Search ${pickingType === "source" ? "Pickup" : "Dropoff"} Address`}
         </h3>
         <div className="relative group px-1">
           <div className="absolute left-5 top-1/2 -translate-y-1/2">
@@ -138,7 +194,15 @@ export function LocationPickerScreen({
                       <button
                         key={idx}
                         className="flex items-center gap-3 w-full p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all text-left group active:scale-[0.98]"
-                        onClick={() => onSelect({ text: addr.address, lat: addr.latitude, lng: addr.longitude })}
+                        onClick={() =>
+                          onSelect({
+                            text: addr.label,
+                            address: addr.address,
+                            placeName: addr.label,
+                            lat: addr.latitude,
+                            lng: addr.longitude,
+                          })
+                        }
                       >
                         <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors border border-slate-100">
                           {pickingType === "source" ? (
@@ -174,23 +238,51 @@ export function LocationPickerScreen({
                   return filtered.length > 0 ? (
                     filtered.map((search, idx) => {
                       return (
-                        <button
+                        <div
                           key={idx}
-                          className="flex items-center gap-3 w-full p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all text-left group active:scale-[0.98]"
-                          onClick={() =>
-                            onSelect({ text: search.address, lat: search.latitude, lng: search.longitude })
-                          }
+                          className="flex items-center gap-2 w-full p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all group"
                         >
-                          <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors border border-slate-100">
-                            <History className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary transition-colors" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-800 truncate">{search.address}</p>
-                            <p className="text-[10px] text-slate-500 truncate">
-                              {new Date(search.timestamp).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </button>
+                          <button
+                            className="flex items-center gap-3 flex-1 min-w-0 text-left active:scale-[0.98]"
+                            onClick={() =>
+                              onSelect({
+                                text: search.place_name || search.address,
+                                placeName: search.place_name ?? undefined,
+                                address: search.address,
+                                lat: search.latitude,
+                                lng: search.longitude,
+                              })
+                            }
+                          >
+                            <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors border border-slate-100">
+                              <History className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary transition-colors" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-slate-800 truncate">
+                                {search.place_name || search.address}
+                              </p>
+                              <p className="text-[10px] text-slate-500 truncate">
+                                {search.place_name ? search.address : new Date(search.timestamp).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-8 w-8 rounded-lg shrink-0 ${
+                              search.is_saved
+                                ? "text-primary bg-primary/10"
+                                : "text-slate-400 hover:text-primary hover:bg-primary/10"
+                            }`}
+                            title={search.is_saved ? "Saved" : "Save as location"}
+                            onClick={(e) => !search.is_saved && openSaveAs(search, e)}
+                            disabled={!!search.is_saved}
+                          >
+                            <Bookmark
+                              className={`h-4 w-4 ${search.is_saved ? "fill-primary" : ""}`}
+                            />
+                          </Button>
+                        </div>
                       );
                     })
                   ) : (
@@ -202,6 +294,44 @@ export function LocationPickerScreen({
           </>
         )}
       </div>
+
+      <Dialog open={saveAsOpen} onOpenChange={(open) => !open && setSaveAsOpen(false)}>
+        <DialogContent className="rounded-3xl max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Save as</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Location</p>
+              <p className="text-sm text-slate-700 truncate">{saveAsTarget?.address}</p>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">
+                Save as
+              </label>
+              <Input
+                placeholder="e.g. Home, Office, Gym"
+                value={saveAsLabel}
+                onChange={(e) => setSaveAsLabel(e.target.value)}
+                className="rounded-xl"
+                maxLength={50}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setSaveAsOpen(false)} disabled={saving} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveAs}
+              disabled={saving || !saveAsLabel.trim()}
+              className="rounded-xl"
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

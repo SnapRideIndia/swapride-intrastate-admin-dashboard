@@ -445,8 +445,12 @@ function ResultCard({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <span className="text-[11px] font-black text-slate-900 flex items-center gap-1.5">
-                        <PersonStanding className="h-4 w-4 text-slate-900" />
-                        {result.pickup.distanceText} walk
+                        {result.pickup.travelType === "WALK" ? (
+                          <PersonStanding className="h-4 w-4 text-slate-900" />
+                        ) : (
+                          <Navigation className="h-4 w-4 text-slate-900" />
+                        )}
+                        {result.pickup.travelTime} ({result.pickup.distance})
                       </span>
                       <button
                         className="flex items-center gap-1 px-1 py-0.5 rounded transition-colors"
@@ -487,8 +491,12 @@ function ResultCard({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <span className="text-[11px] font-black text-slate-900 flex items-center gap-1.5">
-                        <PersonStanding className="h-4 w-4 text-slate-900" />
-                        {result.dropoff.distanceText} walk
+                        {result.dropoff.travelType === "WALK" ? (
+                          <PersonStanding className="h-4 w-4 text-slate-900" />
+                        ) : (
+                          <Navigation className="h-4 w-4 text-slate-900" />
+                        )}
+                        {result.dropoff.travelTime} ({result.dropoff.distance})
                       </span>
                       <button
                         className="flex items-center gap-1 px-1 py-0.5 rounded transition-colors"

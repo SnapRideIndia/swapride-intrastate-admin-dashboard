@@ -3,6 +3,8 @@ export interface AppLocation {
   lat: number;
   lng: number;
   address?: string;
+  /** Place name for search history (e.g. from autocomplete mainText or recent place_name) */
+  placeName?: string;
 }
 
 export type SimulatorScreen =
@@ -11,6 +13,7 @@ export type SimulatorScreen =
   | "WALLET"
   | "HISTORY"
   | "PROFILE"
+  | "SAVED_LOCATIONS"
   | "SEARCH"
   | "LOCATION_PICKER"
   | "RESULTS"

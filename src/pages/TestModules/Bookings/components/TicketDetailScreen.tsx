@@ -14,6 +14,7 @@ interface TicketDetailScreenProps {
 
 const TicketDetailScreen: React.FC<TicketDetailScreenProps> = ({ bookingId, onBack, logger }) => {
   const [ticket, setTicket] = useState<any>(null);
+  const [qrCodeToken, setQrCodeToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +26,10 @@ const TicketDetailScreen: React.FC<TicketDetailScreenProps> = ({ bookingId, onBa
       setLoading(true);
       const response = await searchApi.getBookingById(bookingId);
       setTicket(response);
+      
+      const tokenResponse = await searchApi.getTicketDetail(bookingId);
+      setQrCodeToken(tokenResponse?.qrCodeToken ?? null);
+
       logger.success("Ticket details loaded");
     } catch (error: any) {
       logger.apiError(error.response?.status || "ERR", `GET ${API_ENDPOINTS.TEST.BOOKINGS.GET_BY_ID(bookingId)}`);
@@ -61,15 +66,7 @@ const TicketDetailScreen: React.FC<TicketDetailScreenProps> = ({ bookingId, onBa
           <div className="pt-8 pb-6 flex items-center justify-center">
             <div className="bg-white rounded-lg p-3 flex items-center justify-center shadow-sm">
               <QRCodeSVG
-                value={
-                  ticket.qrToken ||
-                  JSON.stringify({
-                    id: ticket.id,
-                    u: ticket.userId,
-                    t: ticket.tripId,
-                    s: ticket.seats?.[0]?.seat?.seatNumber,
-                  })
-                }
+                value={qrCodeToken ?? ''}
                 size={160}
                 level="H"
                 includeMargin={false}

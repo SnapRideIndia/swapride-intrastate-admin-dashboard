@@ -17,7 +17,7 @@ interface BusData {
   speed: number;
   busNumber: string;
   encodedPolyline?: string;
-  routePoints?: RoutePoint[];
+  stops?: RoutePoint[];
   [key: string]: any;
 }
 
@@ -96,8 +96,8 @@ export function FleetMap({
       buses.forEach((bus) => {
         let path: { lat: number; lng: number }[] = [];
         if (bus.encodedPolyline) path = decodePolyline(bus.encodedPolyline);
-        if (path.length === 0 && bus.routePoints?.length)
-          path = bus.routePoints.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }));
+        if (path.length === 0 && bus.stops?.length)
+          path = bus.stops.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }));
 
         path.forEach((pt) => {
           bounds.extend(pt);
@@ -136,8 +136,8 @@ export function FleetMap({
 
         let path: any[] = [];
         if (bus.encodedPolyline) path = decodePolyline(bus.encodedPolyline);
-        if (path.length === 0 && bus.routePoints?.length)
-          path = bus.routePoints.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }));
+        if (path.length === 0 && bus.stops?.length)
+          path = bus.stops.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }));
         if (path.length < 2) return null;
 
         return (
@@ -167,9 +167,9 @@ export function FleetMap({
       })}
 
       {(showStops || showStartEnd) &&
-        selectedBus?.routePoints &&
-        selectedBus.routePoints.map((p, idx) => {
-          const total = selectedBus.routePoints!.length;
+        selectedBus?.stops &&
+        selectedBus.stops.map((p, idx) => {
+          const total = selectedBus.stops!.length;
           const isFirst = idx === 0;
           const isLast = idx === total - 1;
           const isPrimary = isFirst || isLast;

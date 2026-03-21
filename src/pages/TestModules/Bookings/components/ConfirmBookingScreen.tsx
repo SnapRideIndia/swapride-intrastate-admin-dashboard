@@ -315,6 +315,20 @@ function TripDetailCard({
   onChangeSeat: () => void;
   details?: any;
 }) {
+  const pickupDistance =
+    details?.pickup?.distance ?? result.result.pickup.distance;
+  const pickupTime =
+    details?.pickup?.travelTime ?? result.result.pickup.travelTime;
+  const pickupType =
+    details?.pickup?.travelType ?? result.result.pickup.travelType;
+
+  const dropoffDistance =
+    details?.dropoff?.distance ?? result.result.dropoff.distance;
+  const dropoffTime =
+    details?.dropoff?.travelTime ?? result.result.dropoff.travelTime;
+  const dropoffType =
+    details?.dropoff?.travelType ?? result.result.dropoff.travelType;
+
   return (
     <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-50">
       <div
@@ -346,8 +360,7 @@ function TripDetailCard({
                 <p className="text-[11px] font-medium text-slate-500 mt-0.5">{result.result.pickup.address}</p>
                 <div className="flex items-center gap-1.5 mt-1.5 opacity-70">
                   <span className="text-[10px] font-black text-slate-900">
-                    🏃 {details?.pickup?.distanceText || result.result.pickup?.distanceText} walk (
-                    {details?.pickup?.walkDurationText || "calculating..."})
+                    {pickupType === "WALK" ? "🏃" : "🚗"} {pickupTime} ({pickupDistance})
                   </span>
                 </div>
               </div>
@@ -363,7 +376,11 @@ function TripDetailCard({
                 <p className="text-[11px] font-medium text-slate-500 mt-0.5">{result.result.dropoff.address}</p>
                 <div className="flex items-center gap-1.5 mt-1.5 opacity-70">
                   <span className="text-[10px] font-black text-slate-900">
-                    🏃 {details?.dropoff?.distanceText || result.result.dropoff?.distanceText || "0 km"} walk
+                    {dropoffType === "WALK" ? "🏃" : "🚗"}{" "}
+                    
+                    {dropoffTime
+                      ? `${dropoffTime} (${dropoffDistance})`
+                      : dropoffDistance || "—"}
                   </span>
                 </div>
               </div>

@@ -65,7 +65,7 @@ const LiveTracking = () => {
             busNumber: newState[index].busNumber,
             routeName: newState[index].routeName,
             driverName: newState[index].driverName,
-            routePoints: newState[index].routePoints,
+            stops: newState[index].stops,
             encodedPolyline: update.encodedPolyline || newState[index].encodedPolyline,
             tripStatus: update.tripStatus || newState[index].tripStatus,
             delayMinutes: update.delayMinutes ?? newState[index].delayMinutes,

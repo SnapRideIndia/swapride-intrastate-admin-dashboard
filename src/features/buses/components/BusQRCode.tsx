@@ -104,7 +104,6 @@ export function BusQRCode({ busId, busNumber }: BusQRCodeProps) {
               size={280}
               level="H"
               includeMargin={true}
-              imageSettings={{ src: "/logo.png", height: 48, width: 48, excavate: true }}
             />
           </div>
         </div>

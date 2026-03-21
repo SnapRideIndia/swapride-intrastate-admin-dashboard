@@ -38,7 +38,9 @@ export interface SearchResult {
       displayOrder: number;
       isPrimary: boolean;
     }>;
-    distanceText: string;
+    distance: string;
+    travelTime: string;
+    travelType: "WALK" | "DRIVE";
     pointId: string;
   };
   dropoff: {
@@ -52,7 +54,9 @@ export interface SearchResult {
       displayOrder: number;
       isPrimary: boolean;
     }>;
-    distanceText: string;
+    distance: string;
+    travelTime: string;
+    travelType: "WALK" | "DRIVE";
     pointId: string;
   };
   timings: SearchTiming[];
@@ -67,8 +71,9 @@ export interface SearchResult {
   };
   nearestPoint: {
     name: string;
-    distanceText: string;
-    travelTimeText: string;
+    distance: string;
+    travelTime: string;
+    travelType: "WALK" | "DRIVE";
     proximityMessage: string;
   };
 }
@@ -78,11 +83,13 @@ export interface SearchTripsParams {
     latitude: number;
     longitude: number;
     address: string;
+    placeName?: string;
   };
   dropoff?: {
     latitude: number;
     longitude: number;
     address: string;
+    placeName?: string;
   };
   userLocation: {
     latitude: number;
@@ -152,8 +159,9 @@ export interface LegDetail {
     name: string;
     address: string;
     arrivalTime: string;
-    distanceText: string | null;
-    walkDurationText: string | null;
+    distance: string | null;
+    travelTime: string | null;
+    travelType: "WALK" | "DRIVE" | null;
   };
   dropoff: {
     name: string;

@@ -67,23 +67,28 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
       if (storedToken) fetchProfile(true); // Silent fetch
     };
 
-    window.addEventListener("storage", sync);
-    window.addEventListener("test-user-logged-in", (e: any) => {
-      const newToken = e.detail?.accessToken || localStorage.getItem(TEST_USER_TOKEN_KEY);
+    const onLoggedIn = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const newToken = detail?.accessToken || localStorage.getItem(TEST_USER_TOKEN_KEY);
       setToken(newToken);
       fetchProfile(true); // Silent fetch
-    });
-    window.addEventListener("test-session-expired", () => {
+    };
+
+    const onSessionExpired = () => {
       setToken(null);
       setProfile(null);
-    });
+    };
+
+    window.addEventListener("storage", sync);
+    window.addEventListener("test-user-logged-in", onLoggedIn);
+    window.addEventListener("test-session-expired", onSessionExpired);
 
     if (token) fetchProfile(true); // Initial silent fetch
 
     return () => {
       window.removeEventListener("storage", sync);
-      window.removeEventListener("test-user-logged-in", sync);
-      window.removeEventListener("test-session-expired", sync);
+      window.removeEventListener("test-user-logged-in", onLoggedIn);
+      window.removeEventListener("test-session-expired", onSessionExpired);
     };
   }, []);
 
@@ -196,6 +201,7 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
     setMenuOpen(false);
     setIsModalOpen(false);
     setIsTravelPrefsModalOpen(false);
+    window.dispatchEvent(new CustomEvent("test-user-logged-out"));
     onLogout?.();
   };
 

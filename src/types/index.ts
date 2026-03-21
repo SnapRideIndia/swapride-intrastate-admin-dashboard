@@ -489,7 +489,7 @@ export interface LiveLocation {
   nextStop: string;
   eta: string;
   currentLocationName: string;
-  routePoints?: RoutePoint[];
+  stops?: RoutePoint[];
   encodedPolyline?: string;
 }
 

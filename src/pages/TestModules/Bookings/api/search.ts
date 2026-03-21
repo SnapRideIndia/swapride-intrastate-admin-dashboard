@@ -51,6 +51,14 @@ export const searchApi = {
   },
 
   /**
+   * Get the ticket payload
+   */
+  getTicketDetail: async (id: string) => {
+    const response = await testApiClient.get(API_ENDPOINTS.TEST.BOOKINGS.GET_TICKET(id));
+    return response.data;
+  },
+
+  /**
    * Confirm a booking by initiating payment
    */
   confirmPayment: async (id: string, dto: { paymentMethod: string; returnBookingId?: string }) => {
@@ -109,9 +117,11 @@ export const searchApi = {
     id: string,
     userLat?: number,
     userLng?: number,
+    destLat?: number,
+    destLng?: number,
   ): Promise<import("../types/search").BookingDetails> => {
     const response = await testApiClient.get(API_ENDPOINTS.TEST.BOOKINGS.GET_DETAILS(id), {
-      params: { userLat, userLng },
+      params: { userLat, userLng, destLat, destLng },
     });
     return response.data;
   },

@@ -12,11 +12,12 @@ interface WalletScreenProps {
   onBack: () => void;
   logger: SimulatorLogger;
   onRefreshProfile?: () => void;
+  onViewAll?: () => void;
 }
 
 const TOPUP_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 
-export default function WalletScreen({ onBack, logger, onRefreshProfile }: WalletScreenProps) {
+export default function WalletScreen({ onBack, logger, onRefreshProfile, onViewAll }: WalletScreenProps) {
   const [balance, setBalance] = useState<WalletBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,6 +151,7 @@ export default function WalletScreen({ onBack, logger, onRefreshProfile }: Walle
               <Button
                 variant="ghost"
                 className="h-auto p-0 text-[10px] font-black text-primary uppercase tracking-widest hover:bg-transparent"
+                onClick={onViewAll}
               >
                 View All
               </Button>

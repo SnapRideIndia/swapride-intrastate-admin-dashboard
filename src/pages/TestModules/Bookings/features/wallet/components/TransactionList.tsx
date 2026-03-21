@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface TransactionListProps {
   transactions: Transaction[];
   isLoading?: boolean;
+  onTransactionClick?: (tx: Transaction) => void;
 }
 
 const getStatusIcon = (status: Transaction["status"]) => {
@@ -36,7 +37,7 @@ const getSourceIcon = (type: Transaction["type"], source: Transaction["source"])
   );
 };
 
-export function TransactionList({ transactions, isLoading }: TransactionListProps) {
+export function TransactionList({ transactions, isLoading, onTransactionClick }: TransactionListProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -70,6 +71,8 @@ export function TransactionList({ transactions, isLoading }: TransactionListProp
       {transactions.map((tx) => (
         <div
           key={tx.id}
+          role={onTransactionClick ? "button" : undefined}
+          onClick={onTransactionClick ? () => onTransactionClick(tx) : undefined}
           className="flex items-center gap-4 group cursor-pointer hover:bg-slate-50 -mx-2 px-2 py-1 rounded-2xl transition-all duration-200"
         >
           {getSourceIcon(tx.type, tx.source)}

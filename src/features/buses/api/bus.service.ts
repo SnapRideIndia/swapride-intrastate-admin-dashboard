@@ -59,9 +59,13 @@ export const busService = {
     }
   },
 
-  getBusQR: async (busId: string): Promise<string> => {
+  getBusQR: async (
+    busId: string,
+  ): Promise<{ busId: string; busNumber: string; qrToken: string }> => {
     try {
-      const response = await apiClient.get<string>(`/admin/bookings/bus-qr/${busId}`);
+      const response = await apiClient.get<{ busId: string; busNumber: string; qrToken: string }>(
+        `/admin/bookings/bus-qr/${busId}`,
+      );
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to fetch bus QR token";

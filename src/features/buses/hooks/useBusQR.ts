@@ -9,8 +9,8 @@ export function useBusQR(busId: string) {
   const fetchQRToken = async () => {
     setIsLoading(true);
     try {
-      const token = await busService.getBusQR(busId);
-      setQrToken(token);
+      const result = await busService.getBusQR(busId);
+      setQrToken(result.qrToken);
     } catch (err: any) {
       toast({
         variant: "destructive",

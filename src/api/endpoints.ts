@@ -175,6 +175,7 @@ export const API_ENDPOINTS = {
     GET_ALL: "/notifications",
     GET_BY_ID: (id: string) => `/notifications/${id}`,
     CREATE: "/notifications",
+    TEST_FCM_ALL: "/notifications/test/fcm-all",
     MARK_AS_READ: (id: string) => `/notifications/${id}/read`,
     MARK_ALL_READ: "/notifications/read-all",
     DELETE: (id: string) => `/notifications/${id}`,

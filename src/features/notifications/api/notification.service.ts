@@ -3,6 +3,42 @@ import { PaginatedResponse } from "@/types/pagination";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 
+export type NotificationTargetGroup = "USER" | "USERS" | "DRIVER" | "DRIVERS" | "ADMIN" | "ADMINS" | "ALL";
+
+interface CreateNotificationPayload {
+  title: string;
+  content: string;
+  type?: string;
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+  targetGroup?: string;
+  metadata?: Record<string, unknown>;
+  relatedId?: string;
+  relatedType?: string;
+}
+
+interface SendTestBroadcastPayload {
+  title: string;
+  content: string;
+  targetGroup?: NotificationTargetGroup;
+}
+
+const normalizeTargetGroup = (targetGroup?: string): string | undefined => {
+  if (!targetGroup) return targetGroup;
+
+  const normalized = targetGroup.toUpperCase().trim();
+  const aliasMap: Record<string, string> = {
+    USER: "USERS",
+    USERS: "USERS",
+    DRIVER: "DRIVERS",
+    DRIVERS: "DRIVERS",
+    ADMIN: "ADMINS",
+    ADMINS: "ADMINS",
+    ALL: "ALL",
+  };
+
+  return aliasMap[normalized] ?? normalized;
+};
+
 export const notificationService = {
   getAll: async (params: {
     page?: number;
@@ -33,9 +69,21 @@ export const notificationService = {
     return 0;
   },
 
-  create: async (notificationData: Omit<Notification, "id" | "createdAt" | "read">): Promise<Notification> => {
-    const response = await apiClient.post(API_ENDPOINTS.NOTIFICATIONS.CREATE, notificationData);
+  create: async (notificationData: CreateNotificationPayload): Promise<Notification> => {
+    const payload = {
+      ...notificationData,
+      targetGroup: normalizeTargetGroup(notificationData.targetGroup),
+    };
+    const response = await apiClient.post(API_ENDPOINTS.NOTIFICATIONS.CREATE, payload);
     return response.data;
+  },
+
+  sendTestBroadcast: async (data: SendTestBroadcastPayload): Promise<void> => {
+    const payload = {
+      ...data,
+      targetGroup: normalizeTargetGroup(data.targetGroup),
+    };
+    await apiClient.post(API_ENDPOINTS.NOTIFICATIONS.TEST_FCM_ALL, payload);
   },
 
   markAsRead: async (id: string): Promise<void> => {

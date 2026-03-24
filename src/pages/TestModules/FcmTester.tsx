@@ -56,11 +56,14 @@ const TEMPLATES: (Omit<AppNotification, "id" | "createdAt" | "read"> & {
 
 import { useLogs } from "./shared/LogContext";
 
+type TestTargetGroup = "USER" | "USERS" | "DRIVER" | "DRIVERS" | "ADMIN" | "ADMINS" | "ALL";
+
 export default function FcmTester() {
   const [token, setToken] = useState<string>("");
   const [permission, setPermission] = useState<string>("default");
   const [isCopied, setIsCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [targetGroup, setTargetGroup] = useState<TestTargetGroup>("DRIVER");
   const { addLog } = useLogs();
 
   const [formData, setFormData] = useState<Omit<AppNotification, "id" | "createdAt" | "read" | "targetGroup">>({
@@ -111,13 +114,14 @@ export default function FcmTester() {
 
     try {
       setLoading(true);
-      addLog(`Dispatching broadcast: "${formData.title}"`, "request");
-      await notificationService.create({
-        ...formData,
-        targetGroup: "ADMINS",
-      } as any);
-      addLog("Broadcast dispatched successfully to Admins topic", "success");
-      toast.success("Test broadcast dispatched to Admins!");
+      addLog(`Dispatching test broadcast: "${formData.title}" to ${targetGroup}`, "request");
+      await notificationService.sendTestBroadcast({
+        title: formData.title,
+        content: formData.content,
+        targetGroup,
+      });
+      addLog(`Test broadcast dispatched successfully to ${targetGroup} group`, "success");
+      toast.success(`Test broadcast dispatched to ${targetGroup}!`);
     } catch (error: any) {
       const msg = error.message || "Failed to dispatch";
       addLog(`Dispatch failed: ${msg}`, "error");
@@ -212,7 +216,7 @@ export default function FcmTester() {
                 <div>
                   <CardTitle className="text-xl font-bold text-slate-900 tracking-tight">Test Dispatcher</CardTitle>
                   <CardDescription className="text-xs font-medium text-slate-500 mt-1">
-                    Send a test notification to all Admin subscribers
+                    Send a test notification using `POST /notifications/test/fcm-all`
                   </CardDescription>
                 </div>
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -247,6 +251,28 @@ export default function FcmTester() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">
+                      Target Group
+                    </Label>
+                    <select
+                      value={targetGroup}
+                      onChange={(e) => setTargetGroup(e.target.value as TestTargetGroup)}
+                      className="w-full h-12 px-4 rounded-xl border border-slate-100 bg-slate-50/50 focus:bg-white transition-all text-sm font-bold appearance-none bg-no-repeat bg-[right_1rem_center] focus:ring-1 focus:ring-primary/20 outline-none"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                        backgroundSize: "1rem",
+                      }}
+                    >
+                      <option value="USER">USER</option>
+                      <option value="USERS">USERS</option>
+                      <option value="DRIVER">DRIVER</option>
+                      <option value="DRIVERS">DRIVERS</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="ADMINS">ADMINS</option>
+                      <option value="ALL">ALL</option>
+                    </select>
+                  </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">
                       Category
@@ -308,8 +334,8 @@ export default function FcmTester() {
               <div className="flex items-start gap-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                  This dispatches a live FCM message to all administrators on the{" "}
-                  <strong className="text-primary font-bold">admins</strong> topic. Please use responsibly.
+                  This dispatches a live FCM message to the selected target group via{" "}
+                  <strong className="text-primary font-bold">/notifications/test/fcm-all</strong>. Please use responsibly.
                 </p>
               </div>
             </CardContent>

@@ -25,6 +25,7 @@ import {
   Microscope,
   CreditCard,
   User,
+  BusFront,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/providers/SidebarContext";
@@ -71,6 +72,7 @@ const fleetNetworkCategory = {
     { name: "Routes", href: ROUTES.ROUTES, icon: Route, permission: "ROUTE_VIEW" },
     { name: "Points", href: ROUTES.POINTS, icon: MapPin, permission: "POINT_VIEW" },
     { name: "Suggestions", href: ROUTES.SUGGESTIONS, icon: ClipboardList, permission: "VIEW_SUGGESTIONS" },
+    { name: "Rentals", href: ROUTES.RENTALS, icon: BusFront, permission: "RENTAL_VIEW" },
   ],
 };
 
@@ -134,7 +136,8 @@ export function Sidebar() {
       path.startsWith(ROUTES.BUS_LAYOUTS) ||
       path.startsWith(ROUTES.ROUTES) ||
       path.startsWith(ROUTES.POINTS) ||
-      path.startsWith(ROUTES.SUGGESTIONS)
+      path.startsWith(ROUTES.SUGGESTIONS) ||
+      path.startsWith(ROUTES.RENTALS)
     ) {
       setOpenCategory("fleetNetwork");
     } else if (

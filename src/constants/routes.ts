@@ -13,7 +13,7 @@ export const ROUTES = {
   ROUTES: "/routes",
   POINTS: "/points",
   SUGGESTIONS: "/suggestions",
-  SUGGESTION_DETAILS: "/routes/suggestions/:id",
+  SUGGESTION_DETAILS: "/suggestions/:id",
   STOPS: "/stops",
   TRIPS: "/trips",
   USERS: "/users",
@@ -23,6 +23,8 @@ export const ROUTES = {
   LIVE_TRACKING: "/live-tracking",
   SUPPORT: "/support",
   ANALYTICS: "/analytics",
+  RENTALS: "/rentals",
+  RENTAL_DETAILS: "/rentals/:id",
   SETTINGS: "/settings",
 
   // Finance & Insights

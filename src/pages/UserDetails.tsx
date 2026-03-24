@@ -41,6 +41,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 
 import { useUser, useUpdateUserStatus } from "@/features/users/hooks/useUsers";
 
@@ -52,6 +53,11 @@ const UserDetails = () => {
 
   const { data: user, isLoading, error } = useUser(id || "");
   const updateUserStatus = useUpdateUserStatus();
+
+  // Log user detail response
+  if (user) {
+    console.log("User Detail Response:", user);
+  }
 
   useEffect(() => {
     if (error) {
@@ -150,7 +156,7 @@ const UserDetails = () => {
     <DashboardLayout>
       <FullPageLoader show={updateUserStatus.isPending} label="Processing..." />
 
-      <PageHeader title="User Details" subtitle="View and manage user information" backUrl={ROUTES.USERS} />
+      <PageHeader title="User Details" subtitle="View and manage user information" backUrl="-1" />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content - User Profile & Stats */}
@@ -160,12 +166,34 @@ const UserDetails = () => {
             <CardContent className="p-0">
               <div className="h-32 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-border/60 relative">
                 <div className="absolute -bottom-12 left-8">
-                  <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                    <AvatarImage src={user.profileUrl || ""} />
-                    <AvatarFallback className="text-2xl bg-muted text-muted-foreground">
-                      {user.fullName.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button className="rounded-full transition-transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                        <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                          <AvatarImage src={user.profileUrl || ""} />
+                          <AvatarFallback className="text-2xl bg-muted text-muted-foreground">
+                            {user.fullName.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md w-fit p-1 bg-transparent border-none shadow-none flex justify-center items-center [&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:opacity-100 [&>button]:hover:bg-primary/90 [&>button]:h-8 [&>button]:w-8 [&>button]:rounded-full [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:-right-4 [&>button]:-top-4 [&>button]:shadow-lg">
+                      <DialogTitle className="sr-only">User Profile Picture</DialogTitle>
+                      {user.profileUrl ? (
+                        <div className="relative overflow-hidden rounded-xl border-4 border-background shadow-2xl h-64 w-64 sm:h-80 sm:w-80">
+                           <img 
+                              src={user.profileUrl} 
+                              alt={`${user.fullName} Profile`} 
+                              className="h-full w-full object-cover bg-muted"
+                           />
+                        </div>
+                      ) : (
+                        <div className="h-64 w-64 sm:h-80 sm:w-80 rounded-xl border-4 border-background shadow-2xl flex items-center justify-center bg-muted text-muted-foreground text-6xl font-medium">
+                           {user.fullName.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
               <div className="pt-16 px-8 pb-8">
@@ -373,7 +401,7 @@ const UserDetails = () => {
 
           {/* Emergency Stats */}
           <div className="grid grid-cols-2 gap-4">
-            <Card className="shadow-sm border-border/60 bg-muted/10">
+            <Card className="shadow-sm border-border/60 bg-white">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <CreditCard className="h-6 w-6" />
@@ -384,7 +412,7 @@ const UserDetails = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="shadow-sm border-border/60 bg-muted/10">
+            <Card className="shadow-sm border-border/60 bg-white">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <MapPin className="h-6 w-6" />
@@ -426,6 +454,23 @@ const UserDetails = () => {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Call User</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="text-primary hover:bg-primary/5 border-primary/20"
+                      onClick={() => navigate(ROUTES.WALLET_DETAILS.replace(":id", user.wallet?.id || ""))}
+                      disabled={!user.wallet?.id}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>View Wallet ({user.wallet?.id ? "Active" : "Not Found"})</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

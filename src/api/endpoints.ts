@@ -256,4 +256,18 @@ export const API_ENDPOINTS = {
       RECENT_SEARCHES: "/search/recent-searches",
     },
   },
+
+  // Vehicle Rentals
+  RENTALS: {
+    BASE: "/admin/rentals",
+    GET_ALL: "/admin/rentals",
+    GET_BY_ID: (id: string) => `/admin/rentals/${id}`,
+    UPDATE: (id: string) => `/admin/rentals/${id}`,
+  },
+  // Referrals
+  REFERRALS: {
+    BASE: "/admin/referrals",
+    GET_ALL: "/admin/referrals",
+    STATS: "/admin/referrals/stats",
+  },
 };

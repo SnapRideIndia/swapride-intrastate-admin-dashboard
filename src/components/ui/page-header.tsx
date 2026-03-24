@@ -17,7 +17,15 @@ export function PageHeader({ title, subtitle, backUrl, actions }: PageHeaderProp
     <div className="page-header">
       <div className="flex items-center gap-4">
         {backUrl && (
-          <Button variant="ghost" size="icon" onClick={() => navigate(backUrl)} className="rounded-full h-9 w-9">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+              if (backUrl === "-1") navigate(-1);
+              else navigate(backUrl);
+            }} 
+            className="rounded-full h-9 w-9"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}

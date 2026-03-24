@@ -40,7 +40,7 @@ import { toast } from "@/hooks/use-toast";
 const Trips = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
-  const activeTab = searchParams.get("tab") || "all";
+  const activeTab = searchParams.get("tab") || "today";
   const driverIdFilter = searchParams.get("driverId") || searchParams.get("driverid");
   const currentPage = parseInt(searchParams.get("page") || "1");
   const [pageSize, setPageSize] = useState(20);

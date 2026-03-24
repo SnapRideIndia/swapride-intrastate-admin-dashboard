@@ -1,4 +1,4 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
@@ -11,6 +11,7 @@ import {
   ArrowDownCircle,
   CreditCard,
   Wallet as WalletIcon,
+  ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -79,7 +80,7 @@ const WalletDetails = () => {
       <PageHeader
         title="Wallet Details"
         subtitle="Manage user wallet and view transaction history"
-        backUrl={ROUTES.PAYMENTS}
+        backUrl="-1"
       />
 
       {walletDetails && (
@@ -87,10 +88,18 @@ const WalletDetails = () => {
           {/* User Info & Balance Card */}
           <Card className="md:col-span-1 shadow-sm border-border/60">
             <CardHeader className="pb-4">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                Account Information
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Account Information
+                </CardTitle>
+                <Link 
+                  to={`${ROUTES.USERS}/${walletDetails.user?.id}`}
+                  className="text-[10px] font-black uppercase text-primary hover:underline transition-all flex items-center gap-1"
+                >
+                  View Profile <ArrowRight className="h-2.5 w-2.5" />
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center text-center mb-6">

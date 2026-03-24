@@ -1,5 +1,5 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Search, MoreVertical, Edit, Eye, CheckCircle, Mail, Phone, XCircle } from "lucide-react";
+import { Search, MoreVertical, Edit, Eye, CheckCircle, Mail, Phone, XCircle, Clock } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useUsers, useUpdateUserStatus } from "@/features/users/hooks/useUsers";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Users = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,6 +57,11 @@ const Users = () => {
 
   const users = usersData?.data || [];
   const totalCount = usersData?.pagination?.total || 0;
+
+  // Log users API list response
+  if (usersData) {
+    console.log("Users API List Response:", usersData);
+  }
 
   const handleViewDetails = (id: string) => {
     navigate(`/users/${id}`);
@@ -139,12 +145,11 @@ const Users = () => {
         <Table>
           <TableHeader className="bg-gray-50/50">
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>User</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Blood Group</TableHead>
-              <TableHead>Bookings</TableHead>
               <TableHead>Amount Spent</TableHead>
-              <TableHead>Last Booking</TableHead>
+              <TableHead>Last Login</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
@@ -152,7 +157,7 @@ const Users = () => {
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   <div className="flex flex-col items-center justify-center opacity-60">
                     <UsersIcon className="h-10 w-10 mb-2 text-gray-300" />
                     <p className="text-lg font-medium">No users found matching your criteria.</p>
@@ -174,7 +179,17 @@ const Users = () => {
                   className="group transition-colors hover:bg-slate-50/50 cursor-pointer"
                   onClick={() => handleViewDetails(user.id)}
                 >
-                  <TableCell className="font-semibold text-slate-800">{user.fullName}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9 border border-border shadow-sm">
+                        <AvatarImage src={user.profileUrl || ""} />
+                        <AvatarFallback className="text-[10px] font-bold bg-slate-100 text-slate-500">
+                          {user.fullName?.substring(0, 2).toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-slate-800">{user.fullName}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 text-sm font-medium text-slate-600">
@@ -188,12 +203,21 @@ const Users = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-slate-600 font-medium">{user.bloodGroup || "N/A"}</TableCell>
-                  <TableCell className="text-slate-600 font-bold">{user.totalBookings || 0}</TableCell>
                   <TableCell className="text-slate-900 font-bold text-sm">
                     ₹{(user.totalAmountSpent || 0).toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-slate-500 font-medium text-xs">
-                    {user.lastBookingDate ? new Date(user.lastBookingDate).toLocaleDateString() : "N/A"}
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 text-slate-500 font-medium text-[11px]">
+                      <Clock className="h-3 w-3 opacity-60" />
+                      {user.lastLogin
+                        ? new Date(user.lastLogin).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "Never"}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span

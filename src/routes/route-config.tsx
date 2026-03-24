@@ -34,6 +34,8 @@ import PaymentDetails from "@/pages/PaymentDetails";
 import WalletDetails from "@/pages/WalletDetails";
 import Bookings from "@/pages/Bookings";
 import BookingDetails from "@/pages/BookingDetails";
+import Rentals from "@/pages/Rentals";
+import RentalDetails from "@/pages/RentalDetails";
 
 export interface RouteConfig {
   path: string;
@@ -75,4 +77,6 @@ export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.ADMIN_DETAILS, element: <AdminDetails /> },
   { path: ROUTES.ROLES, element: <Roles /> },
   { path: ROUTES.BOOKING_DETAILS, element: <BookingDetails /> },
+  { path: ROUTES.RENTALS, element: <Rentals /> },
+  { path: ROUTES.RENTAL_DETAILS, element: <RentalDetails /> },
 ];

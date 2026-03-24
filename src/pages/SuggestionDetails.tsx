@@ -207,43 +207,49 @@ const SuggestionDetails = () => {
                 <CardTitle className="text-base font-medium">Requested By</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-4 mb-4">
+                <div
+                  className="flex items-center gap-4 mb-4 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => navigate(`${ROUTES.USERS}/${suggestion.user?.id}`)}
+                >
                   <Avatar className="h-12 w-12 border border-border">
                     <AvatarImage src={suggestion.user?.profileUrl} />
                     <AvatarFallback>{suggestion.user?.fullName?.substring(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-bold text-sm">{suggestion.user?.fullName}</p>
-                    <p className="text-xs text-muted-foreground">User ID: {suggestion.user?.id?.substring(0, 8)}...</p>
+                    <p className="font-bold text-sm hover:text-primary transition-colors">{suggestion.user?.fullName}</p>
+                    <p className="text-xs text-muted-foreground">Tap to view full profile</p>
                   </div>
                 </div>
                 <Separator className="my-3" />
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5" />
-                      <span>Mobile</span>
+                <div className="space-y-3 text-sm">
+                  {/* Phone row */}
+                  <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
+                    <div className="h-7 w-7 shrink-0 rounded-full bg-background border border-border flex items-center justify-center">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                    <a href={`tel:${suggestion.user?.mobileNumber}`} className="hover:text-primary transition-colors">
-                      {suggestion.user?.mobileNumber}
-                    </a>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none mb-0.5">Mobile</p>
+                      <a href={`tel:${suggestion.user?.mobileNumber}`} className="text-sm font-semibold hover:text-primary transition-colors">
+                        {suggestion.user?.mobileNumber}
+                      </a>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" />
-                      <span>Email</span>
+                  {/* Email row */}
+                  <div className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
+                    <div className="h-7 w-7 shrink-0 rounded-full bg-background border border-border flex items-center justify-center mt-0.5">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                    <a
-                      href={`mailto:${suggestion.user?.email}`}
-                      className="hover:text-primary transition-colors truncate max-w-[150px]"
-                      title={suggestion.user?.email}
-                    >
-                      {suggestion.user?.email}
-                    </a>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none mb-0.5">Email</p>
+                      <a href={`mailto:${suggestion.user?.email}`} className="text-sm font-semibold hover:text-primary transition-colors break-all">
+                        {suggestion.user?.email}
+                      </a>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
 
             {/* Admin Actions Card */}
             <Card className="shadow-sm border-border/60 bg-muted/10">

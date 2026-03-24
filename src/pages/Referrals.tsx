@@ -1,294 +1,285 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Plus,
   Search,
   MoreVertical,
-  Filter,
-  Trash2,
-  Calendar as CalendarIcon,
   CheckCircle2,
   Users,
-  ArrowUpRight,
   Gift,
   Eye,
+  RotateCcw,
+  Clock,
+  ExternalLink,
+  Filter,
 } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useReferrals, useReferralStats } from "@/features/referrals";
+import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { useDebounce } from "@/hooks/useDebounce";
+import { ROUTES } from "@/constants/routes";
+import { cn } from "@/lib/utils";
 
 export default function Referrals() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const search = searchParams.get("q") || "";
+  // Ensure we check for 'all' specifically to avoid falling back to the default
+  const statusFilter = searchParams.get("status") || "PENDING";
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const [pageSize, setPageSize] = useState(15);
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter]);
+  const debouncedSearch = useDebounce(search, 500);
 
-  const { data: referralsData, isLoading } = useReferrals({
-    q: search,
+  const { data: referralsData, isLoading, refetch } = useReferrals({
+    q: debouncedSearch,
     status: statusFilter,
     page: currentPage,
     limit: pageSize,
   });
 
-  const { data: stats } = useReferralStats();
+  const { data: stats, isLoading: isStatsLoading, refetch: refetchStats } = useReferralStats();
 
   const referrals = referralsData?.data ?? [];
   const totalCount = referralsData?.pagination?.total ?? 0;
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "bg-green-100 text-green-700";
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-700";
-      case "EXPIRED":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+  // Log response for debugging
+  useEffect(() => {
+    if (referralsData) {
+      console.log("Referrals Data Response:", referralsData);
     }
+  }, [referralsData]);
+
+  const updateFilters = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value) newParams.delete(key);
+      // We keep 'all' as a literal value so it doesn't fall back to PENDING default
+      else if (key === "status" && value === "all") newParams.set(key, "all");
+      else newParams.set(key, value);
+    });
+    newParams.set("page", "1");
+    setSearchParams(newParams);
+  };
+
+  const statusConfigs: Record<string, { label: string; className: string }> = {
+    COMPLETED: { label: "Success Ride", className: "bg-emerald-50 text-emerald-700 border-emerald-100" },
+    PENDING: { label: "Awaiting Ride", className: "bg-amber-50 text-amber-700 border-amber-100" },
+    EXPIRED: { label: "Expired", className: "bg-slate-50 text-slate-500 border-slate-100" },
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   return (
     <DashboardLayout>
-      <FullPageLoader show={isLoading} label="Loading referrals..." />
-      <div className="space-y-6">
+      <FullPageLoader show={isLoading && referrals.length === 0} label="Fetching referral records..." />
+      <div className="space-y-8">
         {/* Header */}
         <PageHeader
           title="Referral Program"
-          subtitle="Track and manage user referrals and reward distributions."
+          subtitle="Monitor invitation status and automated reward distributions."
           actions={
-            <div className="flex gap-2">
-              <Button variant="outline" className="border-gray-200">
-                <Gift className="h-4 w-4 mr-2 text-purple-600" /> Configure Rewards
-              </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" /> Manual Assignment
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                refetch();
+                refetchStats();
+              }}
+              className="rounded-full shadow-sm hover:rotate-180 transition-transform duration-500"
+            >
+              <RotateCcw className={cn("h-4 w-4", (isLoading || isStatsLoading) && "animate-spin")} />
+            </Button>
           }
         />
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Using Standard StatCard */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="dashboard-card border-none bg-gradient-to-br from-blue-50/50 to-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-blue-900">Total Referrals</p>
-                <Users className="h-4 w-4 text-blue-600" />
-              </div>
-              <p className="text-3xl font-bold text-blue-950">{stats?.total ?? 0}</p>
-              <div className="mt-2 flex items-center text-xs text-blue-600 font-medium">
-                <ArrowUpRight className="h-3 w-3 mr-1" /> 15% increase
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="dashboard-card border-none bg-gradient-to-br from-green-50/50 to-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-green-900">Success Rate</p>
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              </div>
-              <p className="text-3xl font-bold text-green-950">
-                {stats?.total ? Math.round((stats.completed / stats.total) * 100) : 0}%
-              </p>
-              <div className="mt-2 flex items-center text-xs text-green-600 font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2" /> Healthy
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="dashboard-card border-none bg-gradient-to-br from-yellow-50/50 to-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-yellow-900">Pending Actions</p>
-                <CalendarIcon className="h-4 w-4 text-yellow-600" />
-              </div>
-              <p className="text-3xl font-bold text-yellow-950">{stats?.pending ?? 0}</p>
-              <p className="mt-2 text-xs text-yellow-600 font-medium italic">Requires verification</p>
-            </CardContent>
-          </Card>
-
-          <Card className="dashboard-card border-none bg-gradient-to-br from-purple-50/50 to-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-purple-900">Rewards Disbursed</p>
-                <div className="h-4 w-4 rounded-full bg-purple-600 text-[10px] text-white flex items-center justify-center font-bold">
-                  ₹
-                </div>
-              </div>
-              <p className="text-3xl font-bold text-purple-950">₹{stats?.totalRewardValue ?? 0}</p>
-              <div className="mt-2 flex items-center text-xs text-purple-600 font-medium">
-                <Gift className="h-3 w-3 mr-1" /> Budget: ₹5,000
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Total Referrals"
+            value={stats?.total ?? 0}
+            icon={Users}
+            iconColor="text-primary"
+            vibrant
+          />
+          <StatCard
+            title="Successful Rides"
+            value={stats?.completed ?? 0}
+            icon={CheckCircle2}
+            iconColor="text-success"
+            vibrant
+            change={`${stats?.total ? Math.round((stats.completed / (stats.total || 1)) * 100) : 0}% success rate`}
+          />
+          <StatCard
+            title="Pending Rewards"
+            value={stats?.pending ?? 0}
+            icon={Clock}
+            iconColor="text-warning"
+            vibrant
+          />
+          <StatCard
+            title="Total Disbursed"
+            value={`₹${stats?.totalRewardValue ?? 0}`}
+            icon={Gift}
+            iconColor="text-info"
+            vibrant
+          />
         </div>
 
-        {/* Content Tabs */}
-        <Card className="dashboard-card border-gray-100 overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-gray-100 bg-gray-50/30 flex flex-col md:flex-row justify-between gap-4">
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by referrer or referee..."
-                className="pl-10 h-10 border-gray-200 focus:ring-blue-500 bg-white"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
+        {/* Filters */}
+        <Card className="dashboard-card p-4 flex flex-col md:flex-row gap-4 items-center bg-white shadow-sm border-border/80">
+          <Tabs
+            value={statusFilter}
+            onValueChange={(val) => updateFilters({ status: val })}
+            className="w-full md:w-auto"
+          >
+            <TabsList>
+              <TabsTrigger value="all" className="uppercase font-bold text-[11px] px-6">All</TabsTrigger>
+              <TabsTrigger value="PENDING" className="uppercase font-bold text-[11px] px-6 text-amber-600 data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700">Pending</TabsTrigger>
+              <TabsTrigger value="COMPLETED" className="uppercase font-bold text-[11px] px-6 text-emerald-600 data-[state=active]:bg-emerald-100 data-[state=active]:text-emerald-700">Completed</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-            <div className="flex items-center gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[160px] h-10 bg-white">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Everywhere</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" className="h-10 w-10 bg-white">
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex-1 relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search sender or friend email..."
+              className="pl-10 h-10 border-border/50 bg-white shadow-sm"
+              value={search}
+              onChange={(e) => updateFilters({ q: e.target.value })}
+            />
           </div>
-
-          <Table>
-            <TableHeader className="bg-gray-50/50">
-              <TableRow>
-                <TableHead>Referrer (Sender)</TableHead>
-                <TableHead>Referee (Receiver)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Reward</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {referrals.length > 0 ? (
-                referrals.map((r) => (
-                  <TableRow key={r.id} className="hover:bg-gray-50/30 transition-colors">
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="font-semibold text-gray-900">{r.referrerName}</div>
-                        <div className="text-xs text-gray-500">{r.referrerEmail}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="font-semibold text-gray-900">{r.refereeName}</div>
-                        <div className="text-xs text-gray-500">{r.refereeEmail}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${getStatusBadge(r.status)} border-none shadow-none font-medium`}>
-                        {r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-bold text-gray-900">₹{r.rewardAmount}</div>
-                        {r.rewardStatus !== "N/A" && (
-                          <div
-                            className={`text-[10px] font-bold ${r.rewardStatus === "CLAIMED" ? "text-green-600" : "text-orange-500"} uppercase`}
-                          >
-                            {r.rewardStatus}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-600 font-medium">
-                        {new Date(r.date).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-gray-100">
-                            <MoreVertical className="h-4 w-4 text-gray-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[160px]">
-                          <DropdownMenuItem className="cursor-pointer">
-                            <Eye className="h-4 w-4 mr-2 text-blue-500" /> View History
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Approve
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="cursor-pointer text-red-500">
-                            <Trash2 className="h-4 w-4 mr-2" /> Revoke
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center opacity-40">
-                      <Users className="h-12 w-12 mb-2 text-gray-300" />
-                      <p className="text-lg font-medium">No referral records found</p>
-                      <Button
-                        variant="link"
-                        onClick={() => {
-                          setSearch("");
-                          setStatusFilter("all");
-                        }}
-                      >
-                        Clear filters
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-
-          <div className="p-4 border-t border-gray-100 bg-gray-50/20 text-xs text-gray-500 text-center">
-            Showing {referrals.length} of {totalCount} referral records
-          </div>
-
-          <TablePagination
-            currentPage={currentPage}
-            totalCount={totalCount}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setCurrentPage(1);
-            }}
-          />
         </Card>
+
+        {/* Table/List */}
+        <div className="dashboard-card overflow-hidden bg-white shadow-sm rounded-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-border">
+                  <th className="text-left py-4 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Inviter (Referrer)</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Friend (Referee)</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Reward Status</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Invitation Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {referrals.length > 0 ? (
+                  referrals.map((r: any) => (
+                    <tr key={r.id} className="hover:bg-slate-50/40 transition-colors group">
+                      <TableCellUser 
+                        user={r.referrerUser} 
+                        onClick={() => navigate(`${ROUTES.USERS}/${r.referrerUserId}`)} 
+                      />
+                      <TableCellUser 
+                        user={r.referredUser} 
+                        onClick={() => navigate(`${ROUTES.USERS}/${r.referredUserId}`)} 
+                      />
+                      <td className="py-4 px-6">
+                        <div className="flex flex-col gap-1">
+                           <Badge variant="outline" className={cn("w-fit font-bold text-[9px] uppercase tracking-wide px-2", statusConfigs[r.status]?.className)}>
+                              {statusConfigs[r.status]?.label || r.status}
+                           </Badge>
+                           {r.rewardStatus === "CLAIMED" && (
+                             <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-1 ml-1 uppercase">
+                               <CheckCircle2 className="h-2.5 w-2.5" /> Auto-Credited
+                             </span>
+                           )}
+                           {r.rewardStatus === "PENDING" && (
+                             <span className="text-[9px] font-bold text-amber-500/80 flex items-center gap-1 ml-1 uppercase text-nowrap">
+                               <Clock className="h-2.5 w-2.5" /> Awaiting Ride
+                             </span>
+                           )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="font-bold text-slate-700">₹{r.rewardAmount || 0}</div>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Wallet Credit</p>
+                      </td>
+                      <td className="py-4 px-6 text-sm font-semibold text-slate-600">
+                        {formatDate(r.createdAt)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-32 text-center relative overflow-hidden">
+                       <div className="absolute inset-0 bg-slate-50/20 -z-10" />
+                       <div className="flex flex-col items-center justify-center max-w-xs mx-auto">
+                          <div className="h-16 w-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4 text-slate-300">
+                             <Filter className="h-8 w-8" />
+                          </div>
+                          <h3 className="text-xl font-black text-slate-800 mb-2">No Records Found</h3>
+                          <p className="text-sm text-slate-500 font-medium mb-6">We couldn't find any referral records matching those filters.</p>
+                          <Button variant="secondary" className="rounded-xl px-8" onClick={() => { updateFilters({ q: "", status: "all" }); }}>Reset Filters</Button>
+                       </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">
+                Showing {referrals.length} of {totalCount} records
+             </p>
+             <TablePagination
+                currentPage={currentPage}
+                totalCount={totalCount}
+                pageSize={pageSize}
+                onPageChange={(page) => {
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set("page", page.toString());
+                  setSearchParams(newParams);
+                }}
+             />
+          </div>
+        </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function TableCellUser({ user, onClick }: any) {
+  return (
+    <td className="py-4 px-6">
+      <div 
+        className="flex items-center gap-3 cursor-pointer group/user w-fit"
+        onClick={onClick}
+      >
+        <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-1 ring-slate-100 transition-all group-hover/user:ring-primary/20">
+          <AvatarImage src={user?.profileUrl || ""} />
+          <AvatarFallback className="bg-slate-50 text-slate-400 font-bold text-xs">
+            {user?.fullName?.substring(0, 2).toUpperCase() || "?"}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-800 group-hover/user:text-primary transition-colors truncate">
+            {user?.fullName || "Guest User"}
+          </p>
+          <p className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">
+            {user?.email || "No email provided"}
+          </p>
+        </div>
+      </div>
+    </td>
   );
 }

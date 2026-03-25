@@ -123,6 +123,10 @@ export default function Notifications() {
         return <Megaphone className="h-4 w-4 text-orange-500" />;
       case "driver_request":
         return <User className="h-4 w-4 text-indigo-500" />;
+      case "RENTAL_REQUEST":
+        return <Bell className="h-4 w-4 text-amber-500" />;
+      case "STOP_SUGGESTION":
+        return <MapPin className="h-4 w-4 text-blue-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }
@@ -234,6 +238,8 @@ export default function Notifications() {
                 <SelectItem value="PAYMENT_SUCCESS">Payments</SelectItem>
                 <SelectItem value="SYSTEM_ALERT">System</SelectItem>
                 <SelectItem value="PROMOTIONAL">Marketing</SelectItem>
+                <SelectItem value="RENTAL_REQUEST">Rentals</SelectItem>
+                <SelectItem value="STOP_SUGGESTION">Suggestions</SelectItem>
               </SelectContent>
             </Select>
 
@@ -289,7 +295,15 @@ export default function Notifications() {
                     className={`group transition-all duration-200 hover:bg-blue-50/30 cursor-pointer ${
                       !n.read ? "border-l-4 border-l-blue-500" : "border-l-4 border-l-transparent"
                     }`}
-                    onClick={() => navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", n.id))}
+                    onClick={() => {
+                      if (n.type === "RENTAL_REQUEST" && n.metadata?.rentalId) {
+                        navigate(ROUTES.RENTAL_DETAILS.replace(":id", n.metadata.rentalId));
+                      } else if (n.type === "STOP_SUGGESTION" && n.metadata?.suggestionId) {
+                        navigate(ROUTES.SUGGESTION_DETAILS.replace(":id", n.metadata.suggestionId));
+                      } else {
+                        navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", n.id));
+                      }
+                    }}
                   >
                     <TableCell className="max-w-md">
                       <div className="flex gap-4">

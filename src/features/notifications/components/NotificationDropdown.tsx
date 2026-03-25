@@ -27,13 +27,16 @@ import { notificationService } from "@/features/notifications/api/notification.s
 import { Notification } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 
-const getIcon = (type: Notification["type"]) => {
+const getIcon = (type: string) => {
   switch (type) {
     case "driver_request":
       return User;
     case "payment_issue":
     case "PAYMENT_SUCCESS":
       return CreditCard;
+    case "RENTAL_REQUEST":
+      return Bus;
+    case "STOP_SUGGESTION":
     case "trip_assignment":
     case "TRIP_UPDATE":
     case "PICKUP_NEARBY":
@@ -41,18 +44,21 @@ const getIcon = (type: Notification["type"]) => {
       return MapPin;
     case "system_alert":
     case "SYSTEM_ALERT":
+    case "ADMIN_ALERT":
       return AlertCircle;
     case "PROMOTIONAL":
     case "marketing":
       return Megaphone;
     case "TICKET_REPLY":
       return MessageSquare;
+    case "COUPON_CREATED":
+      return Tag;
     default:
       return Bell;
   }
 };
 
-const getIconColor = (type: Notification["type"]) => {
+const getIconColor = (type: string) => {
   switch (type) {
     case "driver_request":
       return "text-indigo-600 bg-indigo-50";
@@ -60,6 +66,10 @@ const getIconColor = (type: Notification["type"]) => {
       return "text-red-600 bg-red-50";
     case "PAYMENT_SUCCESS":
       return "text-blue-600 bg-blue-50";
+    case "RENTAL_REQUEST":
+      return "text-amber-600 bg-amber-50";
+    case "STOP_SUGGESTION":
+      return "text-blue-500 bg-blue-50";
     case "trip_assignment":
     case "TRIP_UPDATE":
     case "PICKUP_NEARBY":
@@ -67,12 +77,15 @@ const getIconColor = (type: Notification["type"]) => {
       return "text-emerald-600 bg-emerald-50";
     case "system_alert":
     case "SYSTEM_ALERT":
+    case "ADMIN_ALERT":
       return "text-rose-600 bg-rose-50";
     case "PROMOTIONAL":
     case "marketing":
       return "text-orange-600 bg-orange-50";
     case "TICKET_REPLY":
       return "text-purple-600 bg-purple-50";
+    case "COUPON_CREATED":
+      return "text-pink-600 bg-pink-50";
     default:
       return "text-slate-600 bg-slate-50";
   }
@@ -174,7 +187,13 @@ export function NotificationDropdown() {
                   )}
                   onClick={() => {
                     markAsRead(notification.id);
-                    navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", notification.id));
+                    if (notification.type === "RENTAL_REQUEST" && notification.metadata?.rentalId) {
+                      navigate(ROUTES.RENTAL_DETAILS.replace(":id", notification.metadata.rentalId));
+                    } else if (notification.type === "STOP_SUGGESTION" && notification.metadata?.suggestionId) {
+                      navigate(ROUTES.SUGGESTION_DETAILS.replace(":id", notification.metadata.suggestionId));
+                    } else {
+                      navigate(ROUTES.NOTIFICATION_DETAILS.replace(":id", notification.id));
+                    }
                   }}
                 >
                   <div className="flex items-start gap-3 p-3">

@@ -11,13 +11,16 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  MapPin,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { AssignTripDialog, useTrips, useUpdateTripStatus, useDeleteTrip, useTripStats } from "@/features/trips";
+import { AssignTripDialog, useTrips, useTrip, useUpdateTripStatus, useDeleteTrip, useTripStats } from "@/features/trips";
 import { EditTripDialog } from "@/features/trips/components/EditTripDialog";
 import {
   DropdownMenu,
@@ -35,6 +38,7 @@ import { useTripPassengers, useUpdateBoardingStatus } from "@/features/bookings"
 import { Trip } from "@/types";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { useDebounce } from "@/hooks/useDebounce";
+import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
 const Trips = () => {
@@ -444,7 +448,14 @@ const TripDetailsContent = ({
     isLoading: isLoadingPassengers,
     refetch: refetchPassengers,
   } = useTripPassengers(trip.id);
+  const { data: fullTrip, isLoading: isLoadingFullTrip } = useTrip(trip.id);
   const updateBoardingStatus = useUpdateBoardingStatus();
+
+  const [expandedStops, setExpandedStops] = useState<Record<number, boolean>>({});
+
+  const toggleStop = (index: number) => {
+    setExpandedStops(prev => ({ ...prev, [index]: !prev[index] }));
+  };
 
   const getDelayStatusColor = (tripStatus: Trip["tripStatus"], delayMinutes: number) => {
     if (tripStatus === "On Time" || tripStatus === "Early") return "text-success bg-success/10";
@@ -475,8 +486,9 @@ const TripDetailsContent = ({
     <Tabs defaultValue="details">
       <TabsList className="mb-4">
         <TabsTrigger value="details">Trip Details</TabsTrigger>
-        <TabsTrigger value="passengers">Passengers ({passengers.length})</TabsTrigger>
-        <TabsTrigger value="timeline">Timeline</TabsTrigger>
+        <TabsTrigger value="passengers">Confirmed List ({passengers.length})</TabsTrigger>
+        <TabsTrigger value="manifest">Route Manifest</TabsTrigger>
+        <TabsTrigger value="timeline">History</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details">
@@ -734,6 +746,161 @@ const TripDetailsContent = ({
           )}
         </div>
       </TabsContent>
+      <TabsContent value="manifest">
+        <div className="space-y-6 pt-2">
+          {isLoadingFullTrip ? (
+            <div className="flex justify-center py-10">
+              <Clock className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : !fullTrip || !fullTrip.stops || fullTrip.stops.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed rounded-xl">
+              <MapPin className="h-10 w-10 mx-auto mb-4 opacity-20" />
+              <p className="text-muted-foreground">No route stops defined for this trip.</p>
+            </div>
+          ) : (
+            <div className="relative pl-7 space-y-2">
+              {/* Refined Vertical Roadmap Line */}
+              <div className="absolute left-[7px] top-6 bottom-6 w-[1.5px] bg-border z-0" />
+
+              {fullTrip?.stops?.map((stop: any, index: number) => {
+                const bP = passengers.filter((p: any) => p.pickupStop === stop.name);
+                const dP = passengers.filter((p: any) => p.dropStop === stop.name);
+                const isExpanded = expandedStops[index];
+                const isFirst = index === 0;
+                const isLast = index === (fullTrip?.stops?.length || 0) - 1;
+                
+                return (
+                  <div key={index} className="relative pb-6 last:pb-0">
+                    {/* Roadmap Node */}
+                    <div className={cn(
+                      "absolute -left-[27px] top-2 w-3.5 h-3.5 rounded-full border-2 border-background z-10 transition-colors",
+                      isFirst ? "bg-primary w-4 h-4 -left-[28px]" : isLast ? "bg-slate-500 w-4 h-4 -left-[28px]" : "bg-border border-primary/40"
+                    )} />
+                    
+                    <div className="flex flex-col group">
+                      <div 
+                        className="flex items-center justify-between cursor-pointer py-1.5 px-3 -mx-3 rounded-xl hover:bg-muted/40 transition-all"
+                        onClick={() => toggleStop(index)}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "text-[14px] font-semibold text-foreground/90",
+                              (isFirst || isLast) && "text-[15px] font-bold text-foreground"
+                            )}>{stop.name}</span>
+                            {isFirst && <Badge variant="secondary" className="text-[9px] h-3.5 px-1 bg-primary/10 text-primary border-none font-bold">START</Badge>}
+                            {isLast && <Badge variant="secondary" className="text-[9px] h-3.5 px-1 bg-slate-100 text-slate-600 border-none font-bold">END</Badge>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-medium text-muted-foreground/70">
+                              {stop.arrivalTime ? format(new Date(stop.arrivalTime), 'hh:mm a') : '--:--'}
+                            </span>
+                            <div className="flex gap-2">
+                              {bP.length > 0 && (
+                                <span className="text-[10px] font-bold text-success bg-success/10 px-1.5 py-0.5 rounded-md">+{bP.length}</span>
+                              )}
+                              {dP.length > 0 && (
+                                <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-md">-{dP.length}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? <ChevronUp className="h-3.5 w-3.5 opacity-40" /> : <ChevronDown className="h-3.5 w-3.5 opacity-40" />}
+                        </div>
+                      </div>
+
+                      {/* Integrated Passenger Panels */}
+                      {isExpanded && (
+                        <div className="mt-3 overflow-hidden border rounded-xl bg-card shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                          {bP.length > 0 && (
+                            <div className="border-b last:border-0">
+                              <div className="px-3 py-2 bg-success/[0.03] border-b">
+                                <span className="text-[10px] font-bold text-success uppercase tracking-widest flex items-center gap-1.5">
+                                  <Users className="h-3 w-3" />
+                                  Boarding Passengers
+                                </span>
+                              </div>
+                              <div className="divide-y">
+                                {bP.map((p: any) => {
+                                  const sColor = p.boardingStatus === 'BOARDED' ? 'text-success bg-success/10' : p.boardingStatus === 'NO_SHOW' ? 'text-destructive bg-destructive/10' : 'text-warning bg-warning/10';
+                                  return (
+                                    <div key={p.id} className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors">
+                                      <div className="flex flex-col gap-0.5">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs font-bold text-foreground">{p.userName}</span>
+                                          <span className={cn("text-[8px] font-black px-1.5 py-0.5 rounded uppercase", sColor)}>
+                                            {p.boardingStatus?.replace('_', ' ') || 'PENDING'}
+                                          </span>
+                                        </div>
+                                        <a href={`tel:${p.userContact}`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors">{p.userContact}</a>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex flex-col items-end gap-0.5">
+                                          <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-50">Seat</span>
+                                          <span className="text-xs font-mono font-bold">{p.seatNumber}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {dP.length > 0 && (
+                            <div className="border-b last:border-0">
+                              <div className="px-3 py-2 bg-destructive/[0.03] border-b">
+                                <span className="text-[10px] font-bold text-destructive uppercase tracking-widest flex items-center gap-1.5">
+                                  <Users className="h-3 w-3" />
+                                  Dropping Passengers
+                                </span>
+                              </div>
+                              <div className="divide-y">
+                                {dP.map((p: any) => {
+                                  const sColor = p.boardingStatus === 'BOARDED' ? 'text-success bg-success/10' : p.boardingStatus === 'NO_SHOW' ? 'text-destructive bg-destructive/10' : 'text-warning bg-warning/10';
+                                  return (
+                                    <div key={p.id} className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors">
+                                      <div className="flex flex-col gap-0.5">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs font-bold text-foreground">{p.userName}</span>
+                                          <span className={cn("text-[8px] font-black px-1.5 py-0.5 rounded uppercase", sColor)}>
+                                            {p.boardingStatus?.replace('_', ' ') || 'PENDING'}
+                                          </span>
+                                        </div>
+                                        <a href={`tel:${p.userContact}`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors">{p.userContact}</a>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex flex-col items-end gap-0.5">
+                                          <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-50">Seat</span>
+                                          <span className="text-xs font-mono font-bold">{p.seatNumber}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {bP.length === 0 && dP.length === 0 && (
+                            <div className="p-4 text-center">
+                              <p className="text-[11px] text-muted-foreground italic">No passenger activity at this stop.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </TabsContent>
+
+
       <TabsContent value="timeline">
         <div className="space-y-4">
           <div className="relative pl-6 border-l-2 border-border space-y-6">

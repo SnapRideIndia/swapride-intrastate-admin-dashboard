@@ -223,6 +223,7 @@ export interface Trip {
   notes?: string;
   bus?: Bus;
   route?: Route;
+  stops?: any[];
   createdAt: string;
   updatedAt: string;
 }

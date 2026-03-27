@@ -44,6 +44,8 @@ const LiveTracking = () => {
 
   const { data: liveLocations = [], isLoading: isLiveLoading, refetch } = useLiveLocations();
 
+  console.log("🔥 LIVE LOCATIONS RESPONSE =>", liveLocations);
+
   // WebSocket Integration
   useEffect(() => {
     if (liveLocations) {

@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 import { Search, MoreVertical, Edit, Trash2, Eye, MapPin, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
@@ -25,6 +29,7 @@ import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 const Routes = () => {
+  const { hasPermission } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "all";
@@ -35,14 +40,17 @@ const Routes = () => {
 
   const {
     data: routesData,
-    isLoading,
+    isLoading: isFetching,
     refetch,
+    error,
   } = useRoutes({
     search: debouncedSearch,
     status: statusFilter === "all" ? undefined : statusFilter.toUpperCase(),
     offset: (currentPage - 1) * pageSize,
     limit: pageSize,
   });
+
+  const { isAccessDenied } = useApiError(error);
 
   const routes = routesData?.data || [];
   const totalCount = routesData?.pagination?.total || 0;
@@ -56,12 +64,18 @@ const Routes = () => {
   const [routeToEdit, setRouteToEdit] = useState<Route | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
+  const handlePageChange = useCallback((page: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("page", page.toString());
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
   // Sync search and status changes to page 1
   useEffect(() => {
     if (currentPage !== 1 && (debouncedSearch || statusFilter !== "all")) {
       handlePageChange(1);
     }
-  }, [debouncedSearch, statusFilter]);
+  }, [debouncedSearch, statusFilter, currentPage, handlePageChange]);
 
   const handleSearchChange = (val: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -79,13 +93,8 @@ const Routes = () => {
     setSearchParams(newParams);
   };
 
-  const handlePageChange = (page: number) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("page", page.toString());
-    setSearchParams(newParams);
-  };
-
   const isPageLoading = deleteRouteMutation.isPending || deleteStopMutation.isPending || reorderStopsMutation.isPending;
+  const isLoading = isFetching || isPageLoading;
 
   const { data: routeDetails, isLoading: isDetailsLoading } = useRoute(selectedRoute?.id || "");
 
@@ -104,10 +113,10 @@ const Routes = () => {
       try {
         await deleteRouteMutation.mutateAsync(id);
         toast({ title: "Route Deleted", description: "Route has been removed successfully." });
-      } catch (error: any) {
+      } catch (error: unknown) {
         toast({
           title: "Deletion Failed",
-          description: error.message || "Failed to delete route.",
+          description: (error as { message?: string }).message || "Failed to delete route.",
           variant: "destructive",
         });
       }
@@ -118,10 +127,10 @@ const Routes = () => {
     try {
       await reorderStopsMutation.mutateAsync({ routeId, orderedStopIds });
       toast({ title: "Stop Reordered", description: "Stop order has been updated." });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Reorder Failed",
-        description: error.message || "Failed to reorder stops.",
+        description: (error as { message?: string }).message || "Failed to reorder stops.",
         variant: "destructive",
       });
     }
@@ -165,9 +174,17 @@ const Routes = () => {
     }
   };
 
+  if (!hasPermission(PERMISSIONS.ROUTE_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Route Management" />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <FullPageLoader show={isLoading} label="Loading Routes..." />
+      <FullPageLoader show={isFetching} label="Loading Routes..." />
       <FullPageLoader
         show={isPageLoading}
         label={

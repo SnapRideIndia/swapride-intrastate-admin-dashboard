@@ -1,4 +1,4 @@
-import { Info, Terminal, Trash2, Minimize2, Maximize2, ChevronRight, X } from "lucide-react";
+import { Info, Terminal, Trash2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";

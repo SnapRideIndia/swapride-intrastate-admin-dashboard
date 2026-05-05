@@ -21,7 +21,6 @@ import {
   Ticket,
   UserPlus,
   Bell,
-  Search,
   Microscope,
   CreditCard,
   User,
@@ -70,8 +69,8 @@ const fleetNetworkCategory = {
     { name: "Buses", href: ROUTES.BUSES, icon: Bus, permission: "BUS_VIEW" },
     { name: "Bus Layouts", href: ROUTES.BUS_LAYOUTS, icon: LayoutGrid, permission: "BUS_LAYOUT_VIEW" },
     { name: "Routes", href: ROUTES.ROUTES, icon: Route, permission: "ROUTE_VIEW" },
-    { name: "Points", href: ROUTES.POINTS, icon: MapPin, permission: "POINT_VIEW" },
-    { name: "Suggestions", href: ROUTES.SUGGESTIONS, icon: ClipboardList, permission: "VIEW_SUGGESTIONS" },
+    { name: "Points", href: ROUTES.POINTS, icon: MapPin, permission: "STOP_VIEW" },
+    { name: "Suggestions", href: ROUTES.SUGGESTIONS, icon: ClipboardList, permission: "SUGGESTIONS_VIEW" },
     { name: "Rentals", href: ROUTES.RENTALS, icon: BusFront, permission: "RENTAL_VIEW" },
   ],
 };
@@ -80,9 +79,9 @@ const financeInsightsCategory = {
   label: "Finance & Insights",
   icon: DollarSign,
   items: [
-    { name: "Payments", href: ROUTES.PAYMENTS, icon: Wallet, permission: "PAYMENT_VIEW" },
+    { name: "Payments", href: ROUTES.PAYMENTS, icon: Wallet, permission: "FINANCIAL_VIEW" },
     { name: "Coupons", href: ROUTES.COUPONS, icon: Ticket, permission: "COUPON_VIEW" },
-    { name: "Referrals", href: ROUTES.REFERRALS, icon: UserPlus, permission: "REFERRAL_VIEW" },
+    { name: "Referrals", href: ROUTES.REFERRALS, icon: UserPlus, permission: "REWARDS_VIEW" },
     { name: "Notifications", href: ROUTES.NOTIFICATIONS, icon: Bell, permission: "NOTIFICATION_VIEW" },
   ],
 };
@@ -91,9 +90,9 @@ const testModulesCategory = {
   label: "Test Modules",
   icon: Microscope,
   items: [
-    { name: "User", href: ROUTES.USER_SIMULATOR, icon: User, permission: null },
-    { name: "FCM Test", href: ROUTES.FCM_TEST, icon: Bell, permission: null },
-    { name: "Razorpay Test", href: ROUTES.RAZORPAY_TEST, icon: CreditCard, permission: null },
+    { name: "User", href: ROUTES.USER_SIMULATOR, icon: User, permission: "SYSTEM_LOGS_VIEW" },
+    { name: "FCM Test", href: ROUTES.FCM_TEST, icon: Bell, permission: "SYSTEM_LOGS_VIEW" },
+    { name: "Razorpay Test", href: ROUTES.RAZORPAY_TEST, icon: CreditCard, permission: "SYSTEM_LOGS_VIEW" },
   ],
 };
 
@@ -191,30 +190,8 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="space-y-1">
-          {filteredNavigation.map((item) => {
-            const isActive =
-              location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href + "/"));
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "nav-item",
-                  isActive ? "nav-item-active" : "nav-item-inactive",
-                  collapsed && "justify-center px-2",
-                )}
-                title={collapsed ? item.name : undefined}
-              >
-                <item.icon className={cn("h-5 w-5 flex-shrink-0", collapsed && "mr-0")} />
-                {!collapsed && <span>{item.name}</span>}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Monitoring Category */}
-        <div className="py-2 pt-0 border-sidebar-border">
+        <div className="flex flex-col">
+          {/* Monitoring Category */}
           <NavCategory
             id="monitoring"
             label={monitoringCategory.label}
@@ -225,10 +202,8 @@ export function Sidebar() {
             collapsed={collapsed}
             hasPermission={hasPermission}
           />
-        </div>
 
-        {/* Operations Category */}
-        <div className="py-2 border-t border-sidebar-border">
+          {/* Operations Category */}
           <NavCategory
             id="operations"
             label={operationsCategory.label}
@@ -238,11 +213,10 @@ export function Sidebar() {
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}
+            className="mt-2 pt-2 border-t border-sidebar-border"
           />
-        </div>
 
-        {/* Fleet & Network Category */}
-        <div className="py-2 border-t border-sidebar-border">
+          {/* Fleet & Network Category */}
           <NavCategory
             id="fleetNetwork"
             label={fleetNetworkCategory.label}
@@ -252,11 +226,10 @@ export function Sidebar() {
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}
+            className="mt-2 pt-2 border-t border-sidebar-border"
           />
-        </div>
 
-        {/* Finance & Insights Category */}
-        <div className="py-2 border-t border-sidebar-border">
+          {/* Finance & Insights Category */}
           <NavCategory
             id="financeInsights"
             label={financeInsightsCategory.label}
@@ -266,11 +239,10 @@ export function Sidebar() {
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}
+            className="mt-2 pt-2 border-t border-sidebar-border"
           />
-        </div>
 
-        {/* User Management Category */}
-        <div className="py-2 border-t border-sidebar-border">
+          {/* User Management Category */}
           <NavCategory
             id="userManagement"
             label={userManagementCategory.label}
@@ -280,11 +252,10 @@ export function Sidebar() {
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}
+            className="mt-2 pt-2 border-t border-sidebar-border"
           />
-        </div>
 
-        {/* Test Modules Category */}
-        <div className="py-2 border-t border-sidebar-border">
+          {/* Test Modules Category */}
           <NavCategory
             id="testModules"
             label={testModulesCategory.label}
@@ -294,6 +265,7 @@ export function Sidebar() {
             onToggle={handleCategoryToggle}
             collapsed={collapsed}
             hasPermission={hasPermission}
+            className="mt-2 pt-2 border-t border-sidebar-border"
           />
         </div>
       </nav>

@@ -6,9 +6,13 @@ import { Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 
 import { ROUTES } from "@/constants/routes";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AccessDenied } from "@/components/AccessDenied";
+import { PERMISSIONS } from "@/constants/permissions";
 
 const Payments = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const location = useLocation();
 
   // Determine active tab based on URL
@@ -47,6 +51,14 @@ const Payments = () => {
         navigate(ROUTES.PAYMENT_OVERVIEW);
     }
   };
+
+  if (!hasPermission(PERMISSIONS.FINANCIAL_VIEW)) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Payments & Financials" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

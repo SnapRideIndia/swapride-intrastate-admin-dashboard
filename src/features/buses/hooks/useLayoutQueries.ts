@@ -17,17 +17,19 @@ export const useLayouts = (params?: {
   search?: string;
   status?: string;
   type?: string;
-}) => {
-  return useQuery({
+}, options?: any) => {
+  return useQuery<BusLayout[]>({
     queryKey: [...layoutKeys.lists(), params || {}],
     queryFn: () => busLayoutService.getAll(params),
+    ...options,
   });
 };
 
-export const useActiveLayouts = () => {
-  return useQuery({
+export const useActiveLayouts = (options?: any) => {
+  return useQuery<BusLayout[]>({
     queryKey: [...layoutKeys.lists(), "active"],
     queryFn: () => busLayoutService.getActive(),
+    ...options,
   });
 };
 

@@ -153,7 +153,7 @@ export function BusQRCode({ busId, busNumber }: BusQRCodeProps) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button className="h-11 px-6 gap-2 shadow-lg shadow-primary/20" onClick={handlePrint}>
+            <Button className="h-11 px-6 gap-2" onClick={handlePrint}>
               <Printer className="h-4 w-4" /> Print Sticker
             </Button>
           </div>

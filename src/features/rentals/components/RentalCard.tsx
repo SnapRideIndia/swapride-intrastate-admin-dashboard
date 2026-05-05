@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ROUTES } from "@/constants/routes";
 import { RentalRequest } from "../types";
 import { RentalStatusBadge } from "./RentalStatusBadge";
@@ -80,14 +80,11 @@ export const RentalCard = ({ rental }: RentalCardProps) => {
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           {/* User + Passengers */}
           <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
-              <Avatar className="h-full w-full">
-                <AvatarImage src={rental.user?.profileUrl || ""} />
-                <AvatarFallback className="bg-slate-50 text-slate-500 font-bold uppercase text-[9px]">
-                  {rental.user?.fullName?.substring(0, 2).toUpperCase() || "?"}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+            <UserAvatar 
+              src={rental.user?.profileUrl} 
+              name={rental.user?.fullName} 
+              className="h-7 w-7" 
+            />
             <div>
               <p className="text-xs font-semibold text-slate-700 leading-tight">
                 {rental.user?.fullName || "Guest"}

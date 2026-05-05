@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: "/admin/reset-password",
     ME: "/admin/me",
     GET_PROFILE: "/admin/me",
+    CHANGE_PASSWORD: "/admin/me/password",
   },
 
   // Users
@@ -38,6 +39,7 @@ export const API_ENDPOINTS = {
     ACTIVATE: (id: string) => `/admin/${id}/activate`,
     SUSPEND: (id: string) => `/admin/${id}/suspend`,
     STATS: "/admin/stats",
+    RESET_PASSWORD: (id: string) => `/admin/manage/${id}/password`,
   },
 
   // Roles

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, Bus, MapPin } from "lucide-react";
+import { ArrowLeft, Bus } from "lucide-react";
 import { format } from "date-fns";
 import { searchApi } from "../api/search";
 import { SimulatorLogger } from "../../shared/SimulatorLogger";

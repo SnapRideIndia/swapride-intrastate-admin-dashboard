@@ -1,4 +1,4 @@
-import { ChevronLeft, X, Sun, Moon, Clock, Info, ShieldCheck, Armchair, CheckCircle2, Ticket } from "lucide-react";
+import { ChevronLeft, X, Sun, Moon, Clock, Armchair, CheckCircle2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";

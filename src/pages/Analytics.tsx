@@ -37,6 +37,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRoutes } from "@/features/routes";
 import { useBuses } from "@/features/buses";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   useAnalyticsSummary,
   useAnalyticsTrends,
@@ -47,6 +50,7 @@ import {
 } from "@/features/analytics";
 import { AnalyticsFilters } from "@/types";
 import { useSearchParams } from "react-router-dom";
+import { PERMISSIONS } from "@/constants/permissions";
 
 const STATUS_COLORS: Record<string, string> = {
   CONFIRMED: "hsl(142, 71%, 45%)",
@@ -61,6 +65,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const Analytics = () => {
+  const { hasPermission } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const dateRange = searchParams.get("range") || "last7days";
@@ -76,18 +81,20 @@ const Analytics = () => {
   const buses = busesData?.buses || [];
 
   const filters: AnalyticsFilters = {
-    dateRange: dateRange as any,
+    dateRange: dateRange as AnalyticsFilters["dateRange"],
     startDate: dateRange === "custom" ? startDate : undefined,
     endDate: dateRange === "custom" ? endDate : undefined,
     routeId: routeFilter === "all" ? undefined : routeFilter,
     busId: busFilter === "all" ? undefined : busFilter,
   };
 
-  const { data: summary, isLoading: isSummaryLoading } = useAnalyticsSummary(filters);
+  const { data: summary, isLoading: isSummaryLoading, error: summaryError } = useAnalyticsSummary(filters);
   const { data: trends, isLoading: isTrendsLoading } = useAnalyticsTrends(filters);
   const { data: routesPerf, isLoading: isRoutesPerfLoading } = useRoutePerformance(filters);
   const { data: fleetPerf, isLoading: isFleetPerfLoading } = useFleetPerformance(filters);
   const { data: distribution, isLoading: isDistributionLoading } = useDistributionMetrics(filters);
+
+  const { isAccessDenied } = useApiError(summaryError);
 
   const updateFilters = (key: string, value: string) => {
     setSearchParams((prev) => {
@@ -121,6 +128,22 @@ const Analytics = () => {
     isRoutesPerfLoading ||
     isFleetPerfLoading ||
     isDistributionLoading;
+
+  if (!hasPermission(PERMISSIONS.ANALYTICS_VIEW)) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Analytics" />
+      </DashboardLayout>
+    );
+  }
+
+  if (isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Analytics" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

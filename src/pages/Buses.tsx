@@ -13,10 +13,15 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Bus } from "@/types";
 import { cn } from "@/lib/utils";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 const Buses = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "all";
@@ -59,6 +64,8 @@ const Buses = () => {
     limit: pageSize,
   });
 
+  const { isAccessDenied } = useApiError(error);
+
   const buses = busesData?.data || [];
   const totalCount = busesData?.pagination?.total || 0;
 
@@ -66,13 +73,21 @@ const Buses = () => {
     navigate(`/buses/${bus.id}`);
   };
 
-  if (error) {
+  if (!hasPermission(PERMISSIONS.BUS_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Fleet Management" />
+      </DashboardLayout>
+    );
+  }
+
+  if (error && !isAccessDenied) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[400px] text-destructive">
           <AlertCircle className="h-12 w-12 mb-4" />
           <h2 className="text-xl font-semibold">Failed to load buses</h2>
-          <p className="mt-1">{(error as any).message}</p>
+          <p className="mt-1">{(error as Error)?.message || "An unexpected error occurred"}</p>
           <Button variant="outline" className="mt-4" onClick={() => refetch()}>
             Try Again
           </Button>

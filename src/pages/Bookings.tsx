@@ -36,11 +36,16 @@ import {
 } from "@/features/bookings";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
 import { useDebounce } from "@/hooks/useDebounce";
+import { PERMISSIONS } from "@/constants/permissions";
 
 export default function Bookings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { hasPermission } = usePermissions();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -54,6 +59,7 @@ export default function Bookings() {
   const {
     data: bookingsData,
     isLoading: isBookingsLoading,
+    error: bookingsError,
     refetch,
   } = useBookings({
     status: statusFilter === "" || statusFilter === "all" ? undefined : statusFilter,
@@ -63,6 +69,7 @@ export default function Bookings() {
     q: debouncedSearch || undefined,
     limit: pageSize,
   });
+  const { isAccessDenied } = useApiError(bookingsError);
 
   const bookings = bookingsData?.data || [];
   const totalCount = bookingsData?.pagination?.total || 0;
@@ -104,6 +111,14 @@ export default function Bookings() {
       cancelMutation.mutate(id);
     }
   };
+
+  if (!hasPermission(PERMISSIONS.BOOKING_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Bookings" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

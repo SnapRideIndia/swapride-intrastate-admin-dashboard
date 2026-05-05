@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { tripFormSchema, TripFormData } from "@/features/trips/schemas/trip.schema";
 import { AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -19,16 +19,6 @@ import { useDrivers } from "@/features/drivers";
 import { useBuses } from "@/features/buses";
 import { useState } from "react";
 
-const tripFormSchema = z.object({
-  driverId: z.string().min(1, "Driver is required"),
-  busId: z.string().min(1, "Bus is required"),
-  routeId: z.string().min(1, "Route is required"),
-  date: z.string().min(1, "Date is required"),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-});
-
-type TripFormData = z.infer<typeof tripFormSchema>;
 
 interface EditTripDialogProps {
   trip: Trip | null;

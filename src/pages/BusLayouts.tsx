@@ -36,6 +36,7 @@ import { StatCard } from "@/features/analytics";
 import { BusLayout } from "@/types";
 import { useLayouts, useLayoutStats, useDuplicateLayout, useDeleteLayout } from "@/features/buses";
 import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { LayoutPreviewGrid } from "@/features/buses/components/LayoutPreviewGrid";
@@ -137,9 +138,9 @@ const BusLayouts = () => {
     });
   };
 
-  const canCreate = hasPermission("BUS_LAYOUT_CREATE");
-  const canEdit = hasPermission("BUS_LAYOUT_EDIT");
-  const canDelete = hasPermission("BUS_LAYOUT_DELETE");
+  const canCreate = hasPermission(PERMISSIONS.BUS_LAYOUT_CREATE);
+  const canEdit = hasPermission(PERMISSIONS.BUS_LAYOUT_EDIT);
+  const canDelete = hasPermission(PERMISSIONS.BUS_LAYOUT_DELETE);
 
   return (
     <DashboardLayout>

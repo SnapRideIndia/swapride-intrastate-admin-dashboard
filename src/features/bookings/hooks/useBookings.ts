@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { bookingService } from "../api/booking.service";
 import { useToast } from "@/hooks/use-toast";
+import { Booking } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 
 export const BOOKING_QUERY_KEYS = {
   all: ["bookings"] as const,
@@ -35,10 +37,11 @@ export const useBookings = (params?: {
   q?: string;
   offset?: number;
   limit?: number;
-}) => {
-  return useQuery({
+}, options?: any) => {
+  return useQuery<PaginatedResponse<Booking>>({
     queryKey: BOOKING_QUERY_KEYS.list(params || {}),
     queryFn: () => bookingService.getAll(params),
+    ...options,
   });
 };
 

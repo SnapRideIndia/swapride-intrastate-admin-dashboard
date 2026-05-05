@@ -36,16 +36,15 @@ import {
   Trash2,
   KeyRound,
   Users,
-  Shield,
   AlertTriangle,
-  Loader2,
 } from "lucide-react";
 import { AdminUser } from "@/types";
-import { AddAdminDialog, getRoleColor } from "@/features/admin";
+import { AddAdminDialog, getRoleColor, ResetAdminPasswordDialog } from "@/features/admin";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/providers/AuthContext";
 import { format } from "date-fns";
+import { PERMISSIONS } from "@/constants/permissions";
 import {
   useAdmins,
   useAdminStats,
@@ -58,6 +57,9 @@ import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useDebounce } from "@/hooks/useDebounce";
+import { UserAvatar } from "@/components/common/UserAvatar";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
 
 const Admins = () => {
   const { toast } = useToast();
@@ -76,6 +78,7 @@ const Admins = () => {
   const [editAdmin, setEditAdmin] = useState<AdminUser | null>(null);
   const [deleteAdmin, setDeleteAdmin] = useState<AdminUser | null>(null);
   const [suspendAdmin, setSuspendAdmin] = useState<AdminUser | null>(null);
+  const [resetPassAdmin, setResetPassAdmin] = useState<AdminUser | null>(null);
 
   const updateFilters = (updates: Record<string, string | number | null>) => {
     const newParams = new URLSearchParams(searchParams);
@@ -92,7 +95,7 @@ const Admins = () => {
     setSearchParams(newParams);
   };
 
-  const { data: adminsData, isLoading: loadingAdmins } = useAdmins({
+  const { data: adminsData, isLoading: loadingAdmins, error: adminsError } = useAdmins({
     page: currentPage,
     limit: pageSize,
     search: debouncedSearch,
@@ -100,6 +103,8 @@ const Admins = () => {
   });
   const { data: stats, isLoading: loadingStats } = useAdminStats();
   const { data: rolesData, isLoading: loadingRoles } = useRoles();
+
+  const { isAccessDenied } = useApiError(adminsError);
 
   const deleteMutation = useDeleteAdmin();
   const suspendMutation = useSuspendAdmin();
@@ -110,7 +115,6 @@ const Admins = () => {
   const admins = adminsData?.data || [];
   const totalCount = adminsData?.total || 0;
   const roles = rolesData?.data || [];
-  const totalRoles = rolesData?.total || 0;
 
   const handleDelete = async () => {
     if (!deleteAdmin) return;
@@ -177,6 +181,14 @@ const Admins = () => {
     );
   };
 
+  if (!hasPermission(PERMISSIONS.ADMIN_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Admin Management" />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <FullPageLoader show={isLoading} label="Loading Admins..." />
@@ -187,7 +199,7 @@ const Admins = () => {
         title="Admin Management"
         subtitle="Manage admin users and their access permissions"
         actions={
-          hasPermission("ADMIN_CREATE") && (
+          hasPermission(PERMISSIONS.ADMIN_CREATE) && (
             <Button onClick={() => setAddDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Admin
@@ -196,7 +208,7 @@ const Admins = () => {
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <StatCard
           title="Total Admins"
           value={stats?.totalAdmins || 0}
@@ -218,7 +230,6 @@ const Admins = () => {
           iconColor="text-destructive"
           vibrant={true}
         />
-        <StatCard title="Roles" value={totalRoles} icon={Shield} iconColor="text-info" vibrant={true} />
       </div>
 
       <div className="dashboard-card p-4 mb-6">
@@ -279,15 +290,11 @@ const Admins = () => {
                 <TableRow key={admin.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {admin.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .slice(0, 2)}
-                        </span>
-                      </div>
+                      <UserAvatar 
+                        src={admin.profilePicture} 
+                        name={admin.name} 
+                        className="h-10 w-10 border-2 border-primary/10" 
+                      />
                       <div>
                         <p className="font-medium">{admin.name}</p>
                         <p className="text-xs text-muted-foreground">
@@ -302,7 +309,7 @@ const Admins = () => {
                   <TableCell>{getRoleBadge(admin)}</TableCell>
                   <TableCell>{getStatusBadge(admin.status)}</TableCell>
                   <TableCell>
-                    {admin.lastLogin ? format(new Date(admin.lastLogin), "MMM d, yyyy HH:mm") : "Never"}
+                    {admin.lastLogin ? format(new Date(admin.lastLogin), "MMM d, yyyy hh:mm a") : "Never"}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -316,20 +323,20 @@ const Admins = () => {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                        {hasPermission("ADMIN_EDIT") && (
+                        {hasPermission(PERMISSIONS.ADMIN_EDIT) && (
                           <DropdownMenuItem onClick={() => setEditAdmin(admin)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
                         )}
-                        {hasPermission("ADMIN_PASSWORD_RESET") && (
-                          <DropdownMenuItem>
+                        {hasPermission(PERMISSIONS.ADMIN_PASSWORD_RESET) && (
+                          <DropdownMenuItem onClick={() => setResetPassAdmin(admin)}>
                             <KeyRound className="h-4 w-4 mr-2" />
                             Reset Password
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        {hasPermission("ADMIN_SUSPEND") && admin.id !== user?.id && (
+                        {hasPermission(PERMISSIONS.ADMIN_SUSPEND) && admin.id !== user?.id && (
                           <DropdownMenuItem onClick={() => setSuspendAdmin(admin)}>
                             {admin.status === "Suspended" ? (
                               <>
@@ -344,7 +351,7 @@ const Admins = () => {
                             )}
                           </DropdownMenuItem>
                         )}
-                        {hasPermission("ADMIN_DELETE") && admin.id !== user?.id && (
+                        {hasPermission(PERMISSIONS.ADMIN_DELETE) && admin.id !== user?.id && (
                           <DropdownMenuItem
                             onClick={() => setDeleteAdmin(admin)}
                             className="text-destructive focus:text-destructive"
@@ -384,6 +391,12 @@ const Admins = () => {
         editAdmin={editAdmin}
       />
 
+      <ResetAdminPasswordDialog
+        admin={resetPassAdmin}
+        open={!!resetPassAdmin}
+        onOpenChange={(open) => !open && setResetPassAdmin(null)}
+      />
+
       <AlertDialog open={!!deleteAdmin} onOpenChange={(open) => !open && setDeleteAdmin(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -403,7 +416,6 @@ const Admins = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -434,9 +446,6 @@ const Admins = () => {
               onClick={handleSuspendToggle}
               disabled={suspendMutation.isPending || activateMutation.isPending}
             >
-              {suspendMutation.isPending || activateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
               {suspendAdmin?.status === "Suspended" ? "Activate" : "Suspend"}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/ui/page-header";
@@ -169,12 +169,12 @@ const UserDetails = () => {
                   <Dialog>
                     <DialogTrigger asChild>
                       <button className="rounded-full transition-transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                        <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                          <AvatarImage src={user.profileUrl || ""} />
-                          <AvatarFallback className="text-2xl bg-muted text-muted-foreground">
-                            {user.fullName.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          src={user.profileUrl} 
+                          name={user.fullName} 
+                          className="h-24 w-24 border-4 border-background shadow-lg"
+                          fallbackClassName="text-2xl"
+                        />
                       </button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md w-fit p-1 bg-transparent border-none shadow-none flex justify-center items-center [&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:opacity-100 [&>button]:hover:bg-primary/90 [&>button]:h-8 [&>button]:w-8 [&>button]:rounded-full [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:-right-4 [&>button]:-top-4 [&>button]:shadow-lg">

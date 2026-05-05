@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { SavedLocation } from "../api/saved-locations";
 import { savedLocationsApi } from "../api/saved-locations";
-import { cn } from "@/lib/utils";
 
 interface SavedLocationsScreenProps {
   refreshTrigger?: number;

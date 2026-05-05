@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { driverApi } from "../api/driver-api";
 import { Driver } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { PaginatedResponse } from "@/types/pagination";
 
 export const DRIVER_QUERY_KEYS = {
   all: ["drivers"] as const,
@@ -14,10 +15,11 @@ export const DRIVER_QUERY_KEYS = {
 /**
  * Hook for fetching paginated and filtered drivers
  */
-export const useDrivers = (params?: { limit?: number; offset?: number; search?: string; status?: string }) => {
-  return useQuery({
+export const useDrivers = (params?: { limit?: number; offset?: number; search?: string; status?: string }, options?: any) => {
+  return useQuery<PaginatedResponse<Driver>>({
     queryKey: DRIVER_QUERY_KEYS.list(params || {}),
     queryFn: () => driverApi.getAll(params),
+    ...options,
   });
 };
 

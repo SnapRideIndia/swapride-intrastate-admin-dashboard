@@ -9,14 +9,8 @@ import {
   User,
   LogOut,
   ChevronRight,
-  Mail,
-  Phone,
-  X,
-  Droplets,
-  Calendar as CalendarIcon,
   UserSquare2,
   Loader2,
-  Camera,
   MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,7 +19,7 @@ import { testApiClient } from "./test-api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
 import { useLogs } from "./LogContext";
 import { ProfileScreen } from "../Profile/components/ProfileScreen";
-import { UserProfile as FullProfile, UpdateProfileRequest } from "../Profile/types";
+import { UpdateProfileRequest } from "../Profile/types";
 import { profileApi } from "../Profile/api/profile";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -124,17 +118,16 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
         profileUrl: data.profileUrl,
       });
     } catch {
-      if (!silent) {
-        setProfile({
-          id: "-",
-          fullName: "Test User",
-          email: "-",
-          mobileNumber: "-",
-          gender: null,
-          dateOfBirth: null,
-          bloodGroup: null,
-        });
-      }
+      // Always set a fallback profile to prevent infinite loaders in the UI
+      setProfile({
+        id: "-",
+        fullName: "Test User",
+        email: "-",
+        mobileNumber: "-",
+        gender: null,
+        dateOfBirth: null,
+        bloodGroup: null,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -260,7 +253,15 @@ export function UserProfileButton({ onLogout }: UserProfileButtonProps) {
         title="User Account"
       >
         {profile?.profileUrl ? (
-          <img src={profile.profileUrl} alt={profile.fullName} className="h-full w-full object-cover" />
+          <img 
+            src={profile.profileUrl} 
+            alt={profile.fullName} 
+            className="h-full w-full object-cover" 
+            onError={(e) => {
+              // On image load failure, remove the profileUrl so the fallback icon renders
+              setProfile(prev => prev ? { ...prev, profileUrl: undefined } : null);
+            }}
+          />
         ) : (
           <User className="h-5 w-5 text-white" />
         )}

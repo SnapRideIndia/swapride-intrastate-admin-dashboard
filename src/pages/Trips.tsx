@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { AssignTripDialog, useTrips, useTrip, useUpdateTripStatus, useDeleteTrip, useTripStats } from "@/features/trips";
+import { AssignTripDialog, useTrips, useTrip, useUpdateTripStatus, useTripStats } from "@/features/trips";
 import { EditTripDialog } from "@/features/trips/components/EditTripDialog";
 import {
   DropdownMenu,
@@ -38,10 +38,32 @@ import { useTripPassengers, useUpdateBoardingStatus } from "@/features/bookings"
 import { Trip } from "@/types";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { useDebounce } from "@/hooks/useDebounce";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
 import { format } from "date-fns";
+import { PERMISSIONS } from "@/constants/permissions";
+
 import { toast } from "@/hooks/use-toast";
 
+interface PassengerBooking {
+  id: string;
+  seatNumber: string;
+  userName: string;
+  userContact: string;
+  pickupStop: string;
+  dropStop: string;
+  paymentId?: string;
+  boardingStatus: string;
+}
+
+interface RouteStop {
+  name: string;
+  arrivalTime?: string;
+}
+
 const Trips = () => {
+  const { hasPermission } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
   const activeTab = searchParams.get("tab") || "today";
@@ -96,8 +118,9 @@ const Trips = () => {
 
   const {
     data: tripsData,
-    isLoading,
+    isLoading: isTripsLoading,
     refetch,
+    error,
   } = useTrips({
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
@@ -107,11 +130,11 @@ const Trips = () => {
     search: debouncedSearch || undefined,
   });
 
-  const { data: statsData } = useTripStats();
+  const { isAccessDenied } = useApiError(error);
+  const { data: statsData, isLoading: isStatsLoading } = useTripStats();
   const stats = statsData || { todayTrips: 0, inProgressTrips: 0, completedTrips: 0, delayedTrips: 0 };
 
   const updateStatusMutation = useUpdateTripStatus();
-  const deleteTripMutation = useDeleteTrip();
 
   const trips = tripsData?.data || [];
   const totalCount = tripsData?.pagination?.total || 0;
@@ -165,8 +188,8 @@ const Trips = () => {
         onSuccess: () => {
           toast({ title: "Trip Cancelled", description: "The trip has been successfully cancelled." });
         },
-        onError: (error: any) => {
-          const message = error.response?.data?.message || error.message || "Failed to cancel trip.";
+        onError: (error: Error | { response?: { data?: { message?: string } }; message?: string }) => {
+          const message = (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || error.message || "Failed to cancel trip.";
           toast({
             title: "Action Failed",
             description: message,
@@ -186,8 +209,8 @@ const Trips = () => {
           setSelectedTrip(data);
           toast({ title: "Trip Completed", description: "The trip has been marked as completed." });
         },
-        onError: (error: any) => {
-          const message = error.response?.data?.message || error.message || "Failed to complete trip.";
+        onError: (error: Error | { response?: { data?: { message?: string } }; message?: string }) => {
+          const message = (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || error.message || "Failed to complete trip.";
           toast({
             title: "Action Failed",
             description: message,
@@ -207,8 +230,8 @@ const Trips = () => {
           setSelectedTrip(data);
           toast({ title: "Trip Started", description: "The trip is now in progress." });
         },
-        onError: (error: any) => {
-          const message = error.response?.data?.message || error.message || "Failed to start trip.";
+        onError: (error: Error | { response?: { data?: { message?: string } }; message?: string }) => {
+          const message = (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || error.message || "Failed to start trip.";
           toast({
             title: "Action Failed",
             description: message,
@@ -218,6 +241,16 @@ const Trips = () => {
       },
     );
   };
+
+  const isLoading = isTripsLoading || isStatsLoading;
+
+  if (!hasPermission(PERMISSIONS.TRIP_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Trip Management" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -457,12 +490,6 @@ const TripDetailsContent = ({
     setExpandedStops(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
-  const getDelayStatusColor = (tripStatus: Trip["tripStatus"], delayMinutes: number) => {
-    if (tripStatus === "On Time" || tripStatus === "Early") return "text-success bg-success/10";
-    if (delayMinutes <= 10) return "text-warning bg-warning/10";
-    return "text-destructive bg-destructive/10";
-  };
-
   const formatMinutes = (minutes: number): string => {
     const absMinutes = Math.abs(minutes);
     if (absMinutes < 60) return `${absMinutes}m`;
@@ -633,7 +660,7 @@ const TripDetailsContent = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {passengers.map((booking: any) => (
+                {passengers.map((booking: PassengerBooking) => (
                   <TableRow key={booking.id}>
                     <TableCell className="font-medium">{booking.seatNumber}</TableCell>
                     <TableCell>{booking.userName}</TableCell>
@@ -675,9 +702,9 @@ const TripDetailsContent = ({
                                     refetchPassengers();
                                     toast({ title: "Updated", description: "Passenger marked as boarded." });
                                   },
-                                  onError: (error: any) => {
+                                  onError: (error: Error | { response?: { data?: { message?: string } }; message?: string }) => {
                                     const message =
-                                      error.response?.data?.message ||
+                                      (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ||
                                       error.message ||
                                       "Failed to update boarding status.";
                                     toast({ title: "Error", description: message, variant: "destructive" });
@@ -698,9 +725,9 @@ const TripDetailsContent = ({
                                     refetchPassengers();
                                     toast({ title: "Updated", description: "Passenger marked as not boarded." });
                                   },
-                                  onError: (error: any) => {
+                                  onError: (error: Error | { response?: { data?: { message?: string } }; message?: string }) => {
                                     const message =
-                                      error.response?.data?.message ||
+                                      (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ||
                                       error.message ||
                                       "Failed to update boarding status.";
                                     toast({ title: "Error", description: message, variant: "destructive" });
@@ -722,9 +749,9 @@ const TripDetailsContent = ({
                                     refetchPassengers();
                                     toast({ title: "Updated", description: "Passenger marked as no show." });
                                   },
-                                  onError: (error: any) => {
+                                  onError: (error: Error | { response?: { data?: { message?: string } }; message?: string }) => {
                                     const message =
-                                      error.response?.data?.message ||
+                                      (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ||
                                       error.message ||
                                       "Failed to update boarding status.";
                                     toast({ title: "Error", description: message, variant: "destructive" });
@@ -762,9 +789,9 @@ const TripDetailsContent = ({
               {/* Refined Vertical Roadmap Line */}
               <div className="absolute left-[7px] top-6 bottom-6 w-[1.5px] bg-border z-0" />
 
-              {fullTrip?.stops?.map((stop: any, index: number) => {
-                const bP = passengers.filter((p: any) => p.pickupStop === stop.name);
-                const dP = passengers.filter((p: any) => p.dropStop === stop.name);
+              {fullTrip?.stops?.map((stop: RouteStop, index: number) => {
+                const bP = passengers.filter((p: PassengerBooking) => p.pickupStop === stop.name);
+                const dP = passengers.filter((p: PassengerBooking) => p.dropStop === stop.name);
                 const isExpanded = expandedStops[index];
                 const isFirst = index === 0;
                 const isLast = index === (fullTrip?.stops?.length || 0) - 1;
@@ -823,7 +850,7 @@ const TripDetailsContent = ({
                                 </span>
                               </div>
                               <div className="divide-y">
-                                {bP.map((p: any) => {
+                                {bP.map((p: PassengerBooking) => {
                                   const sColor = p.boardingStatus === 'BOARDED' ? 'text-success bg-success/10' : p.boardingStatus === 'NO_SHOW' ? 'text-destructive bg-destructive/10' : 'text-warning bg-warning/10';
                                   return (
                                     <div key={p.id} className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors">
@@ -858,7 +885,7 @@ const TripDetailsContent = ({
                                 </span>
                               </div>
                               <div className="divide-y">
-                                {dP.map((p: any) => {
+                                {dP.map((p: PassengerBooking) => {
                                   const sColor = p.boardingStatus === 'BOARDED' ? 'text-success bg-success/10' : p.boardingStatus === 'NO_SHOW' ? 'text-destructive bg-destructive/10' : 'text-warning bg-warning/10';
                                   return (
                                     <div key={p.id} className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors">

@@ -48,7 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasPermission = (permissionSlug: string): boolean => {
     if (!user || !user.permissions) return false;
     const permissions = user.permissions ?? [];
-    if (permissions.includes("ALL")) return true;
+    const normalizedRole = user.roleSlug?.toUpperCase();
+    if (normalizedRole === "SUPER_ADMIN" || permissions.includes("ALL")) return true;
     return permissions.includes(permissionSlug);
   };
 

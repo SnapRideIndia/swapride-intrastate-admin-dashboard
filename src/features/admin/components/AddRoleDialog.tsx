@@ -160,37 +160,37 @@ export function AddRoleDialog({ open, onOpenChange, onSuccess, editRole }: AddRo
 
   const isCategoryFullySelected = (category: string) => {
     const catPerms = getCategoryPermissions(category);
-    return catPerms.every((p) => selectedPermissions.includes(p.id));
+    return catPerms.every((p) => selectedPermissions.includes(p.slug));
   };
 
   const isCategoryPartiallySelected = (category: string) => {
     const catPerms = getCategoryPermissions(category);
-    const selected = catPerms.filter((p) => selectedPermissions.includes(p.id));
+    const selected = catPerms.filter((p) => selectedPermissions.includes(p.slug));
     return selected.length > 0 && selected.length < catPerms.length;
   };
 
   const toggleCategoryPermissions = (category: string) => {
     const catPerms = getCategoryPermissions(category);
-    const catPermIds = catPerms.map((p) => p.id);
+    const catPermSlugs = catPerms.map((p) => p.slug);
 
     if (isCategoryFullySelected(category)) {
-      setSelectedPermissions((prev) => prev.filter((id) => !catPermIds.includes(id)));
+      setSelectedPermissions((prev) => prev.filter((slug) => !catPermSlugs.includes(slug)));
     } else {
       setSelectedPermissions((prev) => {
-        const newPerms = new Set([...prev, ...catPermIds]);
+        const newPerms = new Set([...prev, ...catPermSlugs]);
         return Array.from(newPerms);
       });
     }
   };
 
-  const togglePermission = (permissionId: string) => {
+  const togglePermission = (slug: string) => {
     setSelectedPermissions((prev) =>
-      prev.includes(permissionId) ? prev.filter((id) => id !== permissionId) : [...prev, permissionId],
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
     );
   };
 
   const selectAllPermissions = () => {
-    setSelectedPermissions(allPermissions.map((p) => p.id));
+    setSelectedPermissions(allPermissions.map((p) => p.slug));
   };
 
   const deselectAllPermissions = () => {
@@ -280,7 +280,7 @@ export function AddRoleDialog({ open, onOpenChange, onSuccess, editRole }: AddRo
             </div>
             {errors.permissions && <p className="text-xs text-destructive px-3 pt-2">{errors.permissions}</p>}
 
-            <ScrollArea className="flex-1 p-3">
+            <ScrollArea className="h-[400px] p-3">
               <div className="space-y-2">
                 {PERMISSION_CATEGORIES.map((category) => {
                   const categoryPerms = getCategoryPermissions(category);
@@ -315,7 +315,7 @@ export function AddRoleDialog({ open, onOpenChange, onSuccess, editRole }: AddRo
                             <span className="font-medium text-sm">{category}</span>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">
-                                {categoryPerms.filter((p) => selectedPermissions.includes(p.id)).length}/
+                                {categoryPerms.filter((p) => selectedPermissions.includes(p.slug)).length}/
                                 {categoryPerms.length}
                               </span>
                               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -328,12 +328,12 @@ export function AddRoleDialog({ open, onOpenChange, onSuccess, editRole }: AddRo
                           {categoryPerms.map((permission) => (
                             <div key={permission.id} className="flex items-start gap-2">
                               <Checkbox
-                                id={permission.id}
-                                checked={selectedPermissions.includes(permission.id)}
-                                onCheckedChange={() => togglePermission(permission.id)}
+                                id={permission.slug}
+                                checked={selectedPermissions.includes(permission.slug)}
+                                onCheckedChange={() => togglePermission(permission.slug)}
                                 disabled={isLoading}
                               />
-                              <label htmlFor={permission.id} className="text-sm cursor-pointer flex-1">
+                              <label htmlFor={permission.slug} className="text-sm cursor-pointer flex-1">
                                 <span className="font-medium">{permission.name}</span>
                                 <p className="text-xs text-muted-foreground">{permission.description}</p>
                               </label>

@@ -1,6 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { analyticsService } from "../api/analytics.service";
-import { AnalyticsFilters } from "@/types";
+import { 
+  AnalyticsFilters, 
+  DashboardStats, 
+  AnalyticsSummary, 
+  TrendData, 
+  RoutePerformance, 
+  FleetPerformance, 
+  DistributionData, 
+  KpiMetrics 
+} from "@/types";
 
 export const ANALYTICS_QUERY_KEYS = {
   all: ["analytics"] as const,
@@ -14,58 +23,66 @@ export const ANALYTICS_QUERY_KEYS = {
   kpi: (filters: AnalyticsFilters) => [...ANALYTICS_QUERY_KEYS.all, "kpi", filters] as const,
 };
 
-export const useDashboardStats = () => {
-  return useQuery({
+export const useDashboardStats = (options?: any) => {
+  return useQuery<DashboardStats>({
     queryKey: ANALYTICS_QUERY_KEYS.dashboardStats(),
     queryFn: () => analyticsService.getDashboardStats(),
+    ...options,
   });
 };
 
-export const useBusUtilization = () => {
-  return useQuery({
+export const useBusUtilization = (options?: any) => {
+  return useQuery<any[]>({
     queryKey: ANALYTICS_QUERY_KEYS.busUtilization(),
     queryFn: () => analyticsService.getBusUtilization(),
+    ...options,
   });
 };
 
-export const useAnalyticsSummary = (filters: AnalyticsFilters) => {
-  return useQuery({
+export const useAnalyticsSummary = (filters: AnalyticsFilters, options?: any) => {
+  return useQuery<AnalyticsSummary>({
     queryKey: ANALYTICS_QUERY_KEYS.summary(filters),
     queryFn: () => analyticsService.getSummary(filters),
+    ...options,
   });
 };
 
-export const useAnalyticsTrends = (filters: AnalyticsFilters) => {
-  return useQuery({
+export const useAnalyticsTrends = (filters: AnalyticsFilters, options?: any) => {
+  return useQuery<TrendData[]>({
     queryKey: ANALYTICS_QUERY_KEYS.trends(filters),
     queryFn: () => analyticsService.getTrends(filters),
+    ...options,
   });
 };
 
-export const useRoutePerformance = (filters: AnalyticsFilters) => {
-  return useQuery({
+export const useRoutePerformance = (filters: AnalyticsFilters, options?: any) => {
+  return useQuery<RoutePerformance[]>({
     queryKey: ANALYTICS_QUERY_KEYS.routes(filters),
     queryFn: () => analyticsService.getRoutePerformance(filters),
+    ...options,
   });
 };
 
-export const useFleetPerformance = (filters: AnalyticsFilters) => {
-  return useQuery({
+export const useFleetPerformance = (filters: AnalyticsFilters, options?: any) => {
+  return useQuery<FleetPerformance[]>({
     queryKey: ANALYTICS_QUERY_KEYS.fleet(filters),
     queryFn: () => analyticsService.getFleetPerformance(filters),
+    ...options,
   });
 };
 
-export const useDistributionMetrics = (filters: AnalyticsFilters) => {
-  return useQuery({
+export const useDistributionMetrics = (filters: AnalyticsFilters, options?: any) => {
+  return useQuery<DistributionData>({
     queryKey: ANALYTICS_QUERY_KEYS.distribution(filters),
     queryFn: () => analyticsService.getDistribution(filters),
+    ...options,
   });
 };
 
-export const useAnalyticsKpi = (filters: AnalyticsFilters) => {
-  return useQuery({
+export const useAnalyticsKpi = (filters: AnalyticsFilters, options?: any) => {
+  return useQuery<KpiMetrics>({
     queryKey: ANALYTICS_QUERY_KEYS.kpi(filters),
     queryFn: () => analyticsService.getKpiMetrics(filters),
+    ...options,
   });
 };

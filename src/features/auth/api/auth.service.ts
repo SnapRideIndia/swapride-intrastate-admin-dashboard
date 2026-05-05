@@ -57,7 +57,7 @@ export const authService = {
         ...rawUser,
         name: rawUser.fullName || rawUser.email, // Map fullName to name
         roleName: rawUser.role?.name,
-        roleSlug: rawUser.role?.name, // Use name as slug if slug is missing
+        roleSlug: rawUser.role?.slug || rawUser.role?.name?.toUpperCase().replace(/\s+/g, "_") || "",
         permissions: rawUser.role?.rolePermissions?.map((rp: any) => rp.permission?.slug) || [],
       };
 

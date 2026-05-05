@@ -21,8 +21,13 @@ import { cn } from "@/lib/utils";
 import { StatCard } from "@/features/analytics";
 import { useSupportTickets, useUpdateTicketStatus } from "@/features/support/hooks/useSupport";
 import { Ticket } from "@/features/support/api/support.service";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { PERMISSIONS } from "@/constants/permissions";
 
 const Support = () => {
+  const { hasPermission } = usePermissions();
   const [searchQuery, setSearchQuery] = useState("");
 
   const [activeTab, setActiveTab] = useState("all");
@@ -33,15 +38,15 @@ const Support = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const { data: ticketsData, isLoading } = useSupportTickets({
+  const { data: ticketsData, error } = useSupportTickets({
     page: currentPage,
     limit: pageSize,
     q: searchQuery,
     status: activeTab !== "all" ? activeTab : undefined,
   });
+  const { isAccessDenied } = useApiError(error);
 
   const tickets = ticketsData?.data || [];
-  const totalCount = ticketsData?.total || 0;
 
   const updateStatusMutation = useUpdateTicketStatus();
 
@@ -98,6 +103,14 @@ const Support = () => {
     setReplyMessage("");
     toast({ title: "Reply Sent", description: "Your response has been sent to the passenger." });
   };
+
+  if (!hasPermission(PERMISSIONS.SUPPORT_TICKET_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Customer Support" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

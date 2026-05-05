@@ -70,7 +70,7 @@ export const PhoneEntryScreen: React.FC<PhoneEntryScreenProps> = ({ onSendOtp, i
               className="mt-1 border-[#001B4B] data-[state=checked]:bg-[#001B4B]"
             />
             <label htmlFor="terms" className="text-[11px] font-medium text-slate-500 normal-case leading-relaxed">
-              I agree to share my Personally identifiable Information like name,email,mobile number , etc. I agree to
+              I agree to share my Personally identifiable Information like name, email, mobile number etc. I agree to
               the Terms of service and Privacy Policy of swapride app
             </label>
           </div>

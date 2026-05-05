@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { tripFormSchema, TripFormData } from "@/features/trips/schemas/trip.schema";
 import { Plus, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -23,18 +23,7 @@ import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { tripsApi } from "@/features/trips";
 import { useDrivers } from "@/features/drivers";
 import { useBuses } from "@/features/buses";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-const tripFormSchema = z.object({
-  driverId: z.string().min(1, "Driver is required"),
-  busId: z.string().min(1, "Bus is required"),
-  routeId: z.string().min(1, "Route is required"),
-  date: z.string().min(1, "Date is required"),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-});
-
-type TripFormData = z.infer<typeof tripFormSchema>;
 
 interface AssignTripDialogProps {
   onTripAssigned?: (trip: TripFormData) => void;
@@ -59,10 +48,10 @@ export function AssignTripDialog({ onTripAssigned }: AssignTripDialogProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch data from APIs
-  const { data: routesData, isLoading: isRoutesLoading } = useRoutes();
-  const { data: driversData, isLoading: isDriversLoading } = useDrivers();
-  const { data: busesData, isLoading: isBusesLoading } = useBuses();
+  // Fetch data from APIs only when dialog is open
+  const { data: routesData, isLoading: isRoutesLoading } = useRoutes(undefined, { enabled: open });
+  const { data: driversData, isLoading: isDriversLoading } = useDrivers(undefined, { enabled: open });
+  const { data: busesData, isLoading: isBusesLoading } = useBuses(undefined, { enabled: open });
 
   const routes = routesData?.data || [];
   const drivers = driversData?.data || [];

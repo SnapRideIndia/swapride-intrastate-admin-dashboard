@@ -19,7 +19,7 @@ import {
   Camera,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import {
   useDriver,
@@ -166,12 +166,12 @@ const DriverDetails = () => {
                     onClick={() => photoInputRef.current?.click()}
                     title="Click to update profile photo"
                   >
-                    <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                      <AvatarImage src={driver.profileUrl || ""} />
-                      <AvatarFallback className="text-2xl bg-muted text-muted-foreground uppercase">
-                        {driver.name.substring(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar 
+                      src={driver.profileUrl} 
+                      name={driver.name} 
+                      className="h-24 w-24 border-4 border-background shadow-lg"
+                      fallbackClassName="text-2xl"
+                    />
                     {/* Upload overlay */}
                     <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                       {uploadPhotoMutation.isPending ? (
@@ -461,7 +461,7 @@ const DriverDetails = () => {
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button variant="secondary" size="sm" className="h-8 shadow-lg">
+                      <Button variant="secondary" size="sm" className="h-8">
                         <ExternalLink className="h-3.5 w-3.5 mr-2" /> View Original
                       </Button>
                     </div>

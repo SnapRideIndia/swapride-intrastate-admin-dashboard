@@ -1,16 +1,5 @@
 import {
   X,
-  LayoutGrid,
-  Smile,
-  FileType,
-  Settings,
-  Palette,
-  MoreHorizontal,
-  Mic,
-  Globe,
-  Search,
-  Delete,
-  CornerDownLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";

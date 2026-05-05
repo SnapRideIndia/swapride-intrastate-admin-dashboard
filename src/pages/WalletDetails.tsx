@@ -14,7 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useWalletDetails, useWalletTransactions } from "@/features/financials";
@@ -103,12 +103,12 @@ const WalletDetails = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center text-center mb-6">
-                <Avatar className="h-20 w-20 border-4 border-background shadow-lg mb-3">
-                  <AvatarImage src={walletDetails.user?.profileUrl || ""} />
-                  <AvatarFallback className="text-xl bg-primary/5 text-primary">
-                    {walletDetails.user?.fullName?.substring(0, 2).toUpperCase() || "UN"}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar 
+                  src={walletDetails.user?.profileUrl} 
+                  name={walletDetails.user?.fullName} 
+                  className="h-20 w-20 border-4 border-background shadow-lg mb-3"
+                  fallbackClassName="text-xl"
+                />
                 <h2 className="text-lg font-bold">{walletDetails.user?.fullName || "Unknown User"}</h2>
                 <Badge
                   variant={walletDetails.isActive ? "default" : "secondary"}

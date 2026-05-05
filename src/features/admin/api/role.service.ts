@@ -9,8 +9,15 @@ export const roleService = {
     limit?: number;
   }): Promise<{ data: Role[]; total: number }> => {
     try {
-      const response = await apiClient.get<any>(API_ENDPOINTS.ROLES.GET_ALL, { params });
-      const { data, total } = response.data;
+      const { page, limit, ...rest } = params || {};
+      const offset = page && limit ? (page - 1) * limit : 0;
+      
+      const response = await apiClient.get<any>(API_ENDPOINTS.ROLES.GET_ALL, { 
+        params: { ...rest, offset, limit } 
+      });
+      
+      const { data, pagination } = response.data;
+      const total = pagination?.total || data.length || 0;
 
       const mappedData = data.map((role: any) => ({
         ...role,
@@ -24,7 +31,7 @@ export const roleService = {
     }
   },
 
-  getById: async (id: string): Promise<Role | undefined> => {
+  getById: async (id: string): Promise<Role> => {
     try {
       const response = await apiClient.get<Role>(API_ENDPOINTS.ROLES.GET_BY_ID(id));
       const role = response.data;
@@ -33,8 +40,9 @@ export const roleService = {
         name: role.name || (role as any).fullName || "Unnamed Role",
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       };
-    } catch {
-      return undefined;
+    } catch (error) {
+      console.error("Error fetching role:", error);
+      throw error;
     }
   },
 
@@ -52,7 +60,7 @@ export const roleService = {
     }
   },
 
-  update: async (id: string, roleData: Partial<Role> & { permissions?: string[] }): Promise<Role | undefined> => {
+  update: async (id: string, roleData: Partial<Role> & { permissions?: string[] }): Promise<Role> => {
     try {
       const response = await apiClient.patch<Role>(API_ENDPOINTS.ROLES.UPDATE(id), roleData);
       const role = response.data;
@@ -61,8 +69,8 @@ export const roleService = {
         name: role.name || (role as any).fullName || "Unnamed Role",
         slug: role.slug || role.name?.toUpperCase().replace(/\s+/g, "_") || "N/A",
       };
-    } catch {
-      return undefined;
+    } catch (error) {
+      throw error;
     }
   },
 
@@ -79,8 +87,9 @@ export const roleService = {
     try {
       const response = await apiClient.get<string[]>(API_ENDPOINTS.ROLES.PERMISSIONS(roleId));
       return response.data;
-    } catch {
-      return [];
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      throw error;
     }
   },
 

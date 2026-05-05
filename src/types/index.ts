@@ -169,6 +169,7 @@ export interface User {
   status: "ACTIVE" | "BLOCKED" | "SUSPENDED" | "DELETION_PENDING" | "DELETED" | string;
   createdAt: string;
   updatedAt: string;
+  address?: string | null;
   wallet?: Wallet | null;
 }
 

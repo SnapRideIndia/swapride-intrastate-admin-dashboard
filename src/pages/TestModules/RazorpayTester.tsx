@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import { DashboardLayout } from "@/layouts/DashboardLayout";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,10 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Send, CheckCircle2, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
-import { cn } from "@/lib/utils";
 import { apiClient } from "@/api/api-client";
 import { API_ENDPOINTS } from "@/api/endpoints";
-import { TEST_USER_TOKEN_KEY, Log } from "./types";
+import { TEST_USER_TOKEN_KEY } from "./types";
 
 // Shared Components
 import { LoginModal } from "./shared/LoginModal";

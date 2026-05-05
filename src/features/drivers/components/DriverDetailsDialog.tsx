@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MapPin, Phone, Star, CreditCard, Bus, FileText } from "lucide-react";
 import { format } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Button } from "@/components/ui/button";
 
 interface DriverDetailsDialogProps {
@@ -25,10 +25,11 @@ export const DriverDetailsDialog = ({ driver, open, onOpenChange }: DriverDetail
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
           <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16 border-2 border-primary/10">
-              <AvatarImage src={driver.profileUrl || ""} alt={driver.name} />
-              <AvatarFallback className="text-lg">{driver.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={driver.profileUrl} 
+              name={driver.name} 
+              className="h-16 w-16 border-2 border-primary/10"
+            />
             <div className="flex-1">
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 {driver.name}

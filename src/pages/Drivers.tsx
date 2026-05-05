@@ -18,7 +18,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { driverFormSchema, DriverFormData } from "@/features/drivers/schemas/driver.schema";
 import { useDrivers, useCreateDriver, useDeleteDriver } from "@/features/drivers";
 import { StatCard } from "@/features/analytics";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
@@ -26,37 +26,16 @@ import { Driver } from "@/types";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ROUTES } from "@/constants/routes";
+import { UserAvatar } from "@/components/common/UserAvatar";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { PERMISSIONS } from "@/constants/permissions";
 
-const driverFormSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
-  licenseNumber: z
-    .string()
-    .min(5, "License number must be at least 5 characters")
-    .regex(/^[A-Z0-9-]+$/, "License number must be alphanumeric (uppercase)"),
-  mobileNumber: z.string().regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  license: z
-    .any()
-    .refine((files) => files && files.length > 0, "License document is required")
-    .refine((files) => !files || files.length === 0 || files[0].size <= 5 * 1024 * 1024, "Max file size is 5MB")
-    .refine(
-      (files) => !files || files.length === 0 || ["image/jpeg", "image/png", "image/webp"].includes(files[0].type),
-      "Only .jpg, .png, and .webp formats are supported",
-    ),
-  photo: z
-    .any()
-    .refine((files) => files && files.length > 0, "Profile photo is required")
-    .refine((files) => !files || files.length === 0 || files[0].size <= 5 * 1024 * 1024, "Max file size is 5MB")
-    .refine(
-      (files) => !files || files.length === 0 || ["image/jpeg", "image/png", "image/webp"].includes(files[0].type),
-      "Only .jpg, .png, and .webp formats are supported",
-    ),
-});
-
-type DriverFormData = z.infer<typeof driverFormSchema>;
 
 const Drivers = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -65,12 +44,13 @@ const Drivers = () => {
   const [pageSize, setPageSize] = useState(20);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data: driversData, isLoading: isFetching } = useDrivers({
+  const { data: driversData, isLoading: isFetching, error: driversError } = useDrivers({
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
     search: debouncedSearchQuery,
     status: statusFilter === "all" ? undefined : statusFilter,
   });
+  const { isAccessDenied } = useApiError(driversError);
 
   const drivers = driversData?.data || [];
   const totalCount = driversData?.pagination?.total || 0;
@@ -141,6 +121,14 @@ const Drivers = () => {
       .toLowerCase()
       .replace(/\b\w/g, (l) => l.toUpperCase());
   };
+
+  if (!hasPermission(PERMISSIONS.DRIVER_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Driver Management" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <>
@@ -372,7 +360,12 @@ const Drivers = () => {
                       <TableCell className="font-medium" title={driver.id}>
                         {driverIdShort}...
                       </TableCell>
-                      <TableCell>{driver.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <UserAvatar src={driver.profileUrl} name={driver.name} className="h-9 w-9" />
+                          <span className="font-semibold text-slate-800">{driver.name}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div>
                           <p className="text-sm">{driver.licenseNumber}</p>

@@ -19,19 +19,19 @@ export const useRoles = (params?: { search?: string; page?: number; limit?: numb
   });
 };
 
-export const useRole = (id: string) => {
+export const useRole = (id: string, options: { enabled?: boolean } = {}) => {
   return useQuery({
     queryKey: roleKeys.detail(id),
     queryFn: () => roleService.getById(id),
-    enabled: !!id,
+    enabled: options.enabled !== false && !!id && id !== "create",
   });
 };
 
-export const useRolePermissions = (roleId: string) => {
+export const useRolePermissions = (roleId: string, options: { enabled?: boolean } = {}) => {
   return useQuery({
     queryKey: roleKeys.permissions(roleId),
     queryFn: () => roleService.getRolePermissions(roleId),
-    enabled: !!roleId,
+    enabled: options.enabled !== false && !!roleId && roleId !== "create",
   });
 };
 

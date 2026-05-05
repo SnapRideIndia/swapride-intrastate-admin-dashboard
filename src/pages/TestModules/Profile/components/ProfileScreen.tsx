@@ -5,37 +5,26 @@ import {
   Mail,
   UserSquare2,
   Calendar as CalendarIcon,
-  Droplets,
   Camera,
-  ArrowLeft,
   Loader2,
   X,
   Trash2,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { UserProfile, UpdateProfileRequest } from "../types";
+import { profileSchema, ProfileFormValues } from "../schemas/profile.schema";
 
-const profileSchema = z.object({
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  gender: z.string().optional(),
-  dateOfBirth: z.date().optional(),
-  bloodGroup: z.string().optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface ProfileScreenProps {
   profile: UserProfile;
@@ -111,12 +100,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, onUpdate,
         <div className="flex flex-col items-center">
           <div className="relative group">
             <div className="w-28 h-28 rounded-3xl overflow-hidden ring-4 ring-amber-50 shadow-xl transition-all group-hover:scale-105 duration-300">
-              <Avatar className="w-full h-full rounded-none">
-                <AvatarImage src={previewUrl || ""} className="object-cover" />
-                <AvatarFallback className="bg-amber-100 text-amber-700 text-3xl font-black">
-                  {profile.fullName?.charAt(0) || "U"}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar 
+                src={previewUrl} 
+                name={profile.fullName} 
+                className="w-full h-full rounded-none"
+                fallbackClassName="bg-amber-100 text-amber-700 text-3xl font-black"
+              />
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}

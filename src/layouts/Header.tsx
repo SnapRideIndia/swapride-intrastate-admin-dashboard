@@ -1,4 +1,4 @@
-import { Search, User } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { useAuth } from "@/providers/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES } from "@/constants/routes";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 export function Header() {
   const { user } = useAuth();
@@ -42,10 +43,8 @@ export function Header() {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                <User className="h-4 w-4 text-primary-foreground" />
-              </div>
+            <Button variant="ghost" className="flex items-center gap-2 px-2">
+              <UserAvatar src={user?.profilePicture} name={user?.name} className="h-8 w-8" />
               <div className="hidden md:block text-left">
                 <p className="text-sm font-medium">{user?.name || "Admin User"}</p>
                 <p className="text-xs text-muted-foreground">{user?.roleName || "Super Admin"}</p>

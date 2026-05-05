@@ -45,7 +45,16 @@ export const userService = {
   },
 
   getProfile: async (): Promise<any> => {
-    const { data } = await apiClient.get(API_ENDPOINTS.AUTH.GET_PROFILE);
-    return data;
+    const { data: admin } = await apiClient.get(API_ENDPOINTS.AUTH.GET_PROFILE);
+    return {
+      ...admin,
+      name: admin.fullName || admin.email,
+      roleName: admin.role?.name,
+      roleSlug: admin.role?.slug || admin.role?.name,
+      permissions: admin.role?.rolePermissions?.map((rp: any) => rp.permission?.slug) || [],
+      status: admin.status || "Active",
+      phone: admin.phone || "N/A",
+      profilePicture: admin.profileUrl,
+    };
   },
 };

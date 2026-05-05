@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar, Phone, Mail, Droplets, ShoppingBag, MapPin } from "lucide-react";
 import { format } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 interface UserDetailsDialogProps {
   user: User | null;
@@ -33,10 +33,11 @@ export const UserDetailsDialog = ({ user, open, onOpenChange }: UserDetailsDialo
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
           <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16 border-2 border-primary/10">
-              <AvatarImage src={user.profileUrl || ""} alt={user.fullName} />
-              <AvatarFallback className="text-lg">{user.fullName.charAt(0)}</AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={user.profileUrl} 
+              name={user.fullName} 
+              className="h-16 w-16 border-2 border-primary/10"
+            />
             <div className="flex-1">
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 {user.fullName}

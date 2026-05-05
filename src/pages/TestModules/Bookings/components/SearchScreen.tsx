@@ -9,14 +9,13 @@ import {
   Building2,
   Clock,
   History,
-  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { addDays, format, isSameDay } from "date-fns";
 import { AppLocation } from "../../types";
-import { savedLocationsApi, SavedLocation, RecentSearch } from "../api/saved-locations";
+import { SavedLocation, RecentSearch } from "../api/saved-locations";
 
 interface SearchScreenProps {
   source: AppLocation;

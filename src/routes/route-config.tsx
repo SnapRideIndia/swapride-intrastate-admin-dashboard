@@ -15,6 +15,7 @@ import LiveTracking from "@/pages/LiveTracking";
 import Admins from "@/pages/Admins";
 import AdminDetails from "@/pages/AdminDetails";
 import Roles from "@/pages/Roles";
+import RoleDetails from "@/pages/RoleDetails";
 import BusLayouts from "@/pages/BusLayouts";
 import BusLayoutBuilder from "@/pages/BusLayoutBuilder";
 import Coupons from "@/pages/Coupons";
@@ -23,16 +24,12 @@ import Referrals from "@/pages/Referrals";
 import Notifications from "@/pages/Notifications";
 import CreateNotification from "@/pages/CreateNotification";
 import NotificationDetails from "@/pages/NotificationDetails";
-import BookingSimulator from "@/pages/TestModules/Bookings";
-import FcmTester from "@/pages/TestModules/FcmTester";
-import RazorpayTester from "@/pages/TestModules/RazorpayTester";
 import Suggestions from "@/pages/Suggestions";
 import SuggestionDetails from "@/pages/SuggestionDetails";
 import UserDetails from "@/pages/UserDetails";
 import DriverDetails from "@/pages/DriverDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
 import WalletDetails from "@/pages/WalletDetails";
-import Bookings from "@/pages/Bookings";
 import BookingDetails from "@/pages/BookingDetails";
 import Rentals from "@/pages/Rentals";
 import RentalDetails from "@/pages/RentalDetails";
@@ -76,6 +73,8 @@ export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.ADMINS, element: <Admins /> },
   { path: ROUTES.ADMIN_DETAILS, element: <AdminDetails /> },
   { path: ROUTES.ROLES, element: <Roles /> },
+  { path: ROUTES.ROLE_DETAILS, element: <RoleDetails /> },
+  { path: ROUTES.ROLE_CREATE, element: <RoleDetails /> },
   { path: ROUTES.BOOKING_DETAILS, element: <BookingDetails /> },
   { path: ROUTES.RENTALS, element: <Rentals /> },
   { path: ROUTES.RENTAL_DETAILS, element: <RentalDetails /> },

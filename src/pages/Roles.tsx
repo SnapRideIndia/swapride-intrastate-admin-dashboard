@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatService } from "@/utils/format.service";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
+import { ROUTES } from "@/constants/routes";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,18 +38,22 @@ import {
   Loader2,
 } from "lucide-react";
 import { Role } from "@/types";
-import { AddRoleDialog, getRoleColor } from "@/features/admin";
+import { getRoleColor } from "@/features/admin";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useRoles, useDeleteRole, useRolePermissions } from "@/features/admin/hooks/useRoleQueries";
+import { useRoles, useDeleteRole } from "@/features/admin/hooks/useRoleQueries";
 import { useAdmins } from "@/features/admin/hooks/useAdminQueries";
 import { permissionService } from "@/features/admin";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { StatCard } from "@/features/analytics";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useDebounce } from "@/hooks/useDebounce";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { PERMISSIONS } from "@/constants/permissions";
 
 const Roles = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
 
@@ -58,10 +63,7 @@ const Roles = () => {
   const currentPage = Number(searchParams.get("page")) || 1;
   const pageSize = Number(searchParams.get("limit")) || 20;
 
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editRole, setEditRole] = useState<Role | null>(null);
   const [deleteRole, setDeleteRole] = useState<Role | null>(null);
-  const [viewRole, setViewRole] = useState<Role | null>(null);
 
   const updateFilters = (updates: Record<string, string | number | null>) => {
     const newParams = new URLSearchParams(searchParams);
@@ -79,27 +81,29 @@ const Roles = () => {
   };
 
   // Tanstack Query hooks
-  const { data: rolesData, isLoading: loadingRoles } = useRoles({
+  const { data: rolesData, isLoading: loadingRoles, error: rolesError } = useRoles({
     search: debouncedSearch,
     page: currentPage,
     limit: pageSize,
   });
   const { data: adminsData, isLoading: loadingAdmins } = useAdmins({ limit: 1000 });
+  const { isAccessDenied } = useApiError(rolesError);
   const deleteMutation = useDeleteRole();
 
   const roles = rolesData?.data || [];
   const totalCount = rolesData?.total || 0;
-  const admins = adminsData?.data || [];
+
 
   const adminCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    admins.forEach((admin) => {
+    const admins = adminsData?.data || [];
+    admins.forEach((admin: { roleId?: string }) => {
       if (admin.roleId) {
         counts[admin.roleId] = (counts[admin.roleId] || 0) + 1;
       }
     });
     return counts;
-  }, [admins]);
+  }, [adminsData]);
 
   const handleDelete = async () => {
     if (!deleteRole) return;
@@ -130,6 +134,14 @@ const Roles = () => {
 
   const isLoading = loadingRoles || loadingAdmins;
 
+  if (!hasPermission(PERMISSIONS.ROLE_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Role Management" />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <FullPageLoader show={isLoading} label="Loading Roles..." />
@@ -139,8 +151,8 @@ const Roles = () => {
         title="Role Management"
         subtitle="Define roles and assign permissions"
         actions={
-          hasPermission("ROLE_CREATE") && (
-            <Button onClick={() => setAddDialogOpen(true)}>
+          hasPermission(PERMISSIONS.ROLE_CREATE) && (
+            <Button onClick={() => navigate(ROUTES.ROLE_CREATE)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Role
             </Button>
@@ -204,7 +216,11 @@ const Roles = () => {
               </TableRow>
             ) : (
               roles.map((role) => (
-                <TableRow key={role.id}>
+                <TableRow 
+                  key={role.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate(ROUTES.ROLE_DETAILS.replace(":id", role.id))}
+                >
                   <TableCell>
                     <Badge className={`${getRoleColor(role.slug)} w-fit font-medium`}>
                       {formatService.slugToHuman(role.slug)}
@@ -234,17 +250,17 @@ const Roles = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setViewRole(role)}>
+                        <DropdownMenuItem onClick={() => navigate(ROUTES.ROLE_DETAILS.replace(":id", role.id))}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Permissions
                         </DropdownMenuItem>
-                        {hasPermission("ROLE_EDIT") && (
-                          <DropdownMenuItem onClick={() => setEditRole(role)}>
+                        {hasPermission(PERMISSIONS.ROLE_EDIT) && (
+                          <DropdownMenuItem onClick={() => navigate(ROUTES.ROLE_DETAILS.replace(":id", role.id))}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Role
                           </DropdownMenuItem>
                         )}
-                        {hasPermission("ROLE_DELETE") && !role.isSystemRole && (
+                        {hasPermission(PERMISSIONS.ROLE_DELETE) && !role.isSystemRole && (
                           <DropdownMenuItem
                             onClick={() => setDeleteRole(role)}
                             className="text-destructive focus:text-destructive"
@@ -273,18 +289,6 @@ const Roles = () => {
         />
       </div>
 
-      <AddRoleDialog
-        open={addDialogOpen || !!editRole}
-        onOpenChange={(open) => {
-          setAddDialogOpen(open);
-          if (!open) setEditRole(null);
-        }}
-        onSuccess={() => {}} // Tanstack Query handles invalidation
-        editRole={editRole}
-      />
-
-      <ViewPermissionsDialog role={viewRole} open={!!viewRole} onOpenChange={(open) => !open && setViewRole(null)} />
-
       <AlertDialog open={!!deleteRole} onOpenChange={(open) => !open && setDeleteRole(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -311,69 +315,6 @@ const Roles = () => {
         </AlertDialogContent>
       </AlertDialog>
     </DashboardLayout>
-  );
-};
-
-// Helper component for View Permissions Dialog
-const ViewPermissionsDialog = ({
-  role,
-  open,
-  onOpenChange,
-}: {
-  role: Role | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) => {
-  const { data: rolePermIds = [], isLoading } = useRolePermissions(role?.id || "");
-
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            {role ? formatService.slugToHuman(role.slug) : ""} Permissions
-          </AlertDialogTitle>
-          <AlertDialogDescription>{role?.description}</AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <div className="flex-1 overflow-y-auto my-4 min-h-[200px]">
-          {isLoading ? (
-            <FullPageLoader show={true} label="Loading permissions..." />
-          ) : (
-            <div className="space-y-4">
-              {permissionService.getCategories().map((category) => {
-                const categoryPerms = permissionService
-                  .getByCategory(category)
-                  .filter((p) => rolePermIds.includes(p.id));
-
-                if (categoryPerms.length === 0) return null;
-
-                return (
-                  <div key={category} className="space-y-2">
-                    <h4 className="text-sm font-semibold border-b pb-1">{category}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {categoryPerms.map((perm) => (
-                        <Badge key={perm.id} variant="secondary" className="text-[10px]">
-                          {perm.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              {rolePermIds.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">No permissions assigned to this role.</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel>Close</AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   );
 };
 

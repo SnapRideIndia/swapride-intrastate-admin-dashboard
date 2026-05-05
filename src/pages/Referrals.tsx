@@ -1,15 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
-  MoreVertical,
   CheckCircle2,
   Users,
   Gift,
-  Eye,
   RotateCcw,
   Clock,
-  ExternalLink,
   Filter,
 } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
@@ -18,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useReferrals, useReferralStats } from "@/features/referrals";
@@ -265,12 +262,11 @@ function TableCellUser({ user, onClick }: any) {
         className="flex items-center gap-3 cursor-pointer group/user w-fit"
         onClick={onClick}
       >
-        <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-1 ring-slate-100 transition-all group-hover/user:ring-primary/20">
-          <AvatarImage src={user?.profileUrl || ""} />
-          <AvatarFallback className="bg-slate-50 text-slate-400 font-bold text-xs">
-            {user?.fullName?.substring(0, 2).toUpperCase() || "?"}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar 
+          src={user?.profileUrl} 
+          name={user?.fullName} 
+          className="h-9 w-9 border-2 border-white shadow-sm ring-1 ring-slate-100 transition-all group-hover/user:ring-primary/20"
+        />
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-800 group-hover/user:text-primary transition-colors truncate">
             {user?.fullName || "Guest User"}

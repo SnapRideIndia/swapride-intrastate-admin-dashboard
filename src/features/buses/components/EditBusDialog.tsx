@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { editBusSchema, EditBusFormData } from "@/features/buses/schemas/bus.schema";
 import { Loader2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,18 +14,6 @@ import { useActiveLayouts } from "../hooks/useLayoutQueries";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Bus } from "@/types";
 
-const busFormSchema = z.object({
-  status: z.enum(["ACTIVE", "MAINTENANCE", "INACTIVE"]),
-  registrationNumber: z
-    .string()
-    .min(1, "Registration number is required")
-    .regex(/^[A-Z]{2}\s\d{2}\s[A-Z]{1,2}\s\d{4}$/, "Format: TS 09 UB 1234"),
-  seatCapacity: z.coerce.number().min(1, "Minimum 1 seat").max(100, "Maximum 100 seats"),
-  insuranceExpiry: z.string().min(1, "Insurance expiry date is required"),
-  layoutId: z.string().optional(),
-});
-
-type BusFormData = z.infer<typeof busFormSchema>;
 
 interface EditBusDialogProps {
   bus: Bus | null;
@@ -38,8 +26,8 @@ export function EditBusDialog({ bus, open, onOpenChange, onBusUpdated }: EditBus
   const { mutate: updateBus, isPending } = useUpdateBus();
   const { data: layouts, isLoading: layoutsLoading } = useActiveLayouts();
 
-  const form = useForm<BusFormData>({
-    resolver: zodResolver(busFormSchema),
+  const form = useForm<EditBusFormData>({
+    resolver: zodResolver(editBusSchema),
     defaultValues: {
       status: "ACTIVE",
       registrationNumber: "",
@@ -61,7 +49,7 @@ export function EditBusDialog({ bus, open, onOpenChange, onBusUpdated }: EditBus
     }
   }, [open, bus, form]);
 
-  const onSubmit = (data: BusFormData) => {
+  const onSubmit = (data: EditBusFormData) => {
     if (!bus) return;
 
     const payload = {

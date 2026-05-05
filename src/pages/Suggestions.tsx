@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { useSuggestions } from "@/features/suggestions/hooks/useSuggestions";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -166,12 +166,12 @@ const Suggestions = () => {
                           navigate(`${ROUTES.USERS}/${suggestion.user?.id || suggestion.userId}`);
                         }}
                       >
-                         <Avatar className="h-6 w-6 border border-border">
-                            <AvatarImage src={suggestion.user?.profileUrl || ""} />
-                            <AvatarFallback className="bg-muted text-muted-foreground font-bold uppercase text-[9px]">
-                              {suggestion.user?.fullName?.substring(0, 2).toUpperCase() || "U"}
-                            </AvatarFallback>
-                         </Avatar>
+                         <UserAvatar 
+                            src={suggestion.user?.profileUrl} 
+                            name={suggestion.user?.fullName} 
+                            className="h-6 w-6 border border-border"
+                            fallbackClassName="text-[9px]"
+                         />
                          <span className="text-xs font-semibold text-muted-foreground">
                             {suggestion.user?.fullName || "Guest User"}
                          </span>

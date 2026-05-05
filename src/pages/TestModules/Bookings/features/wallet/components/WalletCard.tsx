@@ -1,4 +1,4 @@
-import { Plus, Wallet as WalletIcon, RefreshCw, ArrowUpRight } from "lucide-react";
+import { Plus, Wallet as WalletIcon, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";

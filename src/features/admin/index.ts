@@ -6,3 +6,4 @@ export * from "./hooks/useRoleQueries";
 export * from "./constants/roles";
 export { AddAdminDialog } from "./components/AddAdminDialog";
 export { AddRoleDialog } from "./components/AddRoleDialog";
+export { ResetAdminPasswordDialog } from "./components/ResetAdminPasswordDialog";

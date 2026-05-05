@@ -16,7 +16,7 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { PageHeader } from "@/components/ui/page-header";
 import { ROUTES } from "@/constants/routes";
@@ -259,16 +259,12 @@ const PaymentDetails = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14 border-2 border-background shadow-sm">
-                  <AvatarImage src={payment.user.profileUrl || ""} />
-                  <AvatarFallback className="bg-primary/5 text-primary text-lg">
-                    {payment.user.fullName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar 
+                  src={payment.user.profileUrl} 
+                  name={payment.user.fullName} 
+                  className="h-14 w-14 border-2 border-background shadow-sm"
+                  fallbackClassName="text-lg"
+                />
                 <div>
                   <h3 className="font-semibold text-lg leading-tight">{payment.user.fullName}</h3>
                   <p className="text-sm text-muted-foreground mt-0.5">

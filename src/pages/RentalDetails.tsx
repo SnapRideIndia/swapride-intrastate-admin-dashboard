@@ -1,23 +1,19 @@
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Calendar,
   MapPin,
   Users as UsersIcon,
-  User,
   Phone,
   Mail,
   ExternalLink,
   Navigation,
   MessageSquare,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Separator } from "@/components/ui/separator";
 import { useRental, useUpdateRental, RentalStatusBadge } from "@/features/rentals";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
@@ -204,12 +200,11 @@ export default function RentalDetails() {
                   className="flex items-center gap-4 mb-4 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => navigate(`${ROUTES.USERS}/${rental.user?.id || rental.userId}`)}
                 >
-                  <Avatar className="h-12 w-12 border border-border">
-                    <AvatarImage src={rental.user?.profileUrl || ""} />
-                    <AvatarFallback className="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
-                      {rental.user?.fullName?.substring(0, 2).toUpperCase() || "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar 
+                    src={rental.user?.profileUrl} 
+                    name={rental.user?.fullName} 
+                    className="h-12 w-12 border border-border" 
+                  />
                   <div>
                     <p className="font-bold text-sm hover:text-primary transition-colors">
                       {rental.user?.fullName || "Guest User"}

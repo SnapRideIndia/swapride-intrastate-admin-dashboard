@@ -8,6 +8,10 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { analyticsService } from "../api/analytics.service";
 import { AnalyticsFilters } from "@/types";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 
 export function RevenueChart() {
   const [period, setPeriod] = useState("weekly");
@@ -26,14 +30,22 @@ export function RevenueChart() {
     }
   }, [period]);
 
-  const { data: trends = [], isLoading } = useQuery({
+  const { hasPermission } = usePermissions();
+  const { data: trends = [], isLoading, error } = useQuery({
     queryKey: ["analytics", "trends", filters],
     queryFn: () => analyticsService.getTrends(filters),
+    enabled: hasPermission(PERMISSIONS.ANALYTICS_VIEW),
   });
+
+  const { isAccessDenied } = useApiError(error);
 
   const totalRevenue = useMemo(() => {
     return trends.reduce((sum, item) => sum + item.revenue, 0);
   }, [trends]);
+
+  if (isAccessDenied) {
+    return <AccessDenied variant="section" section="revenue analytics" />;
+  }
 
   return (
     <div className="dashboard-card p-5 flex flex-col h-full relative">

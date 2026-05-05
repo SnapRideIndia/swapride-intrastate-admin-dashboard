@@ -19,19 +19,26 @@ import { AddRouteDialog } from "@/features/routes";
 import { AssignTripDialog } from "@/features/trips/components/AssignTripDialog";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { cn } from "@/lib/utils";
-import { ROUTES } from "@/constants/routes";
 import { DashboardStats } from "@/types";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { ROUTES } from "@/constants/routes";
+import { PERMISSIONS } from "@/constants/permissions";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: busUtilization = [], isLoading: utilLoading } = useBusUtilization();
-  const { data: recentBookingsData, isLoading: bookingsLoading } = useBookings({
+  const { hasPermission } = usePermissions();
+  const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats({ enabled: hasPermission(PERMISSIONS.ANALYTICS_VIEW) });
+  const { isAccessDenied } = useApiError(statsError);
+  const { data: busUtilization = [], isLoading: utilLoading } = useBusUtilization({ enabled: hasPermission(PERMISSIONS.BUS_VIEW) });
+  const { data: recentBookingsData, isLoading: bookingsLoading, error: bookingsError } = useBookings({
     limit: 5,
-  });
+  }, { enabled: hasPermission(PERMISSIONS.BOOKING_VIEW) });
   const recentBookings = recentBookingsData?.data || [];
-  const { data: recentNotifications = [], isLoading: notifsLoading } = useRecentNotifications(5);
+  const { isAccessDenied: bookingsDenied } = useApiError(bookingsError);
+  const { data: recentNotifications = [], isLoading: notifsLoading, error: notifsError } = useRecentNotifications(5, { enabled: hasPermission(PERMISSIONS.NOTIFICATION_VIEW) });
+  const { isAccessDenied: notifsDenied } = useApiError(notifsError);
 
   // Default stats to avoid undefined errors
   const defaultStats: DashboardStats = {
@@ -49,6 +56,14 @@ const Dashboard = () => {
 
   const displayStats = stats || defaultStats;
   const loading = statsLoading || utilLoading || bookingsLoading || notifsLoading;
+
+  if (isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Dashboard" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -141,17 +156,21 @@ const Dashboard = () => {
           <div className="dashboard-card p-4 mb-6">
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Actions</h3>
             <div className="flex flex-wrap gap-2">
-              <AddBusDialog onBusAdded={() => navigate(ROUTES.BUSES)} />
-              <AddRouteDialog />
-              <AssignTripDialog />
-              <Button variant="outline" onClick={() => navigate(ROUTES.DRIVERS)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Driver
-              </Button>
-              <Button variant="outline" onClick={() => navigate(ROUTES.LIVE_TRACKING)}>
-                <MapPin className="h-4 w-4 mr-2" />
-                View Live Tracking
-              </Button>
+              {hasPermission(PERMISSIONS.BUS_CREATE) && <AddBusDialog onBusAdded={() => navigate(ROUTES.BUSES)} />}
+              {hasPermission(PERMISSIONS.ROUTE_CREATE) && <AddRouteDialog />}
+              {hasPermission(PERMISSIONS.TRIP_CREATE) && <AssignTripDialog />}
+              {hasPermission(PERMISSIONS.DRIVER_CREATE) && (
+                <Button variant="outline" onClick={() => navigate(ROUTES.DRIVERS)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Driver
+                </Button>
+              )}
+              {hasPermission(PERMISSIONS.TRIP_VIEW) && (
+                <Button variant="outline" onClick={() => navigate(ROUTES.LIVE_TRACKING)}>
+                  <MapPin className="h-4 w-4 mr-2" />
+                  View Live Tracking
+                </Button>
+              )}
             </div>
           </div>
 
@@ -173,7 +192,9 @@ const Dashboard = () => {
                   </Button>
                 </div>
                 <div className="space-y-3">
-                  {recentBookings.length > 0 ? (
+                  {bookingsDenied ? (
+                    <AccessDenied variant="section" section="recent bookings" />
+                  ) : recentBookings.length > 0 ? (
                     recentBookings.map((booking) => (
                       <div
                         key={booking.id}
@@ -217,7 +238,10 @@ const Dashboard = () => {
                 <h3 className="font-semibold">Recent Activities</h3>
               </div>
               <div className="space-y-3">
-                {recentNotifications.map((notification) => (
+                {notifsDenied ? (
+                  <AccessDenied variant="section" section="recent activities" />
+                ) : (
+                  recentNotifications.map((notification) => (
                   <div
                     key={notification.id}
                     className={cn(
@@ -235,7 +259,7 @@ const Dashboard = () => {
                       {new Date(notification.createdAt).toLocaleString()}
                     </p>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           </div>

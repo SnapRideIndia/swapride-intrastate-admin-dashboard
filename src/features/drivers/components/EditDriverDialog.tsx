@@ -14,18 +14,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { editDriverSchema, EditDriverFormData } from "../schemas/driver.schema";
 import { useUpdateDriver } from "../hooks/useDrivers";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 
-const editDriverSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  mobileNumber: z.string().min(10, "Valid mobile number is required"),
-  licenseNumber: z.string().min(5, "License number is required"),
-  status: z.string(),
-});
-
-type EditDriverFormData = z.infer<typeof editDriverSchema>;
 
 interface EditDriverDialogProps {
   driver: Driver | null;

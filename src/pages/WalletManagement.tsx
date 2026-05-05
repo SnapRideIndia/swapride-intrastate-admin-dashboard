@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, ArrowUpCircle, ArrowDownCircle, RotateCcw } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -173,16 +173,7 @@ const WalletManagement = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={wallet.user?.profileUrl || ""} />
-                              <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                                {wallet.user?.fullName
-                                  ?.split(" ")
-                                  .map((n: string) => n[0])
-                                  .join("")
-                                  .toUpperCase() || "UN"}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar src={wallet.user?.profileUrl} name={wallet.user?.fullName} className="h-8 w-8" />
                             <div>
                               <p className="text-sm font-medium">{wallet.user?.fullName || "Unknown User"}</p>
                               <p className="text-xs text-muted-foreground">
@@ -275,16 +266,7 @@ const WalletManagement = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={txn.wallet?.user?.profileUrl || ""} />
-                              <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                                {txn.wallet?.user?.fullName
-                                  ?.split(" ")
-                                  .map((n: string) => n[0])
-                                  .join("")
-                                  .toUpperCase() || "UN"}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar src={txn.wallet?.user?.profileUrl} name={txn.wallet?.user?.fullName} className="h-8 w-8" />
                             <div className="flex flex-col">
                               <p className="text-sm font-medium">{txn.wallet?.user?.fullName || "Unknown User"}</p>
                               <p className="text-[10px] text-muted-foreground">

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowUpCircle, ArrowDownCircle, RotateCcw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
@@ -135,16 +135,11 @@ const TransactionLedger = () => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={txn.wallet?.user?.profileUrl || ""} />
-                          <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                            {txn.wallet?.user?.fullName
-                              ?.split(" ")
-                              .map((n: string) => n[0])
-                              .join("")
-                              .toUpperCase() || "UN"}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          src={txn.wallet?.user?.profileUrl} 
+                          name={txn.wallet?.user?.fullName} 
+                          className="h-8 w-8" 
+                        />
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">{txn.wallet?.user?.fullName || "Unknown User"}</span>
                           <span className="text-[10px] text-muted-foreground">

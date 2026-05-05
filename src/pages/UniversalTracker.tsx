@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { financialsApi } from "@/features/financials";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
@@ -121,10 +121,12 @@ const UniversalTracker = () => {
         <div className="dashboard-card p-6">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Payer Information</p>
           <div className="flex items-center gap-4 py-2">
-            <Avatar className="h-16 w-16 border-2 border-primary/10">
-              <AvatarImage src={payment.user?.profileUrl || ""} />
-              <AvatarFallback className="text-xl">{payment.user?.fullName?.[0] || "?"}</AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={payment.user?.profileUrl} 
+              name={payment.user?.fullName} 
+              className="h-16 w-16 border-2 border-primary/10"
+              fallbackClassName="text-xl"
+            />
             <div>
               <h4 className="text-lg font-bold">{payment.user?.fullName || "Unknown User"}</h4>
               <p className="text-sm text-muted-foreground">{payment.user?.email || "No email"}</p>
@@ -182,9 +184,11 @@ const UniversalTracker = () => {
           <div className="space-y-4">
             <h5 className="text-xs font-bold uppercase text-muted-foreground">User Context</h5>
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback>{txn.wallet?.user?.fullName?.[0] || "?"}</AvatarFallback>
-              </Avatar>
+              <UserAvatar 
+                src={txn.wallet?.user?.profileUrl} 
+                name={txn.wallet?.user?.fullName} 
+                className="h-10 w-10" 
+              />
               <div className="overflow-hidden">
                 <p className="text-sm font-medium truncate">{txn.wallet?.user?.fullName || "Unknown User"}</p>
                 <p className="text-xs text-muted-foreground truncate">{txn.wallet?.user?.email || "No email"}</p>
@@ -297,7 +301,7 @@ const UniversalTracker = () => {
           />
         </div>
         <Button
-          className="h-14 px-8 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"
+          className="h-14 px-8 rounded-2xl text-lg font-bold"
           onClick={handleTrack}
           disabled={loading}
         >

@@ -5,7 +5,7 @@ import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Button } from "@/components/ui/button";
 import { Phone, Mail, Calendar, MapPin, Clock, MessageSquare, ExternalLink, Save, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -116,7 +116,7 @@ const SuggestionDetails = () => {
           {/* Main Content - Route & User Info */}
           <div className="lg:col-span-2 space-y-6">
             {/* Route Card */}
-            <Card className="shadow-sm border-border/60 overflow-hidden">
+            <Card className="shadow-none border-border/60 overflow-hidden">
               <CardHeader className="bg-muted/30 border-b border-border/60 pb-4">
                 <div className="flex justify-between items-start">
                   <div>
@@ -132,7 +132,7 @@ const SuggestionDetails = () => {
               <CardContent className="p-6">
                 <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-[2px] before:bg-gradient-to-b before:from-primary before:via-border before:to-orange-500">
                   <div className="relative">
-                    <div className="absolute -left-[32px] top-1 h-6 w-6 rounded-full bg-background border-2 border-primary flex items-center justify-center shadow-sm z-10">
+                    <div className="absolute -left-[32px] top-1 h-6 w-6 rounded-full bg-background border-2 border-primary flex items-center justify-center z-10">
                       <div className="h-2 w-2 rounded-full bg-primary" />
                     </div>
                     <div>
@@ -142,7 +142,7 @@ const SuggestionDetails = () => {
                   </div>
 
                   <div className="relative">
-                    <div className="absolute -left-[32px] top-1 h-6 w-6 rounded-full bg-background border-2 border-orange-500 flex items-center justify-center shadow-sm z-10">
+                    <div className="absolute -left-[32px] top-1 h-6 w-6 rounded-full bg-background border-2 border-orange-500 flex items-center justify-center z-10">
                       <div className="h-2 w-2 rounded-full bg-orange-500" />
                     </div>
                     <div>
@@ -211,10 +211,11 @@ const SuggestionDetails = () => {
                   className="flex items-center gap-4 mb-4 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => navigate(`${ROUTES.USERS}/${suggestion.user?.id}`)}
                 >
-                  <Avatar className="h-12 w-12 border border-border">
-                    <AvatarImage src={suggestion.user?.profileUrl} />
-                    <AvatarFallback>{suggestion.user?.fullName?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
+                  <UserAvatar 
+                    src={suggestion.user?.profileUrl} 
+                    name={suggestion.user?.fullName} 
+                    className="h-12 w-12 border border-border" 
+                  />
                   <div>
                     <p className="font-bold text-sm hover:text-primary transition-colors">{suggestion.user?.fullName}</p>
                     <p className="text-xs text-muted-foreground">Tap to view full profile</p>
@@ -285,7 +286,7 @@ const SuggestionDetails = () => {
                   />
                 </div>
 
-                <Button className="w-full font-bold shadow-sm" onClick={handleSave} disabled={updateMutation.isPending}>
+                <Button className="w-full font-bold" onClick={handleSave} disabled={updateMutation.isPending}>
                   <Save className="h-4 w-4 mr-2" />
                   Save Changes
                 </Button>

@@ -1,6 +1,6 @@
 import { Transaction } from "../api";
 import { format } from "date-fns";
-import { ArrowDownLeft, ArrowUpRight, HelpCircle, Clock, CheckCircle2, XCircle, MoreHorizontal } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, HelpCircle, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TransactionListProps {

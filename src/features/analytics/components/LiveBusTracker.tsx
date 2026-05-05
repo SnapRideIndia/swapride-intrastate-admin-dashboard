@@ -6,12 +6,18 @@ import { useState, useEffect } from "react";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 
 const MAP_LIBRARIES: ("geometry" | "drawing" | "places" | "visualization")[] = ["geometry"];
 
 export function LiveBusTracker() {
   const navigate = useNavigate();
-  const { data: activeBuses = [], isLoading } = useLiveLocations();
+  const { hasPermission } = usePermissions();
+  const { data: activeBuses = [], isLoading, error } = useLiveLocations({ enabled: hasPermission(PERMISSIONS.TRIP_VIEW) });
+  const { isAccessDenied } = useApiError(error);
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -26,6 +32,10 @@ export function LiveBusTracker() {
       setSelectedId(activeBuses[0].tripId ?? activeBuses[0].id);
     }
   }, [activeBuses, selectedId]);
+
+  if (isAccessDenied) {
+    return <AccessDenied variant="section" section="live tracking" />;
+  }
 
   if (isLoading) {
     return (

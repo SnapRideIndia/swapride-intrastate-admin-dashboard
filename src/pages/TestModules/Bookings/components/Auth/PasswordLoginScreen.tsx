@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { AuthContainer } from "./AuthContainer";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 

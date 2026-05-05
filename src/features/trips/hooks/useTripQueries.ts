@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tripsApi } from "../api/trips-api";
 import { LiveLocation, Trip } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 
 export const TRIP_QUERY_KEYS = {
   all: ["trips"] as const,
@@ -24,28 +25,29 @@ interface TripQueryParams {
 }
 
 export const useTrips = (params?: TripQueryParams) => {
-  return useQuery({
+  return useQuery<PaginatedResponse<Trip>>({
     queryKey: TRIP_QUERY_KEYS.list(params || {}),
     queryFn: () => tripsApi.getAll(params),
   });
 };
 
 export const useTrip = (id: string) => {
-  return useQuery({
+  return useQuery<Trip>({
     queryKey: TRIP_QUERY_KEYS.detail(id),
     queryFn: () => tripsApi.getById(id),
     enabled: !!id,
   });
 };
 
-export const useLiveLocations = () => {
-  return useQuery({
+export const useLiveLocations = (options?: any) => {
+  return useQuery<LiveLocation[]>({
     queryKey: TRIP_QUERY_KEYS.liveLocations(),
     queryFn: async () => {
       const data = await tripsApi.getLiveLocations();
       return data as LiveLocation[];
     },
     refetchInterval: 15000,
+    ...options,
   });
 };
 

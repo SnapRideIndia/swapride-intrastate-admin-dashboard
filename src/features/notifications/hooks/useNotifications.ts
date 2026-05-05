@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notificationService } from "../api/notification.service";
 import { toast } from "sonner";
+import { Notification } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 
 export const NOTIFICATION_QUERY_KEYS = {
   all: ["notifications"] as const,
@@ -19,18 +21,20 @@ export const useNotifications = (params: {
   type?: string;
   priority?: string;
   status?: string;
-}) => {
-  return useQuery({
+}, options?: any) => {
+  return useQuery<PaginatedResponse<Notification>>({
     queryKey: NOTIFICATION_QUERY_KEYS.list(params),
     queryFn: () => notificationService.getAll(params),
+    ...options,
   });
 };
 
-export const useRecentNotifications = (limit: number = 5) => {
-  return useQuery({
+export const useRecentNotifications = (limit: number = 5, options?: any) => {
+  return useQuery<Notification[]>({
     queryKey: NOTIFICATION_QUERY_KEYS.recent(limit),
     queryFn: () => notificationService.getRecent(limit),
     refetchInterval: 30000, // Check for new notifications every 30 seconds
+    ...options,
   });
 };
 

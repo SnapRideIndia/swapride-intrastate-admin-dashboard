@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
 import { LayoutPreviewGrid, useBus, useLayout, busLayoutService } from "@/features/buses";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
@@ -286,9 +287,12 @@ export default function BookingDetails() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border-2 border-white/10 shadow-xl overflow-hidden text-2xl font-black">
-                      {booking.user?.fullName?.[0] || "G"}
-                    </div>
+                    <UserAvatar 
+                      src={booking.user?.profileUrl} 
+                      name={booking.user?.fullName} 
+                      className="h-16 w-16 rounded-2xl border-2 border-white/10 shadow-xl"
+                      fallbackClassName="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-2xl font-black"
+                    />
                     <div>
                       <h2 className="text-xl font-black tracking-tight">
                         {booking.user?.fullName || "Guest Passenger"}
@@ -365,7 +369,7 @@ export default function BookingDetails() {
                   </Button>
                 )}
 
-                <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-12 shadow-sm font-bold tracking-tight">
+                <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-12 font-bold tracking-tight">
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Download Invoice
                 </Button>
                 {booking.bookingStatus === "CONFIRMED" && (

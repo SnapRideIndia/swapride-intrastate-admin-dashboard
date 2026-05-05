@@ -3,12 +3,10 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
 import {
   Search,
-  Tag,
   MoreVertical,
   Trash2,
   CheckCircle2,
   Bell,
-  Info,
   AlertTriangle,
   MessageSquare,
   Send,
@@ -43,11 +41,16 @@ import {
   useMarkAsRead,
   useDeleteNotification,
 } from "@/features/notifications/hooks/useNotifications";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 
 
 export default function Notifications() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { hasPermission } = usePermissions();
 
   const search = searchParams.get("q") || "";
   const typeFilter = searchParams.get("type") || "all";
@@ -75,7 +78,7 @@ export default function Notifications() {
     setSearchParams(newParams, { replace: true });
   };
 
-  const { data: notificationsData, isLoading: loadingNotifications } = useNotifications({
+  const { data: notificationsData, isLoading: loadingNotifications, error } = useNotifications({
     page: currentPage,
     limit: pageSize,
     q: debouncedSearch,
@@ -83,6 +86,8 @@ export default function Notifications() {
     priority: priorityFilter !== "all" ? priorityFilter : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
+
+  const { isAccessDenied } = useApiError(error);
 
   const { data: statsData } = useNotificationStats();
 
@@ -144,6 +149,14 @@ export default function Notifications() {
         return "bg-gray-100 text-gray-700";
     }
   };
+
+  if (!hasPermission(PERMISSIONS.NOTIFICATION_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Notifications" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

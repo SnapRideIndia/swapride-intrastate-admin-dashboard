@@ -18,11 +18,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useUsers, useUpdateUserStatus } from "@/features/users/hooks/useUsers";
 import { useDebounce } from "@/hooks/useDebounce";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 
 const Users = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
 
   const searchQuery = searchParams.get("q") || "";
   const debouncedSearch = useDebounce(searchQuery, 500);
@@ -46,12 +51,13 @@ const Users = () => {
     setSearchParams(newParams);
   };
 
-  const { data: usersData, isLoading } = useUsers({
+  const { data: usersData, isLoading, error: usersError } = useUsers({
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
     search: debouncedSearch,
     status: statusFilter === "all" ? undefined : statusFilter.toUpperCase(),
   });
+  const { isAccessDenied } = useApiError(usersError);
 
   const updateUserStatus = useUpdateUserStatus();
 
@@ -78,6 +84,14 @@ const Users = () => {
   const handleSuspendUser = (id: string) => {
     updateUserStatus.mutate({ id, action: "suspend" });
   };
+
+  if (!hasPermission(PERMISSIONS.USER_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="User Management" />
+      </DashboardLayout>
+    );
+  }
 
   if (isLoading) {
     return <FullPageLoader show={true} label="Loading users..." />;
@@ -181,12 +195,7 @@ const Users = () => {
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9 border border-border shadow-sm">
-                        <AvatarImage src={user.profileUrl || ""} />
-                        <AvatarFallback className="text-[10px] font-bold bg-slate-100 text-slate-500">
-                          {user.fullName?.substring(0, 2).toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar src={user.profileUrl} name={user.fullName} className="h-9 w-9" />
                       <span className="font-semibold text-slate-800">{user.fullName}</span>
                     </div>
                   </TableCell>

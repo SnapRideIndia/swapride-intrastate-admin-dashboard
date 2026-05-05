@@ -14,17 +14,19 @@ export const pointKeys = {
   all: ["points"] as const,
 };
 
-export const usePoints = (params?: { limit?: number; offset?: number; search?: string }) => {
-  return useQuery({
+export const usePoints = (params?: { limit?: number; offset?: number; search?: string }, options?: any) => {
+  return useQuery<PaginatedResponse<any>>({
     queryKey: [...pointKeys.all, params || {}],
     queryFn: () => routeService.getAllPoints(params),
+    ...options,
   });
 };
 
-export const useRoutes = (params?: { limit?: number; offset?: number; search?: string; status?: string }) => {
-  return useQuery({
+export const useRoutes = (params?: { limit?: number; offset?: number; search?: string; status?: string }, options?: any) => {
+  return useQuery<PaginatedResponse<Route>>({
     queryKey: [...routeKeys.lists(), params || {}],
     queryFn: () => routeService.getAll(params),
+    ...options,
   });
 };
 

@@ -15,13 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePayments, usePaymentAnalytics } from "@/features/financials";
 import { useDebounce } from "@/hooks/useDebounce";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
 
 const PaymentOverview = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,16 +38,18 @@ const PaymentOverview = () => {
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   // Fetch Payment Analytics
-  const { data: analytics, isLoading: isLoadingAnalytics } = usePaymentAnalytics();
+  const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = usePaymentAnalytics();
+  const { isAccessDenied: isAnalyticsDenied } = useApiError(analyticsError);
 
   // Fetch Global Payments
-  const { data: paymentsData, isLoading: isLoadingPayments } = usePayments({
+  const { data: paymentsData, isLoading: isLoadingPayments, error: paymentsError } = usePayments({
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
     status: statusFilter === "all" ? undefined : statusFilter,
     method: methodFilter === "all" ? undefined : methodFilter,
     search: debouncedSearch,
   });
+  const { isAccessDenied: isPaymentsDenied } = useApiError(paymentsError);
 
   const payments = paymentsData?.data || [];
   const totalCount = paymentsData?.pagination?.total || 0;
@@ -138,6 +142,14 @@ const PaymentOverview = () => {
       minute: "2-digit",
     });
   };
+
+  if (isAnalyticsDenied || isPaymentsDenied) {
+    return (
+      <div className="p-12 text-center">
+        <AccessDenied variant="section" section="payments overview" />
+      </div>
+    );
+  }
 
   if (isLoadingPayments || isLoadingAnalytics)
     return <FullPageLoader show={true} label="Fetching payments overview..." />;
@@ -291,16 +303,11 @@ const PaymentOverview = () => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={payment.user?.profileUrl || ""} />
-                          <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                            {payment.user?.fullName
-                              ?.split(" ")
-                              .map((n: string) => n[0])
-                              .join("")
-                              .toUpperCase() || "UN"}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          src={payment.user?.profileUrl} 
+                          name={payment.user?.fullName} 
+                          className="h-8 w-8" 
+                        />
                         <div className="flex flex-col">
                           <p className="text-sm font-medium">{payment.user?.fullName || "Unknown User"}</p>
                           <p className="text-xs text-muted-foreground">{payment.user?.email || "No email"}</p>

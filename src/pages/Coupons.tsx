@@ -30,6 +30,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCoupons, useUpdateCoupon, useDeleteCoupon } from "@/features/coupons/hooks/useCoupons";
+import { AccessDenied } from "@/components/AccessDenied";
+import { useApiError } from "@/hooks/useApiError";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/constants/permissions";
 import { Coupon } from "@/features/coupons/api/coupon.service";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { ROUTES } from "@/constants/routes";
@@ -37,6 +41,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 
 export default function Coupons() {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Filters from URL
@@ -49,13 +54,15 @@ export default function Coupons() {
   const debouncedSearch = useDebounce(search, 500);
 
   // Fetch Coupons (Server-side)
-  const { data: couponsData, isLoading: isCouponsLoading } = useCoupons({
+  const { data: couponsData, isLoading, error } = useCoupons({
     page: currentPage,
     limit: pageSize,
     search: debouncedSearch,
     status: statusFilter,
     type: typeFilter,
   });
+
+  const { isAccessDenied } = useApiError(error);
 
   const coupons = couponsData?.data || [];
   const totalCount = couponsData?.pagination?.total || 0;
@@ -99,11 +106,19 @@ export default function Coupons() {
     navigate(ROUTES.COUPON_EDIT.replace(":id", id));
   };
 
-  const isAnyLoading = isCouponsLoading || updateMutation.isPending || deleteMutation.isPending;
+  const isAnyLoading = isLoading || updateMutation.isPending || deleteMutation.isPending;
+
+  if (!hasPermission(PERMISSIONS.COUPON_VIEW) || isAccessDenied) {
+    return (
+      <DashboardLayout>
+        <AccessDenied variant="page" section="Coupon Management" />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      <FullPageLoader show={isAnyLoading} label={isCouponsLoading ? "Loading Data..." : "Processing..."} />
+      <FullPageLoader show={isAnyLoading} label={isLoading ? "Loading Data..." : "Processing..."} />
       <div className="space-y-6">
         {/* Header */}
         <PageHeader

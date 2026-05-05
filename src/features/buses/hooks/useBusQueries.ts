@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { busService } from "../api/bus.service";
 import { Bus } from "@/types";
+import { PaginatedResponse } from "@/types/pagination";
 
 export const busKeys = {
   all: ["buses"] as const,
@@ -9,10 +10,11 @@ export const busKeys = {
   detail: (id: string) => [...busKeys.details(), id] as const,
 };
 
-export const useBuses = (params?: { limit?: number; offset?: number; search?: string; status?: string }) => {
-  return useQuery({
+export const useBuses = (params?: { limit?: number; offset?: number; search?: string; status?: string }, options?: any) => {
+  return useQuery<PaginatedResponse<Bus>>({
     queryKey: [...busKeys.all, "list", params || {}],
     queryFn: () => busService.getAll(params),
+    ...options,
   });
 };
 

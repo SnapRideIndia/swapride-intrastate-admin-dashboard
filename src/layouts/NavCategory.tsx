@@ -18,6 +18,7 @@ interface NavCategoryProps {
   onToggle: (id: string) => void;
   collapsed: boolean; // sidebar collapsed state
   hasPermission: (permission: string | null) => boolean;
+  className?: string;
 }
 
 export function NavCategory({
@@ -29,6 +30,7 @@ export function NavCategory({
   onToggle,
   collapsed,
   hasPermission,
+  className,
 }: NavCategoryProps) {
   const location = useLocation();
 
@@ -55,7 +57,7 @@ export function NavCategory({
   }
 
   return (
-    <div className="space-y-1">
+    <div className={cn("space-y-1", className)}>
       {/* Category Header */}
       <button
         onClick={toggleCategory}

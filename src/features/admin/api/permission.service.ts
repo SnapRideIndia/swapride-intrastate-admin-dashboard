@@ -1,4 +1,5 @@
 import { Permission } from "@/types";
+import { PERMISSIONS } from "@/constants/permissions";
 
 // All system permissions
 export const ALL_PERMISSIONS: Permission[] = [
@@ -6,7 +7,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_001",
     name: "View Buses",
-    slug: "BUS_VIEW",
+    slug: PERMISSIONS.BUS_VIEW,
     category: "Bus Management",
     description: "View bus list and details",
     isSystemPermission: true,
@@ -14,7 +15,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_002",
     name: "Create Bus",
-    slug: "BUS_CREATE",
+    slug: PERMISSIONS.BUS_CREATE,
     category: "Bus Management",
     description: "Add new buses",
     isSystemPermission: true,
@@ -22,7 +23,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_003",
     name: "Edit Bus",
-    slug: "BUS_EDIT",
+    slug: PERMISSIONS.BUS_EDIT,
     category: "Bus Management",
     description: "Edit bus information",
     isSystemPermission: true,
@@ -30,7 +31,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_004",
     name: "Delete Bus",
-    slug: "BUS_DELETE",
+    slug: PERMISSIONS.BUS_DELETE,
     category: "Bus Management",
     description: "Delete buses",
     isSystemPermission: true,
@@ -38,7 +39,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_005",
     name: "View Bus Layout",
-    slug: "BUS_LAYOUT_VIEW",
+    slug: PERMISSIONS.BUS_LAYOUT_VIEW,
     category: "Bus Management",
     description: "View bus seat layout",
     isSystemPermission: true,
@@ -46,7 +47,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_006",
     name: "Edit Bus Layout",
-    slug: "BUS_LAYOUT_EDIT",
+    slug: PERMISSIONS.BUS_LAYOUT_EDIT,
     category: "Bus Management",
     description: "Edit bus seat layout",
     isSystemPermission: true,
@@ -54,7 +55,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_073",
     name: "Create Bus Layout",
-    slug: "BUS_LAYOUT_CREATE",
+    slug: PERMISSIONS.BUS_LAYOUT_CREATE,
     category: "Bus Management",
     description: "Create new bus layouts",
     isSystemPermission: true,
@@ -62,7 +63,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_074",
     name: "Delete Bus Layout",
-    slug: "BUS_LAYOUT_DELETE",
+    slug: PERMISSIONS.BUS_LAYOUT_DELETE,
     category: "Bus Management",
     description: "Delete bus layouts",
     isSystemPermission: true,
@@ -70,7 +71,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_075",
     name: "Assign Bus Layout",
-    slug: "BUS_LAYOUT_ASSIGN",
+    slug: PERMISSIONS.BUS_LAYOUT_ASSIGN,
     category: "Bus Management",
     description: "Assign layouts to buses",
     isSystemPermission: true,
@@ -78,7 +79,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_007",
     name: "View Bus Analytics",
-    slug: "BUS_ANALYTICS_VIEW",
+    slug: PERMISSIONS.BUS_ANALYTICS_VIEW,
     category: "Bus Management",
     description: "View bus-specific analytics",
     isSystemPermission: true,
@@ -88,7 +89,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_008",
     name: "View Drivers",
-    slug: "DRIVER_VIEW",
+    slug: PERMISSIONS.DRIVER_VIEW,
     category: "Driver Management",
     description: "View driver list and details",
     isSystemPermission: true,
@@ -96,7 +97,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_009",
     name: "Create Driver",
-    slug: "DRIVER_CREATE",
+    slug: PERMISSIONS.DRIVER_CREATE,
     category: "Driver Management",
     description: "Add new drivers",
     isSystemPermission: true,
@@ -104,7 +105,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_010",
     name: "Edit Driver",
-    slug: "DRIVER_EDIT",
+    slug: PERMISSIONS.DRIVER_EDIT,
     category: "Driver Management",
     description: "Edit driver information",
     isSystemPermission: true,
@@ -112,7 +113,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_011",
     name: "Delete Driver",
-    slug: "DRIVER_DELETE",
+    slug: PERMISSIONS.DRIVER_DELETE,
     category: "Driver Management",
     description: "Remove drivers",
     isSystemPermission: true,
@@ -120,7 +121,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_012",
     name: "Assign Driver",
-    slug: "DRIVER_ASSIGN",
+    slug: PERMISSIONS.DRIVER_ASSIGN,
     category: "Driver Management",
     description: "Assign drivers to buses/trips",
     isSystemPermission: true,
@@ -128,7 +129,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_013",
     name: "View Driver Schedule",
-    slug: "DRIVER_SCHEDULE_VIEW",
+    slug: PERMISSIONS.DRIVER_SCHEDULE_VIEW,
     category: "Driver Management",
     description: "View driver schedules",
     isSystemPermission: true,
@@ -138,7 +139,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_014",
     name: "View Routes",
-    slug: "ROUTE_VIEW",
+    slug: PERMISSIONS.ROUTE_VIEW,
     category: "Route Management",
     description: "View routes",
     isSystemPermission: true,
@@ -146,7 +147,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_015",
     name: "Create Route",
-    slug: "ROUTE_CREATE",
+    slug: PERMISSIONS.ROUTE_CREATE,
     category: "Route Management",
     description: "Create new routes",
     isSystemPermission: true,
@@ -154,7 +155,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_016",
     name: "Edit Route",
-    slug: "ROUTE_EDIT",
+    slug: PERMISSIONS.ROUTE_EDIT,
     category: "Route Management",
     description: "Edit route details",
     isSystemPermission: true,
@@ -162,7 +163,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_017",
     name: "Delete Route",
-    slug: "ROUTE_DELETE",
+    slug: PERMISSIONS.ROUTE_DELETE,
     category: "Route Management",
     description: "Delete routes",
     isSystemPermission: true,
@@ -170,7 +171,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_018",
     name: "View Stops",
-    slug: "STOP_VIEW",
+    slug: PERMISSIONS.STOP_VIEW,
     category: "Route Management",
     description: "View stops",
     isSystemPermission: true,
@@ -178,7 +179,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_019",
     name: "Create Stop",
-    slug: "STOP_CREATE",
+    slug: PERMISSIONS.STOP_CREATE,
     category: "Route Management",
     description: "Add stops to routes",
     isSystemPermission: true,
@@ -186,7 +187,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_020",
     name: "Edit Stop",
-    slug: "STOP_EDIT",
+    slug: PERMISSIONS.STOP_EDIT,
     category: "Route Management",
     description: "Edit stop information",
     isSystemPermission: true,
@@ -194,7 +195,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_021",
     name: "Delete Stop",
-    slug: "STOP_DELETE",
+    slug: PERMISSIONS.STOP_DELETE,
     category: "Route Management",
     description: "Remove stops from routes",
     isSystemPermission: true,
@@ -204,7 +205,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_022",
     name: "View Trips",
-    slug: "TRIP_VIEW",
+    slug: PERMISSIONS.TRIP_VIEW,
     category: "Trip Management",
     description: "View trip assignments",
     isSystemPermission: true,
@@ -212,7 +213,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_023",
     name: "Create Trip",
-    slug: "TRIP_CREATE",
+    slug: PERMISSIONS.TRIP_CREATE,
     category: "Trip Management",
     description: "Create trip assignments",
     isSystemPermission: true,
@@ -220,7 +221,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_024",
     name: "Edit Trip",
-    slug: "TRIP_EDIT",
+    slug: PERMISSIONS.TRIP_EDIT,
     category: "Trip Management",
     description: "Edit trip assignments",
     isSystemPermission: true,
@@ -228,7 +229,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_025",
     name: "Delete Trip",
-    slug: "TRIP_DELETE",
+    slug: PERMISSIONS.TRIP_DELETE,
     category: "Trip Management",
     description: "Delete/cancel trip assignments",
     isSystemPermission: true,
@@ -236,7 +237,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_026",
     name: "View Trip Details",
-    slug: "TRIP_DETAILS_VIEW",
+    slug: PERMISSIONS.TRIP_DETAILS_VIEW,
     category: "Trip Management",
     description: "View trip details",
     isSystemPermission: true,
@@ -244,7 +245,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_027",
     name: "Edit Trip Details",
-    slug: "TRIP_DETAILS_EDIT",
+    slug: PERMISSIONS.TRIP_DETAILS_EDIT,
     category: "Trip Management",
     description: "Edit trip details",
     isSystemPermission: true,
@@ -252,7 +253,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_028",
     name: "Cancel Trip",
-    slug: "TRIP_CANCEL",
+    slug: PERMISSIONS.TRIP_CANCEL,
     category: "Trip Management",
     description: "Cancel trips",
     isSystemPermission: true,
@@ -260,7 +261,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_029",
     name: "View Trip Passengers",
-    slug: "TRIP_PASSENGERS_VIEW",
+    slug: PERMISSIONS.TRIP_PASSENGERS_VIEW,
     category: "Trip Management",
     description: "View passenger list for trips",
     isSystemPermission: true,
@@ -268,7 +269,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_030",
     name: "Update Trip Status",
-    slug: "TRIP_STATUS_UPDATE",
+    slug: PERMISSIONS.TRIP_STATUS_UPDATE,
     category: "Trip Management",
     description: "Update trip status (delay, on-time, etc.)",
     isSystemPermission: true,
@@ -278,7 +279,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_031",
     name: "View Users",
-    slug: "USER_VIEW",
+    slug: PERMISSIONS.USER_VIEW,
     category: "User Management",
     description: "View user list and details",
     isSystemPermission: true,
@@ -286,7 +287,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_032",
     name: "Edit User",
-    slug: "USER_EDIT",
+    slug: PERMISSIONS.USER_EDIT,
     category: "User Management",
     description: "Edit user information",
     isSystemPermission: true,
@@ -294,7 +295,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_033",
     name: "Block User",
-    slug: "USER_BLOCK",
+    slug: PERMISSIONS.USER_BLOCK,
     category: "User Management",
     description: "Block/unblock users",
     isSystemPermission: true,
@@ -302,7 +303,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_034",
     name: "Delete User",
-    slug: "USER_DELETE",
+    slug: PERMISSIONS.USER_DELETE,
     category: "User Management",
     description: "Delete user accounts",
     isSystemPermission: true,
@@ -310,7 +311,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_035",
     name: "View User Bookings",
-    slug: "USER_BOOKINGS_VIEW",
+    slug: PERMISSIONS.USER_BOOKINGS_VIEW,
     category: "User Management",
     description: "View user booking history",
     isSystemPermission: true,
@@ -318,7 +319,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_036",
     name: "View User Payments",
-    slug: "USER_PAYMENT_VIEW",
+    slug: PERMISSIONS.USER_PAYMENT_VIEW,
     category: "User Management",
     description: "View user payment history",
     isSystemPermission: true,
@@ -328,7 +329,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_037",
     name: "View Bookings",
-    slug: "BOOKING_VIEW",
+    slug: PERMISSIONS.BOOKING_VIEW,
     category: "Booking Management",
     description: "View all bookings",
     isSystemPermission: true,
@@ -336,7 +337,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_038",
     name: "Create Booking",
-    slug: "BOOKING_CREATE",
+    slug: PERMISSIONS.BOOKING_CREATE,
     category: "Booking Management",
     description: "Create bookings (for users)",
     isSystemPermission: true,
@@ -344,7 +345,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_039",
     name: "Edit Booking",
-    slug: "BOOKING_EDIT",
+    slug: PERMISSIONS.BOOKING_EDIT,
     category: "Booking Management",
     description: "Edit booking details",
     isSystemPermission: true,
@@ -352,7 +353,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_040",
     name: "Cancel Booking",
-    slug: "BOOKING_CANCEL",
+    slug: PERMISSIONS.BOOKING_CANCEL,
     category: "Booking Management",
     description: "Cancel bookings",
     isSystemPermission: true,
@@ -360,7 +361,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_041",
     name: "View Booking Payment",
-    slug: "BOOKING_PAYMENT_VIEW",
+    slug: PERMISSIONS.BOOKING_PAYMENT_VIEW,
     category: "Booking Management",
     description: "View payment information",
     isSystemPermission: true,
@@ -368,7 +369,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_042",
     name: "Verify Booking Payment",
-    slug: "BOOKING_PAYMENT_VERIFY",
+    slug: PERMISSIONS.BOOKING_PAYMENT_VERIFY,
     category: "Booking Management",
     description: "Verify/confirm payments",
     isSystemPermission: true,
@@ -378,7 +379,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_043",
     name: "View Analytics",
-    slug: "ANALYTICS_VIEW",
+    slug: PERMISSIONS.ANALYTICS_VIEW,
     category: "Analytics",
     description: "View analytics dashboard",
     isSystemPermission: true,
@@ -386,7 +387,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_044",
     name: "View All Analytics",
-    slug: "ANALYTICS_VIEW_ALL",
+    slug: PERMISSIONS.ANALYTICS_VIEW_ALL,
     category: "Analytics",
     description: "View all analytics including financial",
     isSystemPermission: true,
@@ -394,7 +395,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_045",
     name: "View Revenue",
-    slug: "REVENUE_VIEW",
+    slug: PERMISSIONS.REVENUE_VIEW,
     category: "Analytics",
     description: "View revenue reports and data",
     isSystemPermission: true,
@@ -402,7 +403,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_046",
     name: "Generate Reports",
-    slug: "REPORTS_GENERATE",
+    slug: PERMISSIONS.REPORTS_GENERATE,
     category: "Analytics",
     description: "Generate custom reports",
     isSystemPermission: true,
@@ -410,7 +411,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_047",
     name: "Export Reports",
-    slug: "REPORTS_EXPORT",
+    slug: PERMISSIONS.REPORTS_EXPORT,
     category: "Analytics",
     description: "Export reports (PDF/Excel/CSV)",
     isSystemPermission: true,
@@ -420,7 +421,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_048",
     name: "View Tracking",
-    slug: "TRACKING_VIEW",
+    slug: PERMISSIONS.TRACKING_VIEW,
     category: "Live Tracking",
     description: "View live bus tracking",
     isSystemPermission: true,
@@ -428,7 +429,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_049",
     name: "Monitor Tracking",
-    slug: "TRACKING_MONITOR",
+    slug: PERMISSIONS.TRACKING_MONITOR,
     category: "Live Tracking",
     description: "Monitor all buses in real-time",
     isSystemPermission: true,
@@ -436,7 +437,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_050",
     name: "View Tracking History",
-    slug: "TRACKING_HISTORY",
+    slug: PERMISSIONS.TRACKING_HISTORY,
     category: "Live Tracking",
     description: "View historical tracking data",
     isSystemPermission: true,
@@ -446,7 +447,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_051",
     name: "View Support Tickets",
-    slug: "SUPPORT_TICKET_VIEW",
+    slug: PERMISSIONS.SUPPORT_TICKET_VIEW,
     category: "Support",
     description: "View support tickets",
     isSystemPermission: true,
@@ -454,7 +455,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_052",
     name: "Create Support Ticket",
-    slug: "SUPPORT_TICKET_CREATE",
+    slug: PERMISSIONS.SUPPORT_TICKET_CREATE,
     category: "Support",
     description: "Create support tickets",
     isSystemPermission: true,
@@ -462,7 +463,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_053",
     name: "Edit Support Ticket",
-    slug: "SUPPORT_TICKET_EDIT",
+    slug: PERMISSIONS.SUPPORT_TICKET_EDIT,
     category: "Support",
     description: "Edit ticket details",
     isSystemPermission: true,
@@ -470,7 +471,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_054",
     name: "Resolve Support Ticket",
-    slug: "SUPPORT_TICKET_RESOLVE",
+    slug: PERMISSIONS.SUPPORT_TICKET_RESOLVE,
     category: "Support",
     description: "Resolve/close tickets",
     isSystemPermission: true,
@@ -478,7 +479,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_055",
     name: "View Notifications",
-    slug: "NOTIFICATION_VIEW",
+    slug: PERMISSIONS.NOTIFICATION_VIEW,
     category: "Support",
     description: "View notifications",
     isSystemPermission: true,
@@ -486,7 +487,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_056",
     name: "Send Notifications",
-    slug: "NOTIFICATION_SEND",
+    slug: PERMISSIONS.NOTIFICATION_SEND,
     category: "Support",
     description: "Send notifications to users/drivers",
     isSystemPermission: true,
@@ -496,7 +497,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_057",
     name: "View Admins",
-    slug: "ADMIN_VIEW",
+    slug: PERMISSIONS.ADMIN_VIEW,
     category: "Admin Management",
     description: "View admin list and details",
     isSystemPermission: true,
@@ -504,7 +505,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_058",
     name: "Create Admin",
-    slug: "ADMIN_CREATE",
+    slug: PERMISSIONS.ADMIN_CREATE,
     category: "Admin Management",
     description: "Create new admin accounts",
     isSystemPermission: true,
@@ -512,7 +513,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_059",
     name: "Edit Admin",
-    slug: "ADMIN_EDIT",
+    slug: PERMISSIONS.ADMIN_EDIT,
     category: "Admin Management",
     description: "Edit admin information",
     isSystemPermission: true,
@@ -520,7 +521,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_060",
     name: "Delete Admin",
-    slug: "ADMIN_DELETE",
+    slug: PERMISSIONS.ADMIN_DELETE,
     category: "Admin Management",
     description: "Delete admin accounts",
     isSystemPermission: true,
@@ -528,7 +529,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_061",
     name: "Suspend Admin",
-    slug: "ADMIN_SUSPEND",
+    slug: PERMISSIONS.ADMIN_SUSPEND,
     category: "Admin Management",
     description: "Suspend/activate admin accounts",
     isSystemPermission: true,
@@ -536,7 +537,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_062",
     name: "Reset Admin Password",
-    slug: "ADMIN_PASSWORD_RESET",
+    slug: PERMISSIONS.ADMIN_PASSWORD_RESET,
     category: "Admin Management",
     description: "Reset admin passwords",
     isSystemPermission: true,
@@ -546,7 +547,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_063",
     name: "View Roles",
-    slug: "ROLE_VIEW",
+    slug: PERMISSIONS.ROLE_VIEW,
     category: "Role Management",
     description: "View roles list",
     isSystemPermission: true,
@@ -554,7 +555,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_064",
     name: "Create Role",
-    slug: "ROLE_CREATE",
+    slug: PERMISSIONS.ROLE_CREATE,
     category: "Role Management",
     description: "Create new roles",
     isSystemPermission: true,
@@ -562,7 +563,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_065",
     name: "Edit Role",
-    slug: "ROLE_EDIT",
+    slug: PERMISSIONS.ROLE_EDIT,
     category: "Role Management",
     description: "Edit role details and permissions",
     isSystemPermission: true,
@@ -570,7 +571,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_066",
     name: "Delete Role",
-    slug: "ROLE_DELETE",
+    slug: PERMISSIONS.ROLE_DELETE,
     category: "Role Management",
     description: "Delete roles (except system roles)",
     isSystemPermission: true,
@@ -578,7 +579,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_067",
     name: "View Permissions",
-    slug: "PERMISSION_VIEW",
+    slug: PERMISSIONS.PERMISSION_VIEW,
     category: "Role Management",
     description: "View all permissions",
     isSystemPermission: true,
@@ -586,7 +587,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_068",
     name: "Manage Permissions",
-    slug: "PERMISSION_MANAGE",
+    slug: PERMISSIONS.PERMISSION_MANAGE,
     category: "Role Management",
     description: "Manage role-permission mappings",
     isSystemPermission: true,
@@ -596,7 +597,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_069",
     name: "View System Settings",
-    slug: "SYSTEM_SETTINGS_VIEW",
+    slug: PERMISSIONS.SYSTEM_SETTINGS_VIEW,
     category: "System",
     description: "View system settings",
     isSystemPermission: true,
@@ -604,7 +605,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_070",
     name: "Edit System Settings",
-    slug: "SYSTEM_SETTINGS_EDIT",
+    slug: PERMISSIONS.SYSTEM_SETTINGS_EDIT,
     category: "System",
     description: "Edit system configuration",
     isSystemPermission: true,
@@ -612,7 +613,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_071",
     name: "View System Logs",
-    slug: "SYSTEM_LOGS_VIEW",
+    slug: PERMISSIONS.SYSTEM_LOGS_VIEW,
     category: "System",
     description: "View system activity logs",
     isSystemPermission: true,
@@ -620,9 +621,145 @@ export const ALL_PERMISSIONS: Permission[] = [
   {
     id: "perm_072",
     name: "System Backup",
-    slug: "SYSTEM_BACKUP",
+    slug: PERMISSIONS.SYSTEM_BACKUP,
     category: "System",
     description: "Create system backups",
+    isSystemPermission: true,
+  },
+  // Stop Suggestions
+  {
+    id: "perm_076",
+    name: "View Suggestions",
+    slug: PERMISSIONS.SUGGESTIONS_VIEW,
+    category: "Stop Suggestions",
+    description: "View stop suggestions from users",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_077",
+    name: "Review Suggestions",
+    slug: PERMISSIONS.SUGGESTIONS_REVIEW,
+    category: "Stop Suggestions",
+    description: "Review and approve/reject suggestions",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_078",
+    name: "Delete Suggestions",
+    slug: PERMISSIONS.SUGGESTIONS_DELETE,
+    category: "Stop Suggestions",
+    description: "Remove stop suggestions",
+    isSystemPermission: true,
+  },
+  // Coupons & Promotions
+  {
+    id: "perm_079",
+    name: "View Coupons",
+    slug: PERMISSIONS.COUPON_VIEW,
+    category: "Coupons",
+    description: "View available discount coupons",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_080",
+    name: "Create Coupon",
+    slug: PERMISSIONS.COUPON_CREATE,
+    category: "Coupons",
+    description: "Add new discount coupons",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_087",
+    name: "Edit Coupon",
+    slug: PERMISSIONS.COUPON_EDIT,
+    category: "Coupons",
+    description: "Update existing coupons",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_088",
+    name: "Delete Coupon",
+    slug: PERMISSIONS.COUPON_DELETE,
+    category: "Coupons",
+    description: "Remove discount coupons",
+    isSystemPermission: true,
+  },
+
+  // Financial Management
+  {
+    id: "perm_081",
+    name: "View Financials",
+    slug: PERMISSIONS.FINANCIAL_VIEW,
+    category: "Financials",
+    description: "View transactions and settlements",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_089",
+    name: "Manage Financials",
+    slug: PERMISSIONS.FINANCIAL_MANAGE,
+    category: "Financials",
+    description: "Advanced financial management",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_082",
+    name: "Manage Settlements",
+    slug: PERMISSIONS.SETTLEMENTS_MANAGE,
+    category: "Financials",
+    description: "Process and manage driver/vendor settlements",
+    isSystemPermission: true,
+  },
+
+  // Referral & Rewards
+  {
+    id: "perm_083",
+    name: "View Rewards",
+    slug: PERMISSIONS.REWARDS_VIEW,
+    category: "Rewards",
+    description: "View referral rewards and history",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_084",
+    name: "Edit Rewards",
+    slug: PERMISSIONS.REWARDS_EDIT,
+    category: "Rewards",
+    description: "Adjust or process reward redemptions",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_090",
+    name: "Delete Rewards",
+    slug: PERMISSIONS.REWARDS_DELETE,
+    category: "Rewards",
+    description: "Remove reward records",
+    isSystemPermission: true,
+  },
+
+  // Vehicle Rentals
+  {
+    id: "perm_085",
+    name: "View Rentals",
+    slug: PERMISSIONS.RENTAL_VIEW,
+    category: "Rentals",
+    description: "View vehicle rental inquiries",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_086",
+    name: "Edit Rentals",
+    slug: PERMISSIONS.RENTAL_EDIT,
+    category: "Rentals",
+    description: "Manage rental status and logistics",
+    isSystemPermission: true,
+  },
+  {
+    id: "perm_091",
+    name: "Delete Rentals",
+    slug: PERMISSIONS.RENTAL_DELETE,
+    category: "Rentals",
+    description: "Remove rental records",
     isSystemPermission: true,
   },
 ];
@@ -640,6 +777,11 @@ export const PERMISSION_CATEGORIES = [
   "Support",
   "Admin Management",
   "Role Management",
+  "Stop Suggestions",
+  "Coupons",
+  "Financials",
+  "Rewards",
+  "Rentals",
   "System",
 ];
 

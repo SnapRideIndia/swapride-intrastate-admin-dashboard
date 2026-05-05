@@ -35,8 +35,7 @@ export const useAdmin = (id: string) => {
 export const useCreateAdmin = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { email: string; fullName?: string; password: string; roleId?: string }) =>
-      adminService.create(data),
+    mutationFn: (data: any) => adminService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.lists() });
       queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
@@ -47,11 +46,21 @@ export const useCreateAdmin = () => {
 export const useUpdateAdmin = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<{ roleId?: string; fullName?: string }> }) =>
-      adminService.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<any> }) => adminService.update(id, data),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.lists() });
       queryClient.invalidateQueries({ queryKey: adminKeys.detail(variables.id) });
+    },
+  });
+};
+
+export const useUpdateMe = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<any>) => adminService.updateMe(data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user", "profile"] });
+      queryClient.invalidateQueries({ queryKey: adminKeys.all });
     },
   });
 };

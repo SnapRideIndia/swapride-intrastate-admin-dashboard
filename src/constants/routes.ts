@@ -52,6 +52,8 @@ export const ROUTES = {
   ADMINS: "/admins",
   ADMIN_DETAILS: "/admins/:id",
   ROLES: "/roles",
+  ROLE_DETAILS: "/roles/:id",
+  ROLE_CREATE: "/roles/create",
 
   // User Simulation
   USER_SIMULATOR: "/test/user",

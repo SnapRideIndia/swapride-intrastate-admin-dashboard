@@ -6,17 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ROUTES } from "@/constants/routes";
-import { Edit, KeyRound, Mail, Phone, Building, Calendar, Clock, Shield, Check } from "lucide-react";
+import { Edit, KeyRound, Mail, Phone, Building, Calendar, Clock, Shield, Check, ShieldCheck } from "lucide-react";
 import { AdminUser } from "@/types";
 import { adminService } from "@/features/admin";
 import { roleService } from "@/features/admin";
 import { permissionService, PERMISSION_CATEGORIES } from "@/features/admin";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/hooks/use-toast";
+import { PERMISSIONS } from "@/constants/permissions";
 import { format } from "date-fns";
+import { formatService } from "@/utils/format.service";
 import { AddAdminDialog } from "@/features/admin";
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { PageHeader } from "@/components/ui/page-header";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 const AdminDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -82,7 +85,7 @@ const AdminDetails = () => {
 
   const permissions = permissionService
     .getAll()
-    .filter((p) => rolePermissionIds.includes(p.id) || (admin?.permissions || []).includes("ALL"));
+    .filter((p) => rolePermissionIds.includes(p.slug) || (admin?.permissions || []).includes("ALL"));
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -106,7 +109,7 @@ const AdminDetails = () => {
       DISPATCHER: "bg-cyan-500/10 text-cyan-500",
       VIEWER: "bg-slate-500/10 text-slate-500",
     };
-    return <Badge className={`${colors[roleSlug] || "bg-muted"} text-sm px-3 py-1`}>{roleName}</Badge>;
+    return <Badge className={`${colors[roleSlug] || "bg-muted"} text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 h-auto`}>{roleName}</Badge>;
   };
 
   const permissionsByCategory = PERMISSION_CATEGORIES.map((category) => ({
@@ -119,83 +122,108 @@ const AdminDetails = () => {
     <DashboardLayout>
       <FullPageLoader show={isLoading} label="Loading admin details..." />
       <PageHeader
-        title="Admin Details"
-        subtitle="View and manage admin information"
+        title={admin.name}
+        subtitle={formatService.slugToHuman(admin.roleSlug)}
         backUrl={ROUTES.ADMINS}
         actions={
-          <>
-            {hasPermission("ADMIN_PASSWORD_RESET") && (
-              <Button variant="outline">
+          <div className="flex gap-2">
+            {hasPermission(PERMISSIONS.ADMIN_PASSWORD_RESET) && (
+              <Button variant="outline" size="sm">
                 <KeyRound className="h-4 w-4 mr-2" />
                 Reset Password
               </Button>
             )}
-            {hasPermission("ADMIN_EDIT") && (
-              <Button onClick={() => setEditDialogOpen(true)}>
+            {hasPermission(PERMISSIONS.ADMIN_EDIT) && (
+              <Button size="sm" onClick={() => setEditDialogOpen(true)}>
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Admin
+                Edit
               </Button>
             )}
-          </>
+          </div>
         }
       />
 
-      {/* Profile Card */}
-      <div className="dashboard-card p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-shrink-0">
-            <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-3xl font-bold text-primary">
-                {admin.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-              </span>
+      {/* Profile Info Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-1">
+          <div className="dashboard-card p-6 h-full flex flex-col items-center text-center">
+            <UserAvatar 
+              src={admin.profilePicture} 
+              name={admin.name} 
+              className="h-24 w-24 border-4 border-background shadow-lg mb-4"
+              fallbackClassName="text-3xl font-bold"
+            />
+            <h2 className="text-xl font-bold mb-1">{admin.name}</h2>
+            <div className="flex items-center gap-2 mb-4 justify-center">
+              {getStatusBadge(admin.status)}
+              {getRoleBadge(admin.roleName || "No Role", admin.roleSlug)}
+            </div>
+            <Separator className="my-4" />
+            <div className="w-full space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Mail className="h-3.5 w-3.5" /> Email
+                </span>
+                <span className="font-medium">{admin.email}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Phone className="h-3.5 w-3.5" /> Phone
+                </span>
+                <span className="font-medium">{admin.phone || "N/A"}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Building className="h-3.5 w-3.5" /> Dept
+                </span>
+                <span className="font-medium">{admin.department || "Operations"}</span>
+              </div>
             </div>
           </div>
-          <div className="flex-1 space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-2xl font-bold">{admin.name}</h2>
-              {getStatusBadge(admin.status)}
-              {getRoleBadge(admin.roleName, admin.roleSlug)}
-            </div>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                <span className="text-sm">{admin.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-4 w-4" />
-                <span className="text-sm">{admin.phone}</span>
-              </div>
-              {admin.department && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Building className="h-4 w-4" />
-                  <span className="text-sm">{admin.department}</span>
+        <div className="lg:col-span-2">
+          <div className="dashboard-card p-6 h-full">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-6">Account Activity</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="flex items-start gap-4">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <Calendar className="h-5 w-5" />
                 </div>
-              )}
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm">Joined {format(new Date(admin.createdAt), "MMM d, yyyy")}</span>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Date Joined</p>
+                  <p className="font-semibold">{format(new Date(admin.createdAt), "MMMM d, yyyy")}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{format(new Date(admin.createdAt), "hh:mm a")}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Last Activity</p>
+                  <p className="font-semibold">
+                    {admin.lastLogin ? format(new Date(admin.lastLogin), "MMMM d, yyyy") : "No login recorded"}
+                  </p>
+                  {admin.lastLogin && (
+                    <p className="text-xs text-muted-foreground mt-1">{format(new Date(admin.lastLogin), "hh:mm a")}</p>
+                  )}
+                </div>
               </div>
             </div>
 
-            {admin.lastLogin && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm">
-                  Last login: {format(new Date(admin.lastLogin), "MMM d, yyyy 'at' HH:mm")}
-                </span>
-              </div>
-            )}
+            <Separator className="my-8" />
 
-            {admin.notes && (
-              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">{admin.notes}</p>
+            <div className="flex gap-4 items-center">
+              <div className="flex-1 p-4 rounded-xl bg-muted/30 border border-border/50">
+                <p className="text-2xl font-bold text-primary">{permissions.length}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-tighter">Total Permissions</p>
               </div>
-            )}
+              <div className="flex-1 p-4 rounded-xl bg-muted/30 border border-border/50">
+                <p className="text-2xl font-bold text-primary">{adminCount}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-tighter">Admins with this Role</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -215,11 +243,17 @@ const AdminDetails = () => {
 
         <TabsContent value="permissions">
           <div className="dashboard-card p-6">
-            <h3 className="text-lg font-semibold mb-4">
-              {(admin?.permissions || []).includes("ALL")
-                ? "Full Access (All Permissions)"
-                : `Permissions (${permissions.length})`}
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                {(admin?.permissions || []).includes("ALL")
+                  ? "Full Access Permissions"
+                  : `Assigned Permissions (${permissions.length})`}
+              </h3>
+              {(admin?.permissions || []).includes("ALL") && (
+                <Badge className="bg-primary/10 text-primary border-primary/20">System Master</Badge>
+              )}
+            </div>
 
             {(admin?.permissions || []).includes("ALL") ? (
               <p className="text-muted-foreground">This admin has Super Admin access with all system permissions.</p>

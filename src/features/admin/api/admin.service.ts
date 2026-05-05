@@ -10,8 +10,15 @@ export const adminService = {
     roleId?: string;
   }): Promise<{ data: AdminUser[]; total: number }> => {
     try {
-      const response = await apiClient.get<any>(API_ENDPOINTS.ADMINS.GET_ALL, { params });
-      const { data, total } = response.data;
+      const { page, limit, ...rest } = params || {};
+      const offset = page && limit ? (page - 1) * limit : 0;
+      
+      const response = await apiClient.get<any>(API_ENDPOINTS.ADMINS.GET_ALL, { 
+        params: { ...rest, offset, limit } 
+      });
+      
+      const { data, pagination } = response.data;
+      const total = pagination?.total || data.length || 0;
 
       const mappedData = data.map((admin: any) => ({
         ...admin,
@@ -21,6 +28,7 @@ export const adminService = {
         permissions: admin.role?.rolePermissions?.map((rp: any) => rp.permission?.slug) || [],
         status: admin.status || "Active",
         phone: admin.phone || "N/A",
+        profilePicture: admin.profileUrl,
       }));
 
       return { data: mappedData, total };
@@ -41,6 +49,7 @@ export const adminService = {
         permissions: admin.role?.rolePermissions?.map((rp: any) => rp.permission?.slug) || [],
         status: admin.status || "Active",
         phone: admin.phone || "N/A",
+        profilePicture: admin.profileUrl,
       };
     } catch {
       return undefined;
@@ -56,14 +65,12 @@ export const adminService = {
     }
   },
 
-  create: async (adminData: {
-    email: string;
-    fullName?: string;
-    password: string;
-    roleId?: string;
-  }): Promise<AdminUser> => {
+  create: async (adminData: any): Promise<AdminUser> => {
     try {
-      const response = await apiClient.post<any>(API_ENDPOINTS.ADMINS.CREATE, adminData);
+      const isFormData = adminData instanceof FormData;
+      const response = await apiClient.post<any>(API_ENDPOINTS.ADMINS.CREATE, adminData, {
+        headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+      });
       const admin = response.data;
       return {
         ...admin,
@@ -73,15 +80,29 @@ export const adminService = {
         permissions: admin.role?.rolePermissions?.map((rp: any) => rp.permission?.slug) || [],
         status: "Active",
         phone: "N/A",
+        profilePicture: admin.profileUrl,
       };
     } catch (error) {
       throw error;
     }
   },
 
-  update: async (id: string, adminData: Partial<{ roleId?: string; fullName?: string }>): Promise<AdminUser | null> => {
+  update: async (id: string, adminData: Partial<any>): Promise<AdminUser | null> => {
     try {
-      const response = await apiClient.patch<any>(API_ENDPOINTS.ADMINS.UPDATE(id), adminData);
+      const isFormData = adminData instanceof FormData;
+      let payload = adminData;
+
+      if (!isFormData) {
+        payload = { ...adminData };
+        if (payload.name && !payload.fullName) {
+          payload.fullName = payload.name;
+          delete payload.name;
+        }
+      }
+
+      const response = await apiClient.patch<any>(API_ENDPOINTS.ADMINS.UPDATE(id), payload, {
+        headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+      });
       const admin = response.data;
       return {
         ...admin,
@@ -91,9 +112,52 @@ export const adminService = {
         permissions: admin.role?.rolePermissions?.map((rp: any) => rp.permission?.slug) || [],
         status: admin.status || "Active",
         phone: admin.phone || "N/A",
+        profilePicture: admin.profileUrl,
       };
     } catch {
       return null;
+    }
+  },
+
+  updateMe: async (adminData: Partial<any>): Promise<AdminUser | null> => {
+    try {
+      const isFormData = adminData instanceof FormData;
+      let payload = adminData;
+
+      if (!isFormData) {
+        // Map frontend 'name' to backend 'fullName' if provided
+        payload = { ...adminData };
+        if (payload.name && !payload.fullName) {
+          payload.fullName = payload.name;
+          delete payload.name;
+        }
+      }
+
+      const response = await apiClient.patch<any>(API_ENDPOINTS.AUTH.ME, payload, {
+        headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+      });
+      const admin = response.data;
+      return {
+        ...admin,
+        name: admin.fullName || admin.email,
+        roleName: admin.role?.name,
+        roleSlug: admin.role?.slug || admin.role?.name,
+        permissions: admin.role?.rolePermissions?.map((rp: any) => rp.permission?.slug) || [],
+        status: admin.status || "Active",
+        phone: admin.phone || "N/A",
+        profilePicture: admin.profileUrl,
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  changePassword: async (passwordData: any): Promise<boolean> => {
+    try {
+      await apiClient.patch(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, passwordData);
+      return true;
+    } catch (error) {
+      throw error;
     }
   },
 
@@ -155,6 +219,15 @@ export const adminService = {
         inactiveAdmins: 0,
         totalRoles: 0,
       };
+    }
+  },
+
+  resetPassword: async (id: string, newPassword: string): Promise<boolean> => {
+    try {
+      await apiClient.patch(API_ENDPOINTS.ADMINS.RESET_PASSWORD(id), { newPassword });
+      return true;
+    } catch (error) {
+      throw error;
     }
   },
 };

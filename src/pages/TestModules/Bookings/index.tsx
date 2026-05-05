@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ChevronRight, User as UserIcon, MapPin, Bookmark, X } from "lucide-react";
+import { ChevronRight, User as UserIcon, MapPin, Bookmark, X } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";

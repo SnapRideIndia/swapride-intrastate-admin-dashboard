@@ -7,7 +7,11 @@ export function usePermissions() {
 
   const hasPermission = (permissionSlug: string): boolean => {
     if (!user) return false;
-    if (user.roleSlug === "SUPER_ADMIN") return true;
+    const normalizedRole = user.roleSlug?.toUpperCase();
+    if (normalizedRole === "SUPER_ADMIN" || normalizedRole === "ADMIN") {
+      // Basic safeguard, though backend should ideally control this
+      if (normalizedRole === "SUPER_ADMIN") return true;
+    }
     if (permissions.includes("ALL")) return true;
     return permissions.includes(permissionSlug);
   };

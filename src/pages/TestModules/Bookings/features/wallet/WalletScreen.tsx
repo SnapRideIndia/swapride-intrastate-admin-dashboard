@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { ChevronLeft, History, Search, ArrowUpRight, Plus, X } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { ChevronLeft, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletCard } from "./components/WalletCard";
 import { TransactionList } from "./components/TransactionList";

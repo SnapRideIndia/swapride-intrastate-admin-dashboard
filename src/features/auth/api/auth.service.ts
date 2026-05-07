@@ -130,7 +130,24 @@ export const authService = {
     return permissionSlugs.some((slug) => state.user?.permissions?.includes(slug));
   },
 
-  // Mock credentials for quick testing - Optional to keep or remove
+  forgotPassword: async (mobileNumber: string): Promise<{ message: string; ttl: number }> => {
+    const response = await apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { mobileNumber });
+    return response.data;
+  },
+
+  verifyForgotPasswordOtp: async (
+    mobileNumber: string,
+    otp: string,
+  ): Promise<{ verificationId: string }> => {
+    const response = await apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD_VERIFY_OTP, { mobileNumber, otp });
+    return response.data;
+  },
+
+  resetForgotPassword: async (verificationId: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD_RESET, { verificationId, newPassword });
+    return response.data;
+  },
+
   getMockCredentials: () => ({
     email: "manikanta@maratech.in",
     password: "admin123",

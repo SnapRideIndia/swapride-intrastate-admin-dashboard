@@ -1,5 +1,6 @@
 import { ROUTES } from "@/constants/routes";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
 import Dashboard from "@/pages/Dashboard";
 import Buses from "@/pages/Buses";
 import BusDetail from "../pages/BusDetail";
@@ -40,7 +41,10 @@ export interface RouteConfig {
   protected?: boolean;
 }
 
-export const publicRoutes: RouteConfig[] = [{ path: ROUTES.LOGIN, element: <Login /> }];
+export const publicRoutes: RouteConfig[] = [
+  { path: ROUTES.LOGIN, element: <Login /> },
+  { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPassword /> }
+];
 
 export const protectedRoutes: RouteConfig[] = [
   { path: ROUTES.DASHBOARD, element: <Dashboard /> },

@@ -1,6 +1,7 @@
 export const ROUTES = {
   // Public
   LOGIN: "/login",
+  FORGOT_PASSWORD: "/forgot-password",
   NO_NETWORK: "/no-network",
   BACKEND_OFFLINE: "/backend-offline",
 
